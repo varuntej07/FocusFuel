@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "107481277829",
+    "project_id": "focusfuel-bbd48",
+    "storage_bucket": "focusfuel-bbd48.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:107481277829:android:84c04d3b7f85687c4310ec",
+        "android_client_info": {
+          "package_name": "com.example.focus_fuel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfyQZV_j8W277otHHKttkDsFtKQpkVqnM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:107481277829:android:a2ae30ca68266bee4310ec",
+        "android_client_info": {
+          "package_name": "com.example.focusfuel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfyQZV_j8W277otHHKttkDsFtKQpkVqnM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
