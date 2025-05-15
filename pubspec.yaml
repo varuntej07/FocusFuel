@@ -37,6 +37,7 @@ dependencies:
   flutter_local_notifications:
   cloud_functions:
   intl_phone_field:
+  provider:
 
 
 
