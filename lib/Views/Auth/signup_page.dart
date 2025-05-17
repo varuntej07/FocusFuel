@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../ViewModels/auth/signup_vm.dart';
+import 'package:focus_fuel/ViewModels/auth_vm.dart';
+import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
 import '../screens/main_scaffold.dart';
 import 'login_page.dart';
-
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -14,10 +14,16 @@ class Signup extends StatefulWidget {
 
 class _SignupState extends State<Signup> {
   final _formKey = GlobalKey<FormState>();
+  bool _viewPassword = false;
+
+  void _togglePassword() => setState(() => _viewPassword = !_viewPassword);
+  void _toggleConfirmPass() => setState(() => _viewPassword = !_viewPassword);
+
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<SignupViewModel>(); // Provides access to SignupViewModel
+    final auth = context.watch<AuthViewModel>(); // Provides access to AuthViewModel
+    final homeVM = context.watch<HomeViewModel>();
 
     return Scaffold(
       backgroundColor: Colors.purple[50],
@@ -36,7 +42,7 @@ class _SignupState extends State<Signup> {
               ),
               const SizedBox(height: 20),
               TextFormField(
-                  controller: vm.usernameController,
+                  controller: auth.usernameController,
                   validator: (v) => (v?.isEmpty ?? true)? "Create a username brotha": null,
                   decoration: const InputDecoration(
                       hintText: "Create username", labelText: "Username",
@@ -47,18 +53,17 @@ class _SignupState extends State<Signup> {
               const SizedBox(height: 16),
 
               TextFormField(
-                controller: vm.emailController,
+                controller: auth.emailController,
                 decoration: const InputDecoration(
-                    labelText: 'Email',
+                    hintText: "Enter ya email", labelText: 'Email',
                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
                     prefixIcon: Icon(Icons.email)
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Enter email brotha';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Enter a valid email dawg';
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  if ((v?.isEmpty ?? true)) return "Enter email bro";
+                  if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v!)) {
+                    return "This doesn’t look like a valid email";
                   }
                   return null;
                 },
@@ -66,37 +71,64 @@ class _SignupState extends State<Signup> {
               const SizedBox(height: 16),
 
               TextFormField(
-                controller: vm.passwordController,
-                obscureText: true, // Masks password
-                decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
-                    prefixIcon: Icon(Icons.password)
+                controller: auth.passwordController,
+                obscureText: _viewPassword,
+                decoration: InputDecoration(
+                    hintText: 'Password', labelText: 'Create Password',
+                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(_viewPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: _togglePassword
+                    )
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                     return 'Please create a password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
+                  if ((value?.isEmpty ?? true)) return 'Please create a password first';
+                  if (value!.length < 6) return 'Password must be at least 6 characters';
                   return null;
                 },
               ),
-              const SizedBox(height: 22),
-              if (vm.isLoading) const CircularProgressIndicator(),
-              if (vm.errorMessage != null) ...[  // ... is the spread operator inside a list literal
+
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: auth.confirmPasswordController,
+                obscureText: _viewPassword,
+                decoration: InputDecoration(
+                    hintText: 'Confirm password', labelText: 'Confirm password',
+                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
+                    prefixIcon: const Icon(Icons.password_outlined),
+                    suffixIcon: IconButton(
+                      icon: Icon(_viewPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: _toggleConfirmPass,
+                    )
+                ),
+                validator: (value) {
+                  if ((value?.isEmpty ?? true)) return 'Please confirm ya password';
+                  if (value != auth.passwordController.text) return 'Passwords do not match';
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              if (auth.errorMessage != null) ...[  // ... is the spread operator inside a list literal
                 const SizedBox(height: 8),    // vertical spacing before the error text.
-                Text(vm.errorMessage!, style: const TextStyle(color: Colors.red))
+                Text(auth.errorMessage!, style: const TextStyle(color: Colors.red))
               ],
+
               const SizedBox(height: 16),
 
               ElevatedButton(
-                onPressed: vm.isLoading
-                    ? null    // Prevents multiple submissions
+                onPressed: auth.isLoading
+                    ? null    // Prevents multiple taps while async signup is in progress
                     : () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  if (await vm.signUp() && context.mounted) {
+                  if (!_formKey.currentState!.validate()) return;     // validate before signing up
+
+                  if (!context.mounted) return;
+
+                  if (await auth.signUp()) {
+                    await homeVM.loadData();    // Preload user info before navigating
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
                   }
                 },
@@ -104,10 +136,11 @@ class _SignupState extends State<Signup> {
                   backgroundColor: Colors.purple[600],
                   minimumSize: const Size.fromHeight(48),
                 ),
-                child: vm.isLoading
+                child: auth.isLoading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text("Sign Up", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../ViewModels/home_vm.dart';
 
 class HomeFeed extends StatefulWidget {
   const HomeFeed({super.key});
@@ -12,7 +14,11 @@ class _HomeFeedState extends State<HomeFeed> {
   final List<String> suggestions = ['Master DSA', 'Job hunt', 'UI/UX', 'Body building', 'Motivation', "Other"];
 
   String? _selectedFocus;
-  final int _streakCount = 3;
+
+  @override
+  void initState(){
+    super.initState();
+  }
 
   void _handleSuggestionTap(String suggestion) {
     if (suggestion.contains("Other")) {
@@ -33,9 +39,7 @@ class _HomeFeedState extends State<HomeFeed> {
             decoration: const InputDecoration(hintText: 'wanna master GenAI'),
             onChanged: (value) => customFocus = value),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
               onPressed: () {
                 _saveSession(customFocus);
@@ -67,23 +71,26 @@ class _HomeFeedState extends State<HomeFeed> {
 
   @override
   Widget build(BuildContext context) {
+    final homeVM = Provider.of<HomeViewModel>(context);   // gets all the details required on this page from Firestore
+    final userName = homeVM.username;
+    final streak = homeVM.streak;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           child: Column(
             children: [
-              Row(    // Top Row with streak count
+              Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text("$_streakCount", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("$streak", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(width: 4),
                   Icon(Icons.local_fire_department_rounded, color: Colors.redAccent)
                 ],
               ),
 
-              const Text("Hey Pedro!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.orange)),
+              Text("Hey $userName!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.orange)),
 
               const SizedBox(height: 30),
 

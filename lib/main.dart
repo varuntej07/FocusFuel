@@ -1,10 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:focus_fuel/ViewModels/auth/login_vm.dart';
-import 'package:focus_fuel/ViewModels/auth/signup_vm.dart';
+import 'package:focus_fuel/ViewModels/auth_vm.dart';
+import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
 import 'Views/Auth/login_page.dart';
+import 'Views/screens/main_scaffold.dart';
 import 'firebase_options.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -13,7 +15,6 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterL
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
 
   try{
     // Tells Android what small icon to show in the notification bar
@@ -40,8 +41,8 @@ Future<void> main() async {
   runApp(
       MultiProvider(
           providers: [
-            ChangeNotifierProvider(create: (_) => SignupViewModel()),
-            ChangeNotifierProvider(create: (_) => LoginViewModel())
+            ChangeNotifierProvider(create: (_) => AuthViewModel()),
+            ChangeNotifierProvider(create: (_) => HomeViewModel()),
           ],
           child: const MyApp()
       )
@@ -54,10 +55,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Login(),
+    final user = FirebaseAuth.instance.currentUser;
+
+    return MaterialApp(
+      home: user != null ? const HomePage() : const Login(),
     );
   }
 }

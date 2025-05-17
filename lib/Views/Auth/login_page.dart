@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../ViewModels/auth/login_vm.dart';
+import '../../ViewModels/auth_vm.dart';
+import '../../ViewModels/home_vm.dart';
 import '../screens/main_scaffold.dart';
 import 'signup_page.dart';
 
@@ -13,6 +14,7 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   final _formKey = GlobalKey<FormState>();
+  bool _viewPassword = true;
 
   void _showLoginFailedDialog(String message) {
     showDialog(
@@ -32,7 +34,7 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<LoginViewModel>(); // Listen for isLoading & errorMessage
+    final auth = context.watch<AuthViewModel>(); // Listen for isLoading & errorMessage
 
     return Scaffold(
       backgroundColor: Colors.purple[50],
@@ -50,7 +52,7 @@ class _LoginState extends State<Login> {
               const SizedBox(height: 32),
 
               TextFormField(
-                controller: vm.emailController,
+                controller: auth.emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   hintText: "Email",
@@ -61,11 +63,19 @@ class _LoginState extends State<Login> {
               const SizedBox(height: 12),
 
               TextFormField(
-                controller: vm.passwordController,
-                obscureText: true,
+                controller: auth.passwordController,
+                obscureText: _viewPassword,
                 decoration: InputDecoration(
                   hintText: "Password",
                   prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(_viewPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _viewPassword = !_viewPassword;
+                      });
+                    },
+                  ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                 ),
                 validator: (v) => (v?.isEmpty ?? true) ? "Enter your password" : null,
@@ -73,25 +83,28 @@ class _LoginState extends State<Login> {
               const SizedBox(height: 24),
 
               ElevatedButton(
-                onPressed: vm.isLoading
-                    ? null
-                    : () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  final user = await vm.login();
-                  if (user != null && context.mounted) {
+                onPressed: auth.isLoading ? null : () async {
+                  if (!_formKey.currentState!.validate()) return;  // validate first before logging in
+
+                  final success = await auth.login();
+                  if (!context.mounted) return;
+
+                  if (success != null) {
+                    await context.read<HomeViewModel>().loadData();   // providing the logic for loading data through HomeViewModel
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
-                  } else if (context.mounted) {
-                    _showLoginFailedDialog(vm.errorMessage ?? 'Please try again.');
+                  } else{
+                    _showLoginFailedDialog(auth.errorMessage ?? 'Login failed. Please try again.');
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple[600],
                   minimumSize: const Size.fromHeight(48),
                 ),
-                child: vm.isLoading
+                child: auth.isLoading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text("Log In", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
+
               const SizedBox(height: 16),
 
               Row(
