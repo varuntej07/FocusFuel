@@ -15,6 +15,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _formKey = GlobalKey<FormState>();
   bool _viewPassword = true;
+  void _togglePassword() => setState(() => _viewPassword = !_viewPassword);
 
   void _showLoginFailedDialog(String message) {
     showDialog(
@@ -70,11 +71,7 @@ class _LoginState extends State<Login> {
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
                     icon: Icon(_viewPassword ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () {
-                      setState(() {
-                        _viewPassword = !_viewPassword;
-                      });
-                    },
+                    onPressed: _togglePassword
                   ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                 ),

@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
 
     final token = await FirebaseMessaging.instance.getToken(); // returns the device's FCM registration token
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;   // If currentUser exists, get its uid; otherwise, uid is null.
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)

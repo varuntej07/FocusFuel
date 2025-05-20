@@ -38,6 +38,7 @@ dependencies:
   cloud_functions:
   intl_phone_field:
   provider:
+  intl:
 
 
 

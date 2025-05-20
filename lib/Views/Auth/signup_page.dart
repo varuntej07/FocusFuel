@@ -14,7 +14,7 @@ class Signup extends StatefulWidget {
 
 class _SignupState extends State<Signup> {
   final _formKey = GlobalKey<FormState>();
-  bool _viewPassword = false;
+  bool _viewPassword = true;
 
   void _togglePassword() => setState(() => _viewPassword = !_viewPassword);
   void _toggleConfirmPass() => setState(() => _viewPassword = !_viewPassword);
@@ -140,7 +140,6 @@ class _SignupState extends State<Signup> {
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text("Sign Up", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
