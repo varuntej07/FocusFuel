@@ -1,13 +1,13 @@
-class ChatMessage{
+class ChatModel{
   final String text;
   final bool isUser;      // true=user, false=assistant
   final DateTime timestamp;
-  final bool isRead;
+  final String username;
 
-  ChatMessage({
+  ChatModel({
     required this.text,
     required this.isUser,
     required this.timestamp,
-    required this.isRead,
+    required this.username
   });
 }

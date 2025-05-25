@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../Models/chat_model.dart';
 import 'package:intl/intl.dart';
 import '../../ViewModels/chat_vm.dart';
+import '../Auth/login_page.dart';
 
 class ChatScreen extends StatefulWidget{
   const ChatScreen({super.key});
@@ -12,9 +13,26 @@ class ChatScreen extends StatefulWidget{
 }
 
 class _ChatScreenState extends State<ChatScreen>{
-  final ChatViewModel chatVM = ChatViewModel(userId: 'O4e733SdzphXPpds73NXL5np1ZA2');
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -26,13 +44,15 @@ class _ChatScreenState extends State<ChatScreen>{
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
-      chatVM.sendMessage(text);
+      context.read<ChatViewModel>().sendMessage(text);
       _controller.clear();
-      setState(() {});
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
     }
   }
 
-  Widget _buildMessage(ChatMessage msg){
+  Widget _buildMessage(ChatModel msg){
     final time = DateFormat.jm().format(msg.timestamp);
     final isUser = msg.isUser;
 
@@ -54,15 +74,15 @@ class _ChatScreenState extends State<ChatScreen>{
         children: [
           if (!isUser) ...[
             // AI avatar on the left
-            const CircleAvatar(radius: 16, child: Icon(Icons.android, size: 20)),
-            const SizedBox(width: 8),
+            const CircleAvatar(radius: 10, child: Icon(Icons.android, size: 6)),
+            const SizedBox(width: 4),
           ],
 
           Flexible(     // message bubble
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
               decoration: BoxDecoration(
                 gradient: bgGradient,
                 borderRadius: BorderRadius.circular(16),
@@ -98,37 +118,52 @@ class _ChatScreenState extends State<ChatScreen>{
 
   @override
   Widget build(BuildContext context) {
+    final chatVM = context.watch<ChatViewModel>();
+
+    if(chatVM.userId.isEmpty){
+      return Scaffold(
+        body: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text("Sign in or Login to start chatting!"),
+              TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Login())),
+                  child: const Text("Login")
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
+            child: StreamBuilder<List<ChatModel>>(
               stream: chatVM.getMessageStream(),
               builder: (context, snap) {
                 if (snap.hasError) {
+                  final err = snap.error.toString();
+                  if (err.contains('permission-denied')) {
+                    return const Center(child: Text("Login First and ask something to stay hard!!"));
+                  }
                   return Center(child: Text("Oops!! Hold on.. there's an error loading messages: ${snap.error}"));
                 }
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                final messages = snap.data ?? [];
 
-                final docs = snap.data!.docs;
-                if (docs.isEmpty) {
+                if (messages.isEmpty) {
                   return const Center(child: Text("Ask something to stay hard!!"));
                 }
 
-                final messages = docs.map((doc) {
-                  final data = doc.data()! as Map<String, dynamic>;
-                  final Timestamp? ts = data['createdAt'] as Timestamp?;
-                  final DateTime dt = ts?.toDate() ?? DateTime.now();
-
-                  return ChatMessage(
-                    text: data['content'] ?? '',
-                    isUser: data['role'] == 'user',
-                    timestamp: dt,
-                    isRead: data['isRead'] ?? true,
-                  );
-                }).toList();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+                  }
+                });
 
                 return ListView.builder(
                   controller: _scrollController,

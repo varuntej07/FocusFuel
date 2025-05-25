@@ -2,9 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:focus_fuel/Views/screens/menu_page.dart';
-import '../../main.dart';
 import 'chat_screen.dart';
 import 'home_page.dart';
 
@@ -35,12 +33,18 @@ class _HomePageState extends State<HomePage> {
     );
 
     final token = await FirebaseMessaging.instance.getToken(); // returns the device's FCM registration token
-
     final uid = FirebaseAuth.instance.currentUser?.uid;   // If currentUser exists, get its uid; otherwise, uid is null.
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .set({'fcmToken':token}, SetOptions(merge: true));
+
+    if (uid != null && token != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users').doc(uid)
+            .set({'fcmToken': token}, SetOptions(merge: true));
+      } catch (e) {
+        // maybe log it, but never crash
+        debugPrint("FCM token save skipped: $e");
+      }
+    }
 
     // Tokens can be refreshed for various reasons like: Re-installation, User clearing app data etc.,
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
@@ -49,46 +53,30 @@ class _HomePageState extends State<HomePage> {
           .doc(uid)
           .set({'fcmToken':newToken}, SetOptions(merge: true));
     });
-
-    // listens for messages only when the app is in foreground (open)
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      RemoteNotification? notification = message.notification; // extracts the actual notification details
-      AndroidNotification? android = message.notification?.android;
-
-      if (notification != null && android != null) {
-        flutterLocalNotificationsPlugin.show(
-            notification.hashCode,
-            // a unique ID so it doesn’t overwrite old ones
-            notification.title, notification.body,
-            const NotificationDetails(
-              android: AndroidNotificationDetails( // configuration of how the notification appears (channel, sound, priority...)
-                  'high_importance_channel', 'High Importance Notifications', // should match what's initialized in main.dart'
-                  importance: Importance.high, priority: Priority.high
-              ),
-            )
-        );
-      }
-    });
   }
+
+  final List<Widget> _pages = [
+    const HomeFeed(),
+    const ChatScreen(),
+    const MenuPage()
+  ];
 
   void _onTap(int index) => setState(() => _selectedIndex = index);
 
-    @override
+  @override
     Widget build(BuildContext context) {
-      final pages = [
-        const HomeFeed(),
-        const ChatScreen(),
-        const MenuPage()
-      ];
       return Scaffold(
-          body: pages[_selectedIndex],
+          body: IndexedStack(   // Only changes which one is painted, doesn’t dispose/rebuild others
+            index: _selectedIndex,
+            children: _pages,
+          ),
           bottomNavigationBar: BottomNavigationBar(
               currentIndex: _selectedIndex,
               onTap: _onTap,
               items: const [
                 BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
                 BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-                BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'More')
+                BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu')
               ]
           )
       );

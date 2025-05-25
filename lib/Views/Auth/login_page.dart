@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/auth_vm.dart';
+import '../../ViewModels/chat_vm.dart';
 import '../../ViewModels/home_vm.dart';
 import '../screens/main_scaffold.dart';
 import 'signup_page.dart';
@@ -70,7 +71,7 @@ class _LoginState extends State<Login> {
                   hintText: "Password",
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
-                    icon: Icon(_viewPassword ? Icons.visibility : Icons.visibility_off),
+                    icon: Icon(_viewPassword ? Icons.visibility_off : Icons.visibility),
                     onPressed: _togglePassword
                   ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
@@ -87,6 +88,7 @@ class _LoginState extends State<Login> {
                   if (!context.mounted) return;
 
                   if (success != null) {
+                    context.read<ChatViewModel>().updateUser(success.uid);
                     await context.read<HomeViewModel>().loadData();   // providing the logic for loading data through HomeViewModel
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
                   } else{

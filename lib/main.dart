@@ -2,55 +2,28 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:focus_fuel/Utils/route_navigator.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
+import 'package:focus_fuel/ViewModels/chat_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
-import 'Views/Auth/login_page.dart';
-import 'Views/screens/main_scaffold.dart';
 import 'firebase_options.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+final GlobalKey<NavigatorState> navigationKey = GlobalKey<NavigatorState>();
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Wiring FCM → Awesome for background & foreground
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  try{
-    // Tells Android what small icon to show in the notification bar
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('notification_icon');
-    final InitializationSettings settings = InitializationSettings(android: androidSettings);
-    await flutterLocalNotificationsPlugin.initialize(settings);
-  } catch (e) {
-    print('Error initializing FlutterLocalNotificationsPlugin: $e');
-  }
-
-  // Create channel for Android as all notifications must be assigned to a channel
-  const AndroidNotificationChannel channel = AndroidNotificationChannel(
-    'high_importance_channel', 'High Importance Notifications',
-    importance: Importance.high,    // sound will play, notification shows as a heads-up banner (not silent)
-  );
-
-  // registers the channel defined above with the Android system and ensures that the OS knows about the 'high_importance_channel'
-  await flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(channel);
-
-  // Background msg handler (must be top-level)
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  runApp(
-      MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => AuthViewModel()),
-            ChangeNotifierProvider(create: (_) => HomeViewModel()),
-          ],
-          child: const MyApp()
-      )
-  );
-}
-
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -58,10 +31,47 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
 
-    return MaterialApp(
-      home: user != null ? const HomePage() : const Login(),
+    // Foreground FCM handler - the message in onMessage.listen comes from FlutterFire's FLTFireMsgReceiver,
+    // which handles FCM messages and forwards them as broadcasts as Instance of RemoteMessage.
+    FirebaseMessaging.onMessage.listen((RemoteMessage message){
+      // This shows the native OS notification even in foreground
+      FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(alert: true, badge: true, sound: true);
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+     final deepLink = message.data['deep_link'];
+      if (deepLink != null) {
+        print('User tapped on push: Navigate to $deepLink');
+      }
+    });
+
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Wait for auth state to resolve
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const MaterialApp(
+            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+          );
+        }
+
+        // Get the current user
+        final user = snapshot.data;
+
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AuthViewModel()),
+            ChangeNotifierProvider(create: (_) => HomeViewModel()),
+            ChangeNotifierProvider(create: (_) => ChatViewModel(userId: user?.uid ?? '')),
+          ],
+          child: MaterialApp(
+            navigatorKey: navigationKey,
+            initialRoute: user != null ? '/' : '/login',
+            onGenerateRoute: RouteNavigator.routeGenerator,
+          ),
+        );
+      },
     );
   }
 }

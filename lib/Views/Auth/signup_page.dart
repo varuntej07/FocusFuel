@@ -17,8 +17,6 @@ class _SignupState extends State<Signup> {
   bool _viewPassword = true;
 
   void _togglePassword() => setState(() => _viewPassword = !_viewPassword);
-  void _toggleConfirmPass() => setState(() => _viewPassword = !_viewPassword);
-
 
   @override
   Widget build(BuildContext context) {
@@ -98,10 +96,6 @@ class _SignupState extends State<Signup> {
                     hintText: 'Confirm password', labelText: 'Confirm password',
                     border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
                     prefixIcon: const Icon(Icons.password_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(_viewPassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: _toggleConfirmPass,
-                    )
                 ),
                 validator: (value) {
                   if ((value?.isEmpty ?? true)) return 'Please confirm ya password';
@@ -127,7 +121,7 @@ class _SignupState extends State<Signup> {
 
                   if (!context.mounted) return;
 
-                  if (await auth.signUp()) {
+                  if (await auth.signUp() != null) {
                     await homeVM.loadData();    // Preload user info before navigating
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
                   }
