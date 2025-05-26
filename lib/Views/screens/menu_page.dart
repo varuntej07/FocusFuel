@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/Views/Auth/login_page.dart';
+import 'package:focus_fuel/Views/screens/subscription_page.dart';
+import 'package:focus_fuel/Views/screens/support_page.dart';
 import 'package:provider/provider.dart';
 
 class MenuPage extends StatefulWidget {
@@ -93,7 +95,7 @@ class _MenuPageState extends State<MenuPage> {
               background: Colors.deepPurpleAccent,
               isIconTrailing: true,
               onTap: () {
-                // TODO: navigate to premium flow
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SubscriptionScreen()));
               },
             ),
             Expanded(
@@ -128,7 +130,7 @@ class _MenuPageState extends State<MenuPage> {
                     title: 'Support',
                     icon: Icons.contact_support_outlined,
                     onTap: () {
-                      // TODO: navigate to support
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => SupportScreen()));
                     },
                   ),
                   _buildMenuCard(

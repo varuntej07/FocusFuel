@@ -91,6 +91,9 @@ exports.sendScheduledNotification = onSchedule(
         token,
         android: {
           priority: 'high',
+          notification: {
+            channel_id: 'focusfuel_channel',  // custom channel
+          }
         },
         notification: {
           title: 'Stay hard!',

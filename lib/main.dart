@@ -7,6 +7,8 @@ import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/ViewModels/chat_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
+import 'Utils/shared_prefs_service.dart';
+import 'Utils/streak_repo.dart';
 import 'firebase_options.dart';
 
 final GlobalKey<NavigatorState> navigationKey = GlobalKey<NavigatorState>();
@@ -22,6 +24,8 @@ Future<void> main() async {
   
   // Wiring FCM → Awesome for background & foreground
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  await SharedPreferencesService.getInstance();
 
   runApp(const MyApp());
 }
@@ -61,8 +65,9 @@ class MyApp extends StatelessWidget {
 
         return MultiProvider(
           providers: [
+            Provider<StreakRepository>(create: (_) => StreakRepository()),
             ChangeNotifierProvider(create: (_) => AuthViewModel()),
-            ChangeNotifierProvider(create: (_) => HomeViewModel()),
+            ChangeNotifierProvider(create: (context) => HomeViewModel(context.read<StreakRepository>())),
             ChangeNotifierProvider(create: (_) => ChatViewModel(userId: user?.uid ?? '')),
           ],
           child: MaterialApp(

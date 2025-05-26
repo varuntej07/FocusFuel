@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../Models/chat_model.dart';
 import 'package:intl/intl.dart';
 import '../../ViewModels/chat_vm.dart';
+import '../../ViewModels/home_vm.dart';
 import '../Auth/login_page.dart';
 
 class ChatScreen extends StatefulWidget{
@@ -22,6 +23,7 @@ class _ChatScreenState extends State<ChatScreen>{
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+    context.read<HomeViewModel>().bumpStreakIfNeeded();
   }
 
   void _scrollToBottom() {

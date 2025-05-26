@@ -2,24 +2,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../Utils/streak_repo.dart';
 
 class HomeViewModel extends ChangeNotifier{
   String? _username;
   int _streak = 0;
   String? _currentFocus;
   String _mood = 'Chill';
+  final StreakRepository streakRepo;
 
   // constructor that loads from preferences first
-  HomeViewModel() {
-    _loadUsernameFromPrefs();
-  }
+  HomeViewModel(this.streakRepo);
 
-  // helper to pull data from SharedPreferences
-  Future<void> _loadUsernameFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('username');
-    if (saved != null && _username == null) {
-      _username = saved;
+  Future<void> bumpStreakIfNeeded() async {
+    final newVal = await streakRepo.incrementIfNeeded();
+    
+    if (newVal != _streak) {
+      _streak = newVal;
       notifyListeners();
     }
   }
