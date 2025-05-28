@@ -72,7 +72,7 @@ exports.sendScheduledNotification = onSchedule(
    },
    async () => {
 
-        const usersSnapshot = await db.collection("users").where("isActive", "==", true).get();
+        const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();
 
         // Iterate through each user document
         for (const doc of usersSnapshot.docs) {
@@ -93,6 +93,7 @@ exports.sendScheduledNotification = onSchedule(
           priority: 'high',
           notification: {
             channel_id: 'focusfuel_channel',  // custom channel
+            click_action: 'FLUTTER_NOTIFICATION_CLICK',   // deep-link guarantee
           }
         },
         notification: {
@@ -100,7 +101,8 @@ exports.sendScheduledNotification = onSchedule(
           body: _apiResponse
         },
         data: {
-          deep_link: "/chat"
+          deep_link: "/chat",
+          suggestedReply: 'done',
         }
       };
 
@@ -122,7 +124,7 @@ async function saveNotificationToFirestore(userId, message){
             createdAt: admin.firestore.FieldValue.serverTimestamp(),        // FieldValue class is static member of admin.firestore, not an instance of Firestore(db->line 7)
             goal: "",
         }
-        const messageRef = db.collection("users").doc(userId).collection("messages");
+        const messageRef = db.collection("Users").doc(userId).collection("NotificationMessages");
         await messageRef.add(messageData);
     } catch(err){
         console.error("Error saving GPT notification to Firestore:", err);

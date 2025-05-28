@@ -36,12 +36,12 @@ class ChatViewModel with ChangeNotifier {
       if (_userId.isEmpty) return Stream.value(<ChatModel>[]);
 
       final assistantStream = FirebaseFirestore.instance
-          .collection('users').doc(_userId).collection('messages')
+          .collection('Users').doc(_userId).collection('NotificationMessages')
           .orderBy('createdAt', descending: false)
           .snapshots();
 
       final userStream = FirebaseFirestore.instance
-          .collection('users').doc(_userId).collection('UserResponses')
+          .collection('Users').doc(_userId).collection('UserResponses')
           .orderBy('createdAt', descending: false)
           .snapshots();
 
@@ -90,7 +90,7 @@ class ChatViewModel with ChangeNotifier {
       return;
     }
     await FirebaseFirestore.instance
-        .collection('users')
+        .collection('Users')
         .doc(userId)
         .collection('UserResponses')
         .add({

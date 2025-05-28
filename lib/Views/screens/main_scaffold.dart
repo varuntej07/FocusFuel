@@ -38,7 +38,7 @@ class _HomePageState extends State<HomePage> {
     if (uid != null && token != null) {
       try {
         await FirebaseFirestore.instance
-            .collection('users').doc(uid)
+            .collection('Users').doc(uid)
             .set({'fcmToken': token}, SetOptions(merge: true));
       } catch (e) {
         // maybe log it, but never crash
@@ -49,7 +49,7 @@ class _HomePageState extends State<HomePage> {
     // Tokens can be refreshed for various reasons like: Re-installation, User clearing app data etc.,
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
       await FirebaseFirestore.instance
-          .collection("users")
+          .collection("Users")
           .doc(uid)
           .set({'fcmToken':newToken}, SetOptions(merge: true));
     });

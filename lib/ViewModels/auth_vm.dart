@@ -16,15 +16,24 @@ class AuthViewModel extends ChangeNotifier {
   bool isLoading = false;     // Controls the spinner & button state
   String? errorMessage;
   User? _currentUser;
-  User? get currentUser => _currentUser;
   UserModel? _userModel;
-  UserModel? get userModel => _userModel;
 
-  SharedPreferencesService _prefsService = SharedPreferencesService();
+  late SharedPreferencesService _prefsService;
+
+  // Constructor – loads prefs only once
+  AuthViewModel() {
+    initializePreferences();
+  }
 
   // Initializing SharedPreferences service
   Future<void> initializePreferences() async {
     _prefsService = await SharedPreferencesService.getInstance();
+  }
+
+  Future<void> _cacheUser() async {
+    await _prefsService.saveUsername(_userModel!.username);
+    await _prefsService.saveEmail(_userModel!.email);
+    await _prefsService.saveUserId(_userModel!.uid);
   }
 
   void _startLoading() {
@@ -43,6 +52,7 @@ class AuthViewModel extends ChangeNotifier {
     confirmPasswordController.clear();
     usernameController.clear();
     errorMessage = null;
+    notifyListeners();
   }
 
   @override
@@ -64,29 +74,25 @@ class AuthViewModel extends ChangeNotifier {
 
       final db = FirebaseFirestore.instance;
       // updating the collection whenever the user logs in
-      await db.collection('users').doc(credential.user!.uid).update({
+      await db.collection('Users').doc(credential.user!.uid).update({
         'isActive': true,
         'lastLogin': FieldValue.serverTimestamp()
       });
 
-      final snap = await db.collection('users').doc(credential.user!.uid).get();
+      final snap = await db.collection('Users').doc(credential.user!.uid).get();
 
-      final userModel = UserModel(
+      _userModel = UserModel(
         uid: snap.get('uid'),
         email: snap.get('email'),
         username: snap.get('username'),
-        isActive: snap.get('isActive'),
+        isActive: true,
       );
 
       _currentUser = credential.user;
-      _userModel = userModel;
+      await _cacheUser();             // Saving to SharedPreferences using centralized service
+      errorMessage = null;
 
-      // Saving to SharedPreferences using centralized service
-      await _prefsService.saveUsername(userModel.username);
-      await _prefsService.saveEmail(userModel.email);
-      await _prefsService.saveUserId(userModel.uid);
-
-      return userModel;
+      return _userModel;
     } on FirebaseAuthException catch (e) {
       errorMessage = _mapFirebaseError(e);
       return null;
@@ -105,7 +111,7 @@ class AuthViewModel extends ChangeNotifier {
 
       final db = FirebaseFirestore.instance;
       // Setting up the collection whenever the user Signs up
-      await db.collection('users').doc(credential.user!.uid).set({
+      await db.collection('Users').doc(credential.user!.uid).set({
         'uid': credential.user!.uid,
         'email': emailController.text.trim(),
         'username': usernameController.text.trim(),
@@ -113,11 +119,18 @@ class AuthViewModel extends ChangeNotifier {
         'isActive': true,
       });
 
+      // building the model before touching prefs
+      _userModel = UserModel(
+        uid: credential.user!.uid,
+        email: emailController.text.trim(),
+        username: usernameController.text.trim(),
+        isActive: true,
+      );
       _currentUser = credential.user;
 
-      await _prefsService.saveUsername(_userModel!.username);
-      await _prefsService.saveEmail(_userModel!.email);
-      await _prefsService.saveUserId(_userModel!.uid);
+      await _cacheUser();           //  now caching it
+
+      errorMessage = null;
 
       return credential.user;
     } catch (e) {
@@ -129,10 +142,10 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    var uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       // Marking this user inactive and removing their token on logout
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      await FirebaseFirestore.instance.collection('Users').doc(uid).update({
         'isActive': false,
         'fcmToken': FieldValue.delete(),
       });
@@ -144,6 +157,8 @@ class AuthViewModel extends ChangeNotifier {
 
     _clearAll();
     _currentUser = null;
+    _userModel = null;
+    uid = null;
     notifyListeners();
   }
 

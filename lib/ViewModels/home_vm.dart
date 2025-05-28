@@ -1,7 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../Utils/shared_prefs_service.dart';
 import '../Utils/streak_repo.dart';
 
 class HomeViewModel extends ChangeNotifier{
@@ -10,39 +8,50 @@ class HomeViewModel extends ChangeNotifier{
   String? _currentFocus;
   String _mood = 'Chill';
   final StreakRepository streakRepo;
+  bool _disposed = false;
 
   // constructor that loads from preferences first
-  HomeViewModel(this.streakRepo);
+  HomeViewModel(this.streakRepo) {
+    loadFromPrefs();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   Future<void> bumpStreakIfNeeded() async {
-    final newVal = await streakRepo.incrementIfNeeded();
-    
-    if (newVal != _streak) {
-      _streak = newVal;
-      notifyListeners();
-    }
+    final int newStreak = await streakRepo.incrementIfNeeded();
+
+    if (_disposed) return;           // VM no longer alive –> abort
+
+    // write that number into SharedPreferences so it survives relaunches
+    final prefs = await SharedPreferencesService.getInstance();
+    await prefs.saveStreak(newStreak);
+
+    // update local state & refresh UI
+    _streak = newStreak;
+    if (!_disposed) notifyListeners();
   }
 
   String get username => _username ?? "Dude";
   int get streak => _streak;
   String get mood => _mood;
-  String get currentFocus => _currentFocus ?? "None";
+  String? get currentFocus => _currentFocus;
 
-  Future<void> loadData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+  Future<void> loadFromPrefs() async {
+    final prefs = await SharedPreferencesService.getInstance();
+    _username = prefs.getUsername();
+    _streak = prefs.getStreak() ?? 0;
+    _currentFocus = prefs.getCurrentFocus();
+    notifyListeners();
+  }
 
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    final data = doc.data();
-
-    _username = data?['username'] ?? "Dude";
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', _username!);
-
-    _streak = data?['streak'] ?? 0;
-    _currentFocus = data?['focus'];
-    _mood = data?['mood'] ?? "Chill";
-
+  Future<void> setFocusGoal(String focus) async {
+    final prefs = await SharedPreferencesService.getInstance();
+    await prefs.saveCurrentFocus(focus);
+    _currentFocus = focus;
     notifyListeners();
   }
 
@@ -51,7 +60,6 @@ class HomeViewModel extends ChangeNotifier{
     _currentFocus = null;
     _streak = 0;
     _mood = "Chill";
-
     notifyListeners();
   }
 }

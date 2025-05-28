@@ -13,22 +13,29 @@ class HomeFeed extends StatefulWidget {
 class _HomeFeedState extends State<HomeFeed> {
   final List<String> suggestions = ['Master DSA', 'Job hunt', 'UI/UX', 'Body building', 'Motivation', "Other"];
 
-  String? _selectedFocus;
+  String? selectedFocus;
 
   @override
   void initState(){
     super.initState();
+    // Calling once, right after the first build frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<HomeViewModel>().bumpStreakIfNeeded();
+      }
+    });
   }
 
-  void _handleSuggestionTap(String suggestion) {
+  void _handleSuggestionTap(BuildContext context ,String suggestion) {
+    final homeVM = Provider.of<HomeViewModel>(context, listen: false);
     if (suggestion.contains("Other")) {
-      _showCustomFocusDialog();
+      _showCustomFocusDialog(context);
     } else {
-      _saveSession(suggestion);
+      homeVM.setFocusGoal(suggestion);
     }
   }
 
-  void _showCustomFocusDialog() {
+  void _showCustomFocusDialog(BuildContext context) {
     String customFocus = '';
     showDialog(
       context: context,
@@ -37,12 +44,15 @@ class _HomeFeedState extends State<HomeFeed> {
         content: TextField(
             autofocus: true,
             decoration: const InputDecoration(hintText: 'wanna master GenAI'),
-            onChanged: (value) => customFocus = value),
+            onChanged: (value) => customFocus = value
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
               onPressed: () {
-                _saveSession(customFocus);
+                if (customFocus.trim().isNotEmpty) {
+                  Provider.of<HomeViewModel>(context, listen: false).setFocusGoal(customFocus.trim());
+                }
                 Navigator.pop(context);
               },
               child: const Text('Save')
@@ -52,11 +62,6 @@ class _HomeFeedState extends State<HomeFeed> {
     );
   }
 
-  void _saveSession(String focus) {
-    setState(() {
-      _selectedFocus = focus;
-    });
-  }
 
   Widget _buildInfoRow(String emoji, String label, String value) {
     return Row(
@@ -74,6 +79,7 @@ class _HomeFeedState extends State<HomeFeed> {
     final homeVM = Provider.of<HomeViewModel>(context);   // gets all the details required on this page from Firestore
     final userName = homeVM.username;
     final streak = homeVM.streak;
+    final selectedFocus = homeVM.currentFocus ?? "Focus on something";
 
     return Scaffold(
       body: SafeArea(
@@ -108,9 +114,9 @@ class _HomeFeedState extends State<HomeFeed> {
                     runSpacing: 14,
                     alignment: WrapAlignment.center,
                     children: suggestions.map((suggestion) {
-                      final isSelected = _selectedFocus == suggestion;
+                      final isSelected = selectedFocus == suggestion;
                       return GestureDetector(
-                        onTap: () => _handleSuggestionTap(suggestion),
+                        onTap: () => _handleSuggestionTap(context, suggestion),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
@@ -167,7 +173,7 @@ class _HomeFeedState extends State<HomeFeed> {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          _buildInfoRow("🧠", "Focus", _selectedFocus ?? "Focus on something"),
+                          _buildInfoRow("🧠", "Focus", selectedFocus),
                           const SizedBox(height: 10),
                           _buildInfoRow("⏱️", "Next Check-in", "45 min"),
                           const SizedBox(height: 10),

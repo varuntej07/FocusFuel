@@ -125,12 +125,12 @@ class _ChatScreenState extends State<ChatScreen>{
     if(chatVM.userId.isEmpty){
       return Scaffold(
         body: Center(
-          child: Row(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text("Sign in or Login to start chatting!"),
+              const Text("Login to start hustling through chat!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Login())),
-                  child: const Text("Login")
+                  child: const Text("Login", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))
               ),
             ],
           ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
-import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
 import '../screens/main_scaffold.dart';
 import 'login_page.dart';
@@ -21,24 +20,24 @@ class _SignupState extends State<Signup> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthViewModel>(); // Provides access to AuthViewModel
-    final homeVM = context.watch<HomeViewModel>();
 
     return Scaffold(
       backgroundColor: Colors.purple[50],
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey, // Links to _formKey for validation
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const SizedBox(height: 150),
               const Center(
                 child: Text(
                     "Create account to be in top 10%",
-                    style: TextStyle(color: Colors.indigoAccent, fontSize: 20, fontWeight: FontWeight.bold)
+                    style: TextStyle(color: Colors.purple, fontSize: 26, fontWeight: FontWeight.bold)
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 40),
               TextFormField(
                   controller: auth.usernameController,
                   validator: (v) => (v?.isEmpty ?? true)? "Create a username brotha": null,
@@ -122,7 +121,6 @@ class _SignupState extends State<Signup> {
                   if (!context.mounted) return;
 
                   if (await auth.signUp() != null) {
-                    await homeVM.loadData();    // Preload user info before navigating
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
                   }
                 },

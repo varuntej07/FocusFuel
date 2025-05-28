@@ -40,4 +40,20 @@ class SharedPreferencesService {
   Future<void> clearAll() async {
     await _preferences?.clear();
   }
+
+  Future<void> saveStreak(int streak) async {
+    await _preferences?.setInt('streak', streak);
+  }
+
+  int? getStreak() {
+    return _preferences?.getInt('streak');
+  }
+
+  Future<void> saveCurrentFocus(String focus) async {
+    await _preferences?.setString('currentFocus', focus);
+  }
+
+  String? getCurrentFocus() {
+    return _preferences?.getString('currentFocus');
+  }
 }

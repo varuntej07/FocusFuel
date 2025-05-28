@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class StreakRepository {
   // cached CollectionReference pointing at /users so we don’t rebuild the path every call.
-  final _users = FirebaseFirestore.instance.collection('users');
+  final _users = FirebaseFirestore.instance.collection('Users');
 
   /// Returns the new streak value (unchanged if it was already counted today).
   Future<int> incrementIfNeeded() async {
@@ -15,8 +15,8 @@ class StreakRepository {
       final snap = await txn.get(ref);
       final data = snap.data();
 
-      int  streak = (data?['streak'] as int?) ?? 0;
-      int  longest = (data?['longestStreak'] as int?) ?? 0;
+      int streak = (data?['streak'] as int?) ?? 0;
+      int longest = (data?['longestStreak'] as int?) ?? 0;
       DateTime today = _midnight(DateTime.now());
       DateTime? last = (data?['lastActive'] as Timestamp?)?.toDate();
 

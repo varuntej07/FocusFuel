@@ -89,7 +89,7 @@ class _LoginState extends State<Login> {
 
                   if (success != null) {
                     context.read<ChatViewModel>().updateUser(success.uid);
-                    await context.read<HomeViewModel>().loadData();   // providing the logic for loading data through HomeViewModel
+                    await context.read<HomeViewModel>().loadFromPrefs();   // providing the logic for loading data through HomeViewModel
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
                   } else{
                     _showLoginFailedDialog(auth.errorMessage ?? 'Login failed. Please try again.');
