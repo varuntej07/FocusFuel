@@ -40,18 +40,18 @@ final basicPlan = Plan(
     Section(
       header: 'AI Assistance',
       features: [
-        Feature(name: 'Usage limits for AI nudges', isIncluded: true),
-        Feature(name: 'Advanced productivity analytics', isIncluded: false),
-        Feature(name: 'Early access to new features', isIncluded: false),
+        Feature(name: 'Unlimited AI chat messages to an extent', isIncluded: true),
+        Feature(name: 'Attach codebases as a goal to accomplish a task', isIncluded: false),
+        Feature(name: 'Advanced AI analytics', isIncluded: false),
       ],
     ),
     Section(
       header: 'Productivity Hub',
       features: [
         Feature(name: 'Goal tracking', isIncluded: true),
-        Feature(name: 'Habit-building tools', isIncluded: false),
+        Feature(name: 'Multi-task completion tracking', isIncluded: false),
         Feature(name: 'Productivity reports', isIncluded: false),
-        Feature(name: 'Integration with productivity apps', isIncluded: false),
+        Feature(name: 'Early access to new features', isIncluded: false),
       ],
     ),
   ],
@@ -73,7 +73,7 @@ final premiumPlan = Plan(
     Section(
       header: 'AI Assistance',
       features: [
-        Feature(name: 'Unlimited AI nudges', isIncluded: true),
+        Feature(name: 'Truly unlimited AI chat messages', isIncluded: true),
         Feature(name: 'Advanced productivity analytics', isIncluded: true),
         Feature(name: 'Early access to new features', isIncluded: true),
       ],
@@ -82,7 +82,7 @@ final premiumPlan = Plan(
       header: 'Productivity Hub',
       features: [
         Feature(name: 'Goal tracking', isIncluded: true),
-        Feature(name: 'Habit-building tools', isIncluded: true),
+        Feature(name: 'Multi-task completion tracking', isIncluded: true),
         Feature(name: 'Productivity reports', isIncluded: true),
         Feature(name: 'Integration with productivity apps', isIncluded: true),
       ],
