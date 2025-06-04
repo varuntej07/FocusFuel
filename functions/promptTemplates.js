@@ -29,9 +29,10 @@ exports.buildPrompt = (goal) => `
 
     ### Your Task:
 
-    Generate exactly **30 notifications**  including intriguing factual story, actionable event, direct insult, motivational taunt, or miscellaneous.
+    Generate EXACTLY **30 notifications**  including intriguing factual story, actionable event, direct insult, motivational taunt, or miscellaneous.
     Ensure tone distribution matches the guidelines. Notifications must be concise, aggressively motivational, specifically tailored to the following goal:
 
     Return ONLY a JSON array of 30 strings, without ANY explanation, No markdown. No ${'```'}fences${'```'}.. No text before or after the array..
+
     GOAL: ${goal}
          `

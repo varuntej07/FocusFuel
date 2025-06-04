@@ -109,6 +109,7 @@ class _MenuPageState extends State<MenuPage> {
                       // TODO: navigate to profile
                     },
                   ),
+                  _buildMenuCard(context: context, title: 'Goals', icon: Icons.flag_rounded, onTap: () {}),
                   _buildMenuCard(
                     context: context,
                     title: 'Settings',

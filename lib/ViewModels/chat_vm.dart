@@ -37,7 +37,7 @@ class ChatViewModel with ChangeNotifier {
 
       final assistantStream = FirebaseFirestore.instance
           .collection('Users').doc(_userId).collection('NotificationMessages')
-          .orderBy('createdAt', descending: false)
+          .orderBy('savedNotificationAt', descending: false)
           .snapshots();
 
       final userStream = FirebaseFirestore.instance
@@ -50,7 +50,7 @@ class ChatViewModel with ChangeNotifier {
         assistantStream, userStream, (QuerySnapshot assistantSnap, QuerySnapshot userSnap) {
           final assistantMessages = assistantSnap.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            final Timestamp? ts = data['createdAt'] as Timestamp?;
+            final Timestamp? ts = data['savedNotificationAt'] as Timestamp?;
             return ChatModel(
               text: data['content'] ?? '',
               isUser: false, // Assistant messages

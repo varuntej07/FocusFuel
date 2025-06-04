@@ -56,4 +56,20 @@ class SharedPreferencesService {
   String? getCurrentFocus() {
     return _preferences?.getString('currentFocus');
   }
+
+  Future<void> saveWeeklyGoal(String goal) async {
+    await _preferences?.setString('weeklyGoal', goal);
+  }
+
+  String? getWeeklyGoal() {
+    return _preferences?.getString('weeklyGoal');
+  }
+
+  Future<void> saveNotificationInterval(int interval) async {
+    await _preferences?.setInt('notificationInterval', interval);
+  }
+
+  int? getNotificationInterval() {
+    return _preferences?.getInt('notificationInterval');
+  }
 }

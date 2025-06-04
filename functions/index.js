@@ -9,19 +9,20 @@ const db = admin.firestore();
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const todayKey = () => new Date().toISOString().slice(0, 10); // "2025-05-28"
+const todayKey = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
 
-// should be dynamically updated
-const DEFAULT_GOAL = "Mastering Prompt Engineering";
 
-async function generateGptResponse(uid, goal) {
+const DEFAULT_GOAL = "Work hard, stay hard, no excuses, no shortcuts";
+
+async function generateGptResponse(uid, focus) {
     try {
         const response = await axios.post("https://api.openai.com/v1/chat/completions",
             {
                 model: "gpt-3.5-turbo",
                 messages: [
                     { role: "system", content: "You are a expert productivity coach." },
-                    { role: "user", content: buildPrompt(goal) }
+                    { role: "user", content: buildPrompt(focus) }
                 ],
                 temperature: 0.9
             },
@@ -40,15 +41,20 @@ async function generateGptResponse(uid, goal) {
             parsedResponse = JSON.parse(rawResponse);
         } catch (e) {
             console.error("GPT did not return valid JSON:", rawResponse);
+            return;
         }
 
         if (!Array.isArray(parsedResponse) || parsedResponse.length !== 30) {
             console.error("GPT returned wrong shape:", parsedResponse.length);
+            return;
         }
 
         console.log(`Refilled notificationPack with ${parsedResponse.length} messages`);
-        await saveNotificationPackToFirestore(uid, parsedResponse, goal);
+
+        await saveNotificationPackToFirestore(uid, parsedResponse, focus);
+
         return parsedResponse; // Return the parsed pack of messages
+
     } catch (err) {
         console.error("OpenAI error:", err.message);
         return "You're slacking. Wtf? Check your OpenAI API key and try again!";
@@ -61,15 +67,18 @@ async function getRandomMessage(uid) {
     let packSnapshot = await packRef.get();
     let pack = packSnapshot.exists ? packSnapshot.data().messages : [];
 
-    if (!pack.length) {
+    // If the pack is empty refill the packet by notification messages on desired focus and goals
+    if (!pack.length) {  
         console.log("Refilling notificationPack");
         const userDoc = await db.doc(`Users/${uid}`).get();
-        const goal = userDoc.data()?.goal || DEFAULT_GOAL; // Fetching dynamic goal
 
-        await generateGptResponse(uid, goal);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Ensuring write completes
-        packSnapshot = await packRef.get(); // Refresh snapshot
-        pack = packSnapshot.data().messages || [];
+        const focus = userDoc.data()?.currentFocus || DEFAULT_GOAL;
+        // const weeklyGoal = userDoc.data()?.weeklyGoal || DEFAULT_GOAL;
+
+        await generateGptResponse(uid, focus);
+
+        packSnapshot = await packRef.get();         // Refresh the pack after refill
+        pack = packSnapshot.exists ? packSnapshot.data().messages : [];
     }
 
     if (!pack.length) {
@@ -78,10 +87,13 @@ async function getRandomMessage(uid) {
 
     const idx = Math.floor(Math.random() * pack.length);
     const [msg] = pack.splice(idx, 1); // Modify local copy
+
     await packRef.update({ messages: pack }); // Update Firestore
+
     return msg;
 }
 
+// entry point is here the named exports below
 exports.sendScheduledNotification = onSchedule(
     {
         schedule: "*/30 7-23 * * *",
@@ -96,14 +108,18 @@ exports.sendScheduledNotification = onSchedule(
             const uid = doc.id;                 // dynamic userId
             const data = doc.data();
             const token = data.fcmToken;        // FCM token here
+            const focus = data.currentFocus || DEFAULT_GOAL;
+            // const weeklyGoal = data.weeklyGoal || DEFAULT_GOAL;
 
-          if (!token) {
-            console.warn(`No FCM token for user ${uid}`);
-            continue;
-          }
+            if (!token) {
+                console.warn(`No FCM token for user ${uid}`);
+                continue;
+            }
 
+            // getting a random message from the pack
             const notificationBody = await getRandomMessage(uid);
-            await saveNotificationToFirestore(uid, notificationBody);
+
+            await saveNotificationToFirestore(uid, notificationBody, focus);
 
             const message = {
                 token,
@@ -125,7 +141,7 @@ exports.sendScheduledNotification = onSchedule(
 
             try {  // sending the notification to FCM servers
                 console.log("Notification message that to be sent is ", message);
-                console.log("Sent to ${uid}: ${notificationBody.slice(0, 40)}…");
+                console.log(`Notification Sent to ${uid}: ${notificationBody.slice(0, 40)}…`);
 
                 const result = await admin.messaging().send(message);
                 console.log("Notification sent:", result);
@@ -136,28 +152,29 @@ exports.sendScheduledNotification = onSchedule(
     }
 );
 
-async function saveNotificationToFirestore(userId, message){
+async function saveNotificationToFirestore(userId, message, focus){
     try {
         const messageData = {
-            role: "Assistant",
+            role: "AI Assistant",
+            author: "GPT",
             content: message,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),        // FieldValue class is static member of admin.firestore, not an instance of Firestore(db->line 7)
-            goal: "",
+            savedNotificationAt: admin.firestore.FieldValue.serverTimestamp(),        // FieldValue class is static member of admin.firestore, not an instance of Firestore(db->line 7)
+            onFocus: focus,
         }
         const messageRef = db.collection("Users").doc(userId).collection("NotificationMessages");
-        await messageRef.add(messageData);
+        await messageRef.add(messageData, { merge: true });
     } catch(err){
         console.error("Error saving GPT notification to Firestore:", err);
     }
 }
 
-async function saveNotificationPackToFirestore(userId, pack, goal){
+async function saveNotificationPackToFirestore(userId, pack, focus){
     try {
         const packData = {
             author: "GPT-4o",
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            goal: `${goal}`,
-            messages: pack,
+            receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+            onFocus: `${focus}`,
+            notifications: pack,
         }
         await db.doc(`Users/${userId}/NotificationPacks/${todayKey()}`).set(packData);
         } catch(err){
