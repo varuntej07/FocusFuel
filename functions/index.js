@@ -12,14 +12,30 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const todayKey = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
 
-
 const DEFAULT_GOAL = "Work hard, stay hard, no excuses, no shortcuts";
+
+// Helper function to get user focus
+async function getUserFocus(uid) {
+    const userDoc = await db.doc(`Users/${uid}`).get();
+    return userDoc.data()?.currentFocus || DEFAULT_GOAL;
+}
+
+// Helper function to check if pack needs refresh
+async function shouldRefreshPack(uid, currentFocus) {
+    const packRef = db.doc(`Users/${uid}/NotificationPacks/${todayKey()}`);
+    const packSnapshot = await packRef.get();
+    
+    if (!packSnapshot.exists) return true;
+    
+    const packData = packSnapshot.data();
+    return !packData.messages?.length || packData.onFocus !== currentFocus;
+}
 
 async function generateGptResponse(uid, focus) {
     try {
         const response = await axios.post("https://api.openai.com/v1/chat/completions",
             {
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o",
                 messages: [
                     { role: "system", content: "You are a expert productivity coach." },
                     { role: "user", content: buildPrompt(focus) }
@@ -46,11 +62,9 @@ async function generateGptResponse(uid, focus) {
 
         if (!Array.isArray(parsedResponse) || parsedResponse.length !== 30) {
             console.error("GPT returned wrong shape:", parsedResponse.length);
-            return;
         }
 
         console.log(`Refilled notificationPack with ${parsedResponse.length} messages`);
-
         await saveNotificationPackToFirestore(uid, parsedResponse, focus);
 
         return parsedResponse; // Return the parsed pack of messages
@@ -61,27 +75,24 @@ async function generateGptResponse(uid, focus) {
     }
 }
 
-// Grabs a random msg, remove it from the pack, refill if empty
 async function getRandomMessage(uid) {
-    const packRef = db.doc(`Users/${uid}/NotificationPacks/${todayKey()}`);
-    let packSnapshot = await packRef.get();
-    let pack = packSnapshot.exists ? packSnapshot.data().messages : [];
-
-    // If the pack is empty refill the packet by notification messages on desired focus and goals
-    if (!pack.length) {  
+    const focus = await getUserFocus(uid);
+    
+    // Check if we need to refresh the pack
+    if (await shouldRefreshPack(uid, focus)) {
         console.log("Refilling notificationPack");
-        const userDoc = await db.doc(`Users/${uid}`).get();
-
-        const focus = userDoc.data()?.currentFocus || DEFAULT_GOAL;
-        // const weeklyGoal = userDoc.data()?.weeklyGoal || DEFAULT_GOAL;
-
-        await generateGptResponse(uid, focus);
-
-        packSnapshot = await packRef.get();         // Refresh the pack after refill
-        pack = packSnapshot.exists ? packSnapshot.data().messages : [];
+        const newPack = await generateGptResponse(uid, focus);
+        if (!newPack) {
+            return "Error generating new messages. Please try again later.";
+        }
     }
 
+    const packRef = db.doc(`Users/${uid}/NotificationPacks/${todayKey()}`);
+    const packSnapshot = await packRef.get();
+    const pack = packSnapshot.exists ? packSnapshot.data().messages : [];
+
     if (!pack.length) {
+        console.log("No messages available in notificationPack");
         return "No messages available.";
     }
 
@@ -96,7 +107,7 @@ async function getRandomMessage(uid) {
 // entry point is here the named exports below
 exports.sendScheduledNotification = onSchedule(
     {
-        schedule: "*/30 7-23 * * *",
+        schedule: "*/30 8-22 * * *",
         secrets: ["OPENAI_API_KEY"],
         timeZone: "America/Los_Angeles",
     },
@@ -162,8 +173,8 @@ async function saveNotificationToFirestore(userId, message, focus){
             onFocus: focus,
         }
         const messageRef = db.collection("Users").doc(userId).collection("NotificationMessages");
-        await messageRef.add(messageData, { merge: true });
-    } catch(err){
+        await messageRef.add(messageData);
+    } catch(err) {
         console.error("Error saving GPT notification to Firestore:", err);
     }
 }
@@ -173,11 +184,11 @@ async function saveNotificationPackToFirestore(userId, pack, focus){
         const packData = {
             author: "GPT-4o",
             receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-            onFocus: `${focus}`,
-            notifications: pack,
+            onFocus: focus,
+            messages: pack,
         }
         await db.doc(`Users/${userId}/NotificationPacks/${todayKey()}`).set(packData);
-        } catch(err){
+    } catch(err) {
         console.error("Error saving GPT notification pack to Firestore:", err);
     }
 }

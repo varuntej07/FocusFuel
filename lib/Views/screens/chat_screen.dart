@@ -20,9 +20,7 @@ class _ChatScreenState extends State<ChatScreen>{
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     context.read<HomeViewModel>().bumpStreakIfNeeded();
   }
 
@@ -47,10 +45,10 @@ class _ChatScreenState extends State<ChatScreen>{
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
       context.read<ChatViewModel>().sendMessage(text);
+
       _controller.clear();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom();
-      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     }
   }
 
