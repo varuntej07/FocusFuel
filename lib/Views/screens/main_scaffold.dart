@@ -25,12 +25,6 @@ class HomePageState extends State<HomePage> {
 
   // requesting permission from the user to send notifications, then fetch FCM token
   Future<void> _setupFcm() async {
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      carPlay: true,
-    );
 
     final token = await FirebaseMessaging.instance.getToken(); // returns the device's FCM registration token
     final uid = FirebaseAuth.instance.currentUser?.uid;   // If currentUser exists, get its uid; otherwise, uid is null.

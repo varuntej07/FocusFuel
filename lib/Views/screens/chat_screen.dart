@@ -25,7 +25,6 @@ class _ChatScreenState extends State<ChatScreen>{
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeChat();      // Initialize chat after build to get latest conversation
-      _scrollToBottom();
     });
     context.read<HomeViewModel>().bumpStreakIfNeeded();
   }
@@ -39,7 +38,7 @@ class _ChatScreenState extends State<ChatScreen>{
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
+    if (_scrollController.hasClients && _scrollController.position.hasContentDimensions) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 100),
@@ -240,8 +239,9 @@ class _ChatScreenState extends State<ChatScreen>{
                   return const Center(child: Text("Ask something to stay hard!!"));
                 }
 
+                // check hasContentDimensions before accessing maxScrollExtent
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (_scrollController.hasClients) {
+                  if (_scrollController.hasClients && _scrollController.position.hasContentDimensions) {
                     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
                   }
                 });
