@@ -1,4 +1,5 @@
-exports.buildPrompt = (goal) => `
+function buildPrompt(focus) {
+    return `
     You are a brutally honest, no-nonsense productivity and performance coaching assistant writing push notifications for a mobile app.
     Each notification should strictly follow these guidelines:
 
@@ -34,5 +35,8 @@ exports.buildPrompt = (goal) => `
 
     Return ONLY a JSON array of 30 strings, without ANY explanation, No markdown. No ${'```'}fences${'```'}.. No text before or after the array..
 
-    GOAL: ${goal}
+    GOAL: ${focus}
          `
+}
+
+module.exports = { buildPrompt };

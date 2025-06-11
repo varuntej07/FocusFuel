@@ -1,102 +1,70 @@
-import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:rxdart/rxdart.dart';
-import '../../Models/chat_model.dart';
+import '../Models/chat_model.dart';
+import '../Models/conversation_model.dart';
+import '../Services/chat_service.dart';
 
-class ChatViewModel with ChangeNotifier {
-    String _userId;
-    late StreamSubscription<User?> _authSubscription;
+class ChatViewModel extends ChangeNotifier {
+  final ChatService _chatService = ChatService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-    ChatViewModel({required String userId}) : _userId = userId {
-      // stream from Firebase that emits events whenever the user’s auth state changes,
-      // subscribed to this stream, so every time an event occurs, it calls updateUser with the new user ID
-      _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
-        (user) => updateUser(user?.uid ?? ''),
-      );
+  String? _currentConversationId;
+  bool _isSending = false;
+
+  String get userId => _auth.currentUser?.uid ?? '';
+  bool get isSending => _isSending;
+  String? get currentConversationId => _currentConversationId;
+
+  // Initialize with latest conversation when chat UI renders for the first time
+  Future<void> initializeWithLatestConversation() async {
+    try {
+      _currentConversationId = await _chatService.getLatestConversationId();
+      notifyListeners();
+    } catch (e) {
+      print('Error initializing conversation: $e');
     }
-
-    @override
-    void dispose() {
-      _authSubscription.cancel(); // Stop the listener
-      super.dispose();
-    }
-
-    String get userId => _userId;
-
-    void updateUser(String uid) {        // internal helper
-      if (uid == _userId) return;
-      _userId = uid;
-      notifyListeners();               // rebuilds StreamBuilder
-    }
-
-    Stream<List<ChatModel>> getMessageStream() {
-
-      if (_userId.isEmpty) return Stream.value(<ChatModel>[]);
-
-      final assistantStream = FirebaseFirestore.instance
-          .collection('Users').doc(_userId).collection('NotificationMessages')
-          .orderBy('savedNotificationAt', descending: false)
-          .snapshots();
-
-      final userStream = FirebaseFirestore.instance
-          .collection('Users').doc(_userId).collection('UserResponses')
-          .orderBy('createdAt', descending: false)
-          .snapshots();
-
-     // Combining the streams using rxdart
-      return Rx.combineLatest2(
-        assistantStream, userStream, (QuerySnapshot assistantSnap, QuerySnapshot userSnap) {
-          final assistantMessages = assistantSnap.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final Timestamp? ts = data['savedNotificationAt'] as Timestamp?;
-            return ChatModel(
-              text: data['content'] ?? '',
-              isUser: false, // Assistant messages
-              timestamp: ts?.toDate() ?? DateTime.now(),
-              username: 'assistant',
-            );
-          }).toList();
-
-        final userMessages = userSnap.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final Timestamp? ts = data['createdAt'] as Timestamp?;
-          return ChatModel(
-            text: data['content'] ?? '',
-            isUser: true, // User messages
-            timestamp: ts?.toDate() ?? DateTime.now(),
-            username: 'user',
-          );
-        }).toList();
-
-        // Combine and sort by timestamp
-        final allMessages = [...assistantMessages, ...userMessages];
-
-        // Sort by timestamp so newest are truly at the bottom
-        allMessages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        return allMessages;
-      },
-    ).handleError((err, stack){
-      if (err.toString().contains('permission-denied')) {
-        return <ChatModel>[];
-      }
-      throw err;
-    });
   }
 
-  Future<void> sendMessage(String text) async {
-    if (userId.isEmpty) {
+  // Set specific conversation (for navigation from history)
+  void setConversation(String conversationId) {
+    _currentConversationId = conversationId;
+    notifyListeners();
+  }
+
+  // Gets message stream for current conversation from ChatService
+  Stream<List<ChatModel>> getMessageStream() {
+    if (_currentConversationId == null) {
+      return Stream.value([]);
+    }
+    return _chatService.getConversationMessages(_currentConversationId!);
+  }
+
+  // This is the main function for sending message to GPT
+  Future<void> sendMessage(String message) async {
+    if (_currentConversationId == null) {
       return;
     }
-    await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(userId)
-        .collection('UserResponses')
-        .add({
-      'content': text,
-      'createdAt': FieldValue.serverTimestamp(),
-      'role': 'user',
-    });
+
+    _isSending = true;
+    notifyListeners();
+
+    try {
+      await _chatService.sendMessage(message, _currentConversationId!);
+    } catch (e) {
+      print('Error sending message: $e');
+    } finally {
+      _isSending = false;
+      notifyListeners();
+    }
+  }
+
+  // Retry message
+  Future<void> retryMessage(String message) async {
+    await sendMessage(message);
+  }
+
+  // Get all conversations to display in chat history
+  Stream<List<ConversationModel>> getConversationsStream() {
+    return _chatService.getPastConversations();
   }
 }

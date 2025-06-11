@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:focus_fuel/Utils/shared_prefs_service.dart';
+import 'package:focus_fuel/Services/shared_prefs_service.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/auth_vm.dart';
 
@@ -146,16 +146,7 @@ class _SupportScreenState extends State<SupportScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 2,
                       ),
-                      child: vm.isLoading
-                          ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                          : const Text('Submit Support Request', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      child: const Text('Submit Support Request', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],

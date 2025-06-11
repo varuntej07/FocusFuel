@@ -2,11 +2,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:focus_fuel/Models/user_model.dart';
-import '../Utils/shared_prefs_service.dart';
+import '../Services/shared_prefs_service.dart';
 
 // ViewModel for Authorization, responsible for business logic and Auth state
 class AuthViewModel extends ChangeNotifier {
-
+  // State management
+  AuthState _state = AuthState.initial;
+  AuthState get state => _state;
+  
   // Controllers live here so the page can bind directly to them
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -14,15 +17,19 @@ class AuthViewModel extends ChangeNotifier {
   final usernameController = TextEditingController();
 
   bool isLoading = false;     // Controls the spinner & button state
-  String? errorMessage;
-  User? _currentUser;
+
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
   UserModel? _userModel;
+  UserModel? get userModel => _userModel;
 
   late SharedPreferencesService _prefsService;
 
-  // Constructor – loads prefs only once
+  // Constructor
   AuthViewModel() {
     initializePreferences();
+    _setupAuthStateListener();
   }
 
   // Initializing SharedPreferences service
@@ -30,7 +37,37 @@ class AuthViewModel extends ChangeNotifier {
     _prefsService = await SharedPreferencesService.getInstance();
   }
 
+  // Setup Firebase Auth state listener
+  void _setupAuthStateListener() {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null) {
+        _loadUserData(user.uid);
+      } else {
+        _clearUserData();
+      }
+    });
+  }
+
+  // Load user data from Firestore
+  Future<void> _loadUserData(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+      if (doc.exists) {
+        _userModel = UserModel.fromMap(doc.data()!);
+        await _cacheUser();
+        _state = AuthState.authenticated;
+      } else {
+        _state = AuthState.unauthenticated;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to load user data';
+      _state = AuthState.error;
+    }
+  }
+
+  // Cache user data to SharedPreferences
   Future<void> _cacheUser() async {
+    if (_userModel == null) return;
     await _prefsService.saveUsername(_userModel!.username);
     await _prefsService.saveEmail(_userModel!.email);
     await _prefsService.saveUserId(_userModel!.uid);
@@ -46,12 +83,19 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _clearAll() {
+  // Clear user data
+  void _clearUserData() {
+    _userModel = null;
+    _state = AuthState.unauthenticated;
+  }
+
+  // Clear form data
+  void _clearForm() {
     emailController.clear();
     passwordController.clear();
     confirmPasswordController.clear();
     usernameController.clear();
-    errorMessage = null;
+    _errorMessage = null;
     notifyListeners();
   }
 
@@ -64,6 +108,7 @@ class AuthViewModel extends ChangeNotifier {
     super.dispose();
   }
 
+  // Login user
   Future<UserModel?> login() async {
     _startLoading();
     try {
@@ -72,35 +117,27 @@ class AuthViewModel extends ChangeNotifier {
         password: passwordController.text.trim(),
       );
 
-      final db = FirebaseFirestore.instance;
-      // updating the collection whenever the user logs in
-      await db.collection('Users').doc(credential.user!.uid).update({
+      await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).update({
         'isActive': true,
         'lastLogin': FieldValue.serverTimestamp()
       });
 
-      final snap = await db.collection('Users').doc(credential.user!.uid).get();
-
-      _userModel = UserModel(
-        uid: snap.get('uid'),
-        email: snap.get('email'),
-        username: snap.get('username'),
-        isActive: true,
-      );
-
-      _currentUser = credential.user;
-      await _cacheUser();             // Saving to SharedPreferences using centralized service
-      errorMessage = null;
-
+      final snap = await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).get();
+      _userModel = UserModel.fromMap(snap.data()!);
+      await _cacheUser();
+      _errorMessage = null;
+      _state = AuthState.authenticated;
       return _userModel;
     } on FirebaseAuthException catch (e) {
-      errorMessage = _mapFirebaseError(e);
+      _errorMessage = _mapFirebaseError(e);
+      _state = AuthState.error;
       return null;
     } finally {
       _stopLoading();
     }
   }
 
+  // Sign up user
   Future<User?> signUp() async {
     _startLoading();
     try {
@@ -109,32 +146,23 @@ class AuthViewModel extends ChangeNotifier {
         password: passwordController.text.trim(),
       );
 
-      final db = FirebaseFirestore.instance;
-      // Setting up the collection whenever the user Signs up
-      await db.collection('Users').doc(credential.user!.uid).set({
+      final userData = {
         'uid': credential.user!.uid,
         'email': emailController.text.trim(),
         'username': usernameController.text.trim(),
         'createdAt': FieldValue.serverTimestamp(),
         'isActive': true,
-      });
+      };
 
-      // building the model before touching prefs
-      _userModel = UserModel(
-        uid: credential.user!.uid,
-        email: emailController.text.trim(),
-        username: usernameController.text.trim(),
-        isActive: true,
-      );
-      _currentUser = credential.user;
-
-      await _cacheUser();           //  now caching it
-
-      errorMessage = null;
-
+      await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).set(userData);
+      _userModel = UserModel.fromMap(userData);
+      await _cacheUser();
+      _errorMessage = null;
+      _state = AuthState.authenticated;
       return credential.user;
     } catch (e) {
-      errorMessage = "Registration failed. Try again.";
+      _errorMessage = "Registration failed. Try again.";
+      _state = AuthState.error;
       return null;
     } finally {
       _stopLoading();
@@ -142,28 +170,32 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    var uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      // Marking this user inactive and removing their token on logout
-      await FirebaseFirestore.instance.collection('Users').doc(uid).update({
-        'isActive': false,
-        'fcmToken': FieldValue.delete(),
-      });
+    _startLoading();
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        // Marking this user inactive and removing their token on logout
+        await FirebaseFirestore.instance.collection('Users').doc(uid).update({
+          'isActive': false,
+          'fcmToken': FieldValue.delete(),
+        });
+      }
+
+      await FirebaseAuth.instance.signOut();
+
+      await _prefsService.clearAll();
+      
+      _clearForm();
+      _clearUserData();
+    } catch (e) {
+      _errorMessage = 'Failed to logout';
+      _state = AuthState.error;
+    } finally {
+      _stopLoading();
     }
-
-    await FirebaseAuth.instance.signOut();
-
-    await _prefsService.clearAll();
-
-    _clearAll();
-    _currentUser = null;
-    _userModel = null;
-    uid = null;
-    notifyListeners();
   }
 
   Future<void> submitSupportMessage(String issueDescription) async {
-    print("This is the _user model:  ----------$_userModel---------------");
     if (_userModel == null || issueDescription.isEmpty) return;
 
     _startLoading();
@@ -175,8 +207,10 @@ class AuthViewModel extends ChangeNotifier {
         'issueDescription': issueDescription.trim(),
         'timestamp': FieldValue.serverTimestamp(),
       });
+      _errorMessage = null;
     } catch (e) {
-      errorMessage = 'Failed to send support message. Please try again.';
+      _errorMessage = 'Failed to send support message. Please try again.';
+      _state = AuthState.error;
     } finally {
       _stopLoading();
     }
@@ -189,7 +223,7 @@ class AuthViewModel extends ChangeNotifier {
       case 'user-not-found':
         return 'No account found for that email.';
       case 'invalid-credential':
-        return 'Email or password is Incorrect. Try again';
+        return 'Email or password is incorrect. Try again';
       case 'email-already-in-use':
         return 'This email is already registered. Login instead';
       case 'weak-password':
@@ -200,4 +234,13 @@ class AuthViewModel extends ChangeNotifier {
         return e.message ?? 'Authentication error occurred. Please try again later';
     }
   }
+}
+
+// Auth state enum for better state management
+enum AuthState {
+  initial,
+  loading,
+  authenticated,
+  unauthenticated,
+  error
 }

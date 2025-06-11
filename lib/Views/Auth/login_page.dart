@@ -88,7 +88,7 @@ class _LoginState extends State<Login> {
                   if (!context.mounted) return;
 
                   if (success != null) {
-                    context.read<ChatViewModel>().updateUser(success.uid);
+                    //context.read<ChatViewModel>().updateUser(success.uid);
                     await context.read<HomeViewModel>().loadFromPrefs();   // providing the logic for loading data through HomeViewModel
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
                   } else{

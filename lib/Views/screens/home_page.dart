@@ -320,11 +320,11 @@ class _GlassCard extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.6),
-              border: Border.all(color: Colors.white.withOpacity(0.8)),
+              color: Colors.white.withValues(alpha: 0.6),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 6,
                     offset: const Offset(0, 3))
               ]

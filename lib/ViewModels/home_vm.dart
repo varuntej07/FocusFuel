@@ -1,25 +1,47 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import '../Utils/shared_prefs_service.dart';
-import '../Utils/streak_repo.dart';
+import '../Services/shared_prefs_service.dart';
+import '../Services/streak_repo.dart';
 
-class HomeViewModel extends ChangeNotifier{
+class HomeViewModel extends ChangeNotifier {
+  // State management
+  HomeState _state = HomeState.initial;
+  HomeState get state => _state;
+
+  // User data
   String? _username;
   int _streak = 0;
   String? _currentFocus;
   String _mood = 'Chill';
-  final StreakRepository streakRepo;
-  bool _disposed = false;
   String? _weeklyGoal;
   bool _isAuthenticated = false;
+  bool _disposed = false;
 
-  // constructor that loads from preferences first
+  // Getters
+  String get username => _isAuthenticated ? (_username ?? "Dude") : "Dude";
+  int get streak => _isAuthenticated ? _streak : 0;
+  String get mood => _mood;
+  String? get currentFocus => _isAuthenticated ? _currentFocus : null;
+  String? get weeklyGoal => _isAuthenticated ? _weeklyGoal : null;
+  bool get isAuthenticated => _isAuthenticated;
+
+  // Services
+  final StreakRepository streakRepo;
+  late SharedPreferencesService _prefsService;
+
+  // Constructor
   HomeViewModel(this.streakRepo) {
+    _initialize();
+  }
+
+  // Initialize view model
+  Future<void> _initialize() async {
+    _prefsService = await SharedPreferencesService.getInstance();
     _isAuthenticated = FirebaseAuth.instance.currentUser != null;
     
     if (_isAuthenticated) {
-      loadFromPrefs();
+      await loadFromPrefs();
     } else {
       clear(); // Clear all data if not authenticated
     }
@@ -41,102 +63,139 @@ class HomeViewModel extends ChangeNotifier{
     super.dispose();
   }
 
+  // Check if goals need to be prompted
   Future<bool> shouldPromptGoals() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return false;                   // not signed in
+    if (!_isAuthenticated) return false;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return false;
 
     final snap = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
-
     if (!snap.exists) return true;                  // user doc missing
 
     final data = snap.data() ?? {};
     _currentFocus = data['currentFocus'];           // may be null
     _weeklyGoal = data['weeklyGoal'];             // may be null
-    notifyListeners();
+    if (!_disposed) notifyListeners();
 
-    return _currentFocus == null;
+      return _currentFocus == null;
+    } catch (e) {
+      _state = HomeState.error;
+      notifyListeners();
+      return false;
+    }
   }
 
+  // Merge data into user document
   Future<void> _mergeIntoUserDoc(Map<String, dynamic> data) async {
     if (!_isAuthenticated) return;  // Check auth state first
     
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
 
-    await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(uid)
-        .set(data, SetOptions(merge: true));                     // merge == no overwrite
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(uid)
+          .set(data, SetOptions(merge: true));
+    } catch (e) {
+      _state = HomeState.error;
+      notifyListeners();
+    }
   }
 
+  // Update streak
   Future<void> bumpStreakIfNeeded() async {
     if (!_isAuthenticated) return;  // Check auth state first
     
-    final int newStreak = await streakRepo.incrementIfNeeded();
+    try {
+      final int newStreak = await streakRepo.incrementIfNeeded();
+      if (_disposed) return;
 
-    if (_disposed) return;           // VM no longer alive –> abort
-
-    // write that number into SharedPreferences so it survives relaunches
-    final prefs = await SharedPreferencesService.getInstance();
-    await prefs.saveStreak(newStreak);
-
-    // update local state & refresh UI
-    _streak = newStreak;
-    if (!_disposed) notifyListeners();
+      await _prefsService.saveStreak(newStreak);
+      _streak = newStreak;
+      _state = HomeState.success;
+      if (!_disposed) notifyListeners();
+    } catch (e) {
+      _state = HomeState.error;
+      notifyListeners();
+    }
   }
 
-  String get username => _isAuthenticated ? (_username ?? "Dude") : "Dude";
-  int get streak => _isAuthenticated ? _streak : 0;
-  String get mood => _mood;
-  String? get currentFocus => _isAuthenticated ? _currentFocus : null;
-  String? get weeklyGoal => _isAuthenticated ? _weeklyGoal : null;
-
+  // Load data from preferences
   Future<void> loadFromPrefs() async {
     if (!_isAuthenticated) {
       clear();
       return;
     }
 
-    final prefs = await SharedPreferencesService.getInstance();
-    _username = prefs.getUsername();
-    _streak = prefs.getStreak() ?? 0;
-    _currentFocus = prefs.getCurrentFocus();
-    _weeklyGoal = prefs.getWeeklyGoal();
-    notifyListeners();
+    try {
+      _username = _prefsService.getUsername();
+      _streak = _prefsService.getStreak() ?? 0;
+      _currentFocus = _prefsService.getCurrentFocus();
+      _weeklyGoal = _prefsService.getWeeklyGoal();
+      _state = HomeState.success;
+      notifyListeners();
+    } catch (e) {
+      _state = HomeState.error;
+      if (!_disposed) notifyListeners();
+    }
   }
 
+  // Set focus goal
   Future<void> setFocusGoal(String focus) async {
     if (!_isAuthenticated) return;  // Check auth state first
     
-    final prefs = await SharedPreferencesService.getInstance();
-    await prefs.saveCurrentFocus(focus);
-    _currentFocus = focus;
-    await _mergeIntoUserDoc({
-      'currentFocus': _currentFocus,
-      'focusUpdatedAt': FieldValue.serverTimestamp()
-    });
-    notifyListeners();
+    try {
+      await _prefsService.saveCurrentFocus(focus);
+      _currentFocus = focus;
+      await _mergeIntoUserDoc({
+        'currentFocus': _currentFocus,
+        'focusUpdatedAt': FieldValue.serverTimestamp()
+      });
+      _state = HomeState.success;
+      notifyListeners();
+    } catch (e) {
+      _state = HomeState.error;
+      notifyListeners();
+    }
   }
 
+  // Set weekly goal
   Future<void> setWeeklyGoal(String goal) async {
     if (!_isAuthenticated) return;  // Check auth state first
     
-    final prefs = await SharedPreferencesService.getInstance();
-    await prefs.saveWeeklyGoal(goal);
-    _weeklyGoal = goal.trim();
-    await _mergeIntoUserDoc({
-      'weeklyGoal': _weeklyGoal,
-      'weeklyGoalUpdatedAt': FieldValue.serverTimestamp()
-    });
-    notifyListeners();
+    try {
+      await _prefsService.saveWeeklyGoal(goal);
+      _weeklyGoal = goal.trim();
+      await _mergeIntoUserDoc({
+        'weeklyGoal': _weeklyGoal,
+        'weeklyGoalUpdatedAt': FieldValue.serverTimestamp()
+      });
+      _state = HomeState.success;
+      notifyListeners();
+    } catch (e) {
+      _state = HomeState.error;
+      notifyListeners();
+    }
   }
 
+  // Clear all data
   void clear() {
     _username = null;
     _currentFocus = null;
     _streak = 0;
     _mood = "Chill";
     _weeklyGoal = null;
-    notifyListeners();
+    _state = HomeState.initial;
   }
+}
+
+// Home state enum for better state management
+enum HomeState {
+  initial,
+  loading,
+  success,
+  error
 }

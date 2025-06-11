@@ -3,14 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:focus_fuel/Utils/route_navigator.dart';
+import 'package:focus_fuel/Services/route_navigator.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/ViewModels/chat_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
-import 'Utils/shared_prefs_service.dart';
-import 'Utils/streak_repo.dart';
+import 'Services/shared_prefs_service.dart';
+import 'Services/streak_repo.dart';
 import 'firebase_options.dart';
+import 'Services/chat_service.dart';
 
 final GlobalKey<NavigatorState> navigationKey = GlobalKey<NavigatorState>();
 
@@ -70,9 +71,10 @@ class MyApp extends StatelessWidget {
         return MultiProvider(
           providers: [
             Provider<StreakRepository>(create: (_) => StreakRepository()),
+            Provider<ChatService>(create: (_) => ChatService()),
             ChangeNotifierProvider(create: (_) => AuthViewModel()),
             ChangeNotifierProvider(create: (context) => HomeViewModel(context.read<StreakRepository>())),
-            ChangeNotifierProvider(create: (_) => ChatViewModel(userId: user?.uid ?? '')),
+            ChangeNotifierProvider(create: (context) => ChatViewModel()),
           ],
           child: MaterialApp(
             navigatorKey: navigationKey,
