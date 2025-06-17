@@ -189,7 +189,7 @@ class _ChatHistoryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Weekly Goal: ${conversation.weeklyGoal ?? 'Not set'}',
+                      'Focus was: ${conversation.userFocus ?? 'Not set'}',
                       style: GoogleFonts.poppins(
                         textStyle: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),

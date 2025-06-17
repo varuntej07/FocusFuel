@@ -10,7 +10,7 @@ async function buildPromptWithContext(userId, message, conversationId) {
   const conversationDoc = await db.collection('Conversations').doc(conversationId).get();
   const conversationData = conversationDoc.data();
   const userFocus = conversationData?.userFocus || '';
-  const weeklyGoal = conversationData?.weeklyGoal || '';
+  // const weeklyGoal = conversationData?.weeklyGoal || '';
 
   // Get conversation history (last 5 messages for context)
   const messagesSnapshot = await db
@@ -34,9 +34,9 @@ async function buildPromptWithContext(userId, message, conversationId) {
   const systemPrompt = `
                         You are an expert productivity coach.
                         The user's current focus/goal is: ${userFocus}.
-                        The user's weekly goal is: ${weeklyGoal}.
                         Provide actionable advice based on their focus and goals to help them stay on track.
-                        Don't ramble out, ask questions if you don't have 80% confidence to answer the question.
+                        Do not make any decisions if you are not at least 95% confident in the responses.
+                        Ask clarifying questions to get that confidence.
                         This is the conversation history below:
                         `;
 

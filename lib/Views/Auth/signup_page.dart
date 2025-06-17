@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:provider/provider.dart';
+import '../../ViewModels/home_vm.dart';
 import '../screens/main_scaffold.dart';
 import 'login_page.dart';
 
@@ -90,7 +91,7 @@ class _SignupState extends State<Signup> {
 
               TextFormField(
                 controller: auth.confirmPasswordController,
-                obscureText: _viewPassword,
+                obscureText: true,
                 decoration: InputDecoration(
                     hintText: 'Confirm password', labelText: 'Confirm password',
                     border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
@@ -121,6 +122,7 @@ class _SignupState extends State<Signup> {
                   if (!context.mounted) return;
 
                   if (await auth.signUp() != null) {
+                    await context.read<HomeViewModel>().loadFromPrefs();
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
                   }
                 },
@@ -136,7 +138,11 @@ class _SignupState extends State<Signup> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Already have an account?"),
-                  TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Login())),
+                  TextButton(
+                      onPressed: () {
+                        context.read<AuthViewModel>().clearError(); // Clear error before navigation
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const Login()));
+                      },
                       child: const Text("Login")
                   ),
                 ],

@@ -83,6 +83,11 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   // Clear user data
   void _clearUserData() {
     _userModel = null;
@@ -155,7 +160,16 @@ class AuthViewModel extends ChangeNotifier {
       };
 
       await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).set(userData);
-      _userModel = UserModel.fromMap(userData);
+
+      // Creating UserModel with current timestamp instead of server timestamp
+      _userModel = UserModel(
+        uid: credential.user!.uid,
+        email: emailController.text.trim(),
+        username: usernameController.text.trim(),
+        createdAt: DateTime.now(),
+        isActive: true,
+      );
+
       await _cacheUser();
       _errorMessage = null;
       _state = AuthState.authenticated;

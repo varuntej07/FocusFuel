@@ -27,7 +27,8 @@ class _HomeFeedState extends State<HomeFeed> {
       }
       context.read<HomeViewModel>().shouldPromptGoals().then((shouldPrompt) {
         if (shouldPrompt) {
-          _promptForGoals(context);
+          // executed after the 2-second delay
+          Future.delayed(const Duration(seconds: 2), () => _promptForGoals(context));
         }
       });
     });
@@ -81,11 +82,14 @@ class _HomeFeedState extends State<HomeFeed> {
 
   void _handleSuggestionTap(BuildContext context ,String suggestion) {
     final homeVM = Provider.of<HomeViewModel>(context, listen: false);
-    if (suggestion.contains("Other")) {
-      _showCustomFocusDialog(context);
-    } else {
-      homeVM.setFocusGoal(suggestion);
+    if (homeVM.currentFocus == null) {
+      if (suggestion.contains("Other")) {
+        _showCustomFocusDialog(context);
+      } else {
+        homeVM.setFocusGoal(suggestion);
+      }
     }
+    return;
   }
 
   void _showCustomFocusDialog(BuildContext context) {
@@ -199,9 +203,16 @@ class _HomeFeedState extends State<HomeFeed> {
                     childAspectRatio: 1.4,      // Aspect ratio for card dimensions
                   ),
                   children: [
-                    _InfoTile(emoji: '🧠', title: "Today’s Goal", subtitle: selectedFocus),
+                    _InfoTile(
+                        emoji: '🧠',
+                        title: "Today’s Goal",
+                        subtitle: selectedFocus,
+                        editFocus: () {
+                          _promptForGoals(context);
+                        }
+                    ),
 
-                    _InfoTile(emoji: '📅', title: "Weekly Goal", subtitle: weeklyGoal),
+                    _InfoTile(emoji: '📅', title: "Weekly Goal", subtitle: weeklyGoal, editFocus: () { _promptForGoals(context); },),
 
                     _SliderTile(
                       label: "Interval",
@@ -239,8 +250,9 @@ class _InfoTile extends StatelessWidget {
   final String emoji;
   final String title;
   final String subtitle;
+  final VoidCallback editFocus;
 
-  const _InfoTile({required this.emoji, required this.title, required this.subtitle});
+  const _InfoTile({required this.emoji, required this.title, required this.subtitle, required this.editFocus});
 
   @override
   Widget build(BuildContext context) {
@@ -253,11 +265,12 @@ class _InfoTile extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            TextButton(
+              child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+              onPressed: () {
+                editFocus();
+              },
             ),
-            const SizedBox(height: 24),
             Text(
               subtitle,
               textAlign: TextAlign.center,

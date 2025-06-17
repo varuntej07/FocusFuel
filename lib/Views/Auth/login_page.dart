@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/auth_vm.dart';
-import '../../ViewModels/chat_vm.dart';
 import '../../ViewModels/home_vm.dart';
 import '../screens/main_scaffold.dart';
 import 'signup_page.dart';
@@ -111,7 +110,10 @@ class _LoginState extends State<Login> {
                 children: [
                   const Text("Don't have an account?"),
                   TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Signup())),
+                    onPressed: () {
+                      context.read<AuthViewModel>().clearError(); // Clear error before navigation
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const Signup()));
+                    },
                     child: const Text("Sign Up"),
                   ),
                 ],

@@ -77,9 +77,7 @@ class ChatService {
 
    // Creating GPT request document in the /GptRequests sub-collection so that cloud function can process it
     try {
-      await _firestore.collection('Users')
-          .doc(userId)
-          .collection('GptRequests')
+      await _firestore.collection('GptRequests')
           .add({
         'messageId': messageRef.id,
         'conversationId': conversationId,

@@ -4,66 +4,97 @@ import 'package:flutter/cupertino.dart';
 import '../Services/shared_prefs_service.dart';
 import '../Services/streak_repo.dart';
 
+/// HomeViewModel manages the home screen state and user data
 class HomeViewModel extends ChangeNotifier {
+  static const String _defaultUsername = "Dude";
+  static const String _defaultMood = "Chill";
+  static const int _defaultStreak = 0;
+
   // State management
   HomeState _state = HomeState.initial;
-  HomeState get state => _state;
-
-  // User data
-  String? _username;
-  int _streak = 0;
-  String? _currentFocus;
-  String _mood = 'Chill';
-  String? _weeklyGoal;
   bool _isAuthenticated = false;
   bool _disposed = false;
 
+  // User data
+  String? _username;
+  int _streak = _defaultStreak;
+  String? _currentFocus;
+  String _mood = _defaultMood;
+  String? _weeklyGoal;
+
   // Getters
-  String get username => _isAuthenticated ? (_username ?? "Dude") : "Dude";
+  String get username => _isAuthenticated ? (_username ?? _defaultUsername) : _defaultUsername;
   int get streak => _isAuthenticated ? _streak : 0;
   String get mood => _mood;
   String? get currentFocus => _isAuthenticated ? _currentFocus : null;
   String? get weeklyGoal => _isAuthenticated ? _weeklyGoal : null;
+
+  HomeState get state => _state;
   bool get isAuthenticated => _isAuthenticated;
 
-  // Services
+  // Services - injected dependencies
   final StreakRepository streakRepo;
   late SharedPreferencesService _prefsService;
 
-  // Constructor
+  // Constructor to initialize the view model
   HomeViewModel(this.streakRepo) {
-    _initialize();
+    _initializeViewModel();
   }
 
-  // Initialize view model
-  Future<void> _initialize() async {
-    _prefsService = await SharedPreferencesService.getInstance();
-    _isAuthenticated = FirebaseAuth.instance.currentUser != null;
-    
-    if (_isAuthenticated) {
-      await loadFromPrefs();
-    } else {
-      clear(); // Clear all data if not authenticated
-    }
+  // Initializing view model
+  // This is the main entry point that sets up the entire state management
+  Future<void> _initializeViewModel() async {
+    try {
+      // Initialize shared preferences service
+      _prefsService = await SharedPreferencesService.getInstance();
 
-    // Listen to auth state changes
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      _isAuthenticated = user != null;
+      // Checking authentication by taking User object of the currently signed-in user if there is one as a parameter
+      _updateAuthenticationState(FirebaseAuth.instance.currentUser);
+
+      // Set up authentication state listener for real-time auth changes
+      _setupAuthenticationListener();
+
+      // Load initial data if user is authenticated
       if (_isAuthenticated) {
-        loadFromPrefs();
+        await loadFromPrefs();
       } else {
-        clear();
+        clearAllUserData(); // Clear all data if not authenticated
+      }
+    } catch (e) {
+      _handleError('Failed to initialize HomeViewModel: $e');
+    }
+  }
+
+  /// Set up listener for authentication state changes
+  /// This ensures the ViewModel stays in sync with auth state
+  void _setupAuthenticationListener() {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+      final wasAuthenticated = _isAuthenticated;
+      _updateAuthenticationState(user);
+
+      // Only reload data if authentication state actually changed
+      if (wasAuthenticated != _isAuthenticated) {
+        if (_isAuthenticated) {
+          await loadFromPrefs();
+        } else {
+          clearAllUserData();
+        }
       }
     });
   }
 
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
+  /// Update authentication state and notify listeners if needed
+  void _updateAuthenticationState(User? user) {
+    final newAuthState = user != null;      // This determines if user is authenticated
+    if (_isAuthenticated != newAuthState) {
+      _isAuthenticated = newAuthState;
+
+      if (!_disposed) notifyListeners();
+    }
   }
 
-  // Check if goals need to be prompted
+  /// Check if goals need to be prompted
+  /// Returns true if currentFocus is missing, indicating setup is incomplete
   Future<bool> shouldPromptGoals() async {
     if (!_isAuthenticated) return false;
 
@@ -71,37 +102,18 @@ class HomeViewModel extends ChangeNotifier {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return false;
 
-    final snap = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
-    if (!snap.exists) return true;                  // user doc missing
+      final snap = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+      if (!snap.exists) return true;
 
-    final data = snap.data() ?? {};
-    _currentFocus = data['currentFocus'];           // may be null
-    _weeklyGoal = data['weeklyGoal'];             // may be null
-    if (!_disposed) notifyListeners();
+      final data = snap.data() ?? {};
+      _currentFocus = data['currentFocus'];           // may be null
+      _weeklyGoal = data['weeklyGoal'];             // may be null
+      if (!_disposed) notifyListeners();
 
       return _currentFocus == null;
     } catch (e) {
-      _state = HomeState.error;
-      notifyListeners();
+      _handleError('Failed to check goal status: $e');
       return false;
-    }
-  }
-
-  // Merge data into user document
-  Future<void> _mergeIntoUserDoc(Map<String, dynamic> data) async {
-    if (!_isAuthenticated) return;  // Check auth state first
-    
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-
-      await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(uid)
-          .set(data, SetOptions(merge: true));
-    } catch (e) {
-      _state = HomeState.error;
-      notifyListeners();
     }
   }
 
@@ -115,87 +127,147 @@ class HomeViewModel extends ChangeNotifier {
 
       await _prefsService.saveStreak(newStreak);
       _streak = newStreak;
-      _state = HomeState.success;
+      _updateState(HomeState.success);
       if (!_disposed) notifyListeners();
     } catch (e) {
-      _state = HomeState.error;
-      notifyListeners();
+      _handleError('Failed to update streak: $e');
     }
   }
 
-  // Load data from preferences
-  Future<void> loadFromPrefs() async {
-    if (!_isAuthenticated) {
-      clear();
-      return;
-    }
-
-    try {
-      _username = _prefsService.getUsername();
-      _streak = _prefsService.getStreak() ?? 0;
-      _currentFocus = _prefsService.getCurrentFocus();
-      _weeklyGoal = _prefsService.getWeeklyGoal();
-      _state = HomeState.success;
-      notifyListeners();
-    } catch (e) {
-      _state = HomeState.error;
-      if (!_disposed) notifyListeners();
-    }
-  }
-
-  // Set focus goal
+  /// Set focus goal
+  /// This updates both local preferences and Firestore
   Future<void> setFocusGoal(String focus) async {
-    if (!_isAuthenticated) return;  // Check auth state first
+    if (!_isAuthenticated || focus.trim().isEmpty) return;  // Check auth state first
     
     try {
+      _updateState(HomeState.loading);
+
+      // Update local preferences first for immediate UI feedback
       await _prefsService.saveCurrentFocus(focus);
       _currentFocus = focus;
+
+      // Update Firestore with focus and timestamp
       await _mergeIntoUserDoc({
         'currentFocus': _currentFocus,
         'focusUpdatedAt': FieldValue.serverTimestamp()
       });
-      _state = HomeState.success;
-      notifyListeners();
+
+      _updateState(HomeState.success);
     } catch (e) {
-      _state = HomeState.error;
-      notifyListeners();
+      _handleError('Failed to set focus goal: $e');
     }
   }
 
-  // Set weekly goal
+  /// Set weekly goal
+  /// This updates both local preferences and Firestore
   Future<void> setWeeklyGoal(String goal) async {
     if (!_isAuthenticated) return;  // Check auth state first
     
     try {
-      await _prefsService.saveWeeklyGoal(goal);
-      _weeklyGoal = goal.trim();
+      _updateState(HomeState.loading);
+
+      final weeklyGoal = goal.trim();
+
+      await _prefsService.saveWeeklyGoal(weeklyGoal);       // Updating local preferences first
+      _weeklyGoal = weeklyGoal.isEmpty ? null : weeklyGoal;
+
       await _mergeIntoUserDoc({
         'weeklyGoal': _weeklyGoal,
         'weeklyGoalUpdatedAt': FieldValue.serverTimestamp()
       });
-      _state = HomeState.success;
-      notifyListeners();
+
+      _updateState(HomeState.success);
+
     } catch (e) {
-      _state = HomeState.error;
-      notifyListeners();
+      _handleError('Failed to set weekly goal: $e');
     }
   }
 
+  /// Load data from local preferences
+  /// This provides immediate data access without network calls
+  Future<void> loadFromPrefs() async {
+    if (!_isAuthenticated) {
+      clearAllUserData();
+      return;
+    }
+
+    try {
+      _updateState(HomeState.loading);
+
+      _username = _prefsService.getUsername();
+      _streak = _prefsService.getStreak() ?? _defaultStreak;
+      _currentFocus = _prefsService.getCurrentFocus();
+      _weeklyGoal = _prefsService.getWeeklyGoal();
+
+      _updateState(HomeState.success);
+
+    } catch (e) {
+      _handleError('Failed to load user data from preferences: $e');
+    }
+  }
+
+  /// Fetch user data from Firestore
+  /// Returns null if document doesn't exist
+  Future<Map<String, dynamic>?> _fetchUserDataFromFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(uid)
+        .get();
+
+    return snapshot.exists ? snapshot.data() : null;
+  }
+
+  // Merge data into user document
+  Future<void> _mergeIntoUserDoc(Map<String, dynamic> data) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(uid)
+        .set(data, SetOptions(merge: true));
+  }
+
   // Clear all data
-  void clear() {
+  void clearAllUserData() {
     _username = null;
     _currentFocus = null;
-    _streak = 0;
-    _mood = "Chill";
+    _streak = _defaultStreak;
+    _mood = _defaultMood;
     _weeklyGoal = null;
-    _state = HomeState.initial;
+    _updateState(HomeState.initial);
+  }
+
+  // Update the ViewModel state and notify listeners
+  void _updateState(HomeState newState) {
+    if (_state != newState) {
+      _state = newState;
+
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  /// Handle errors consistently across the ViewModel
+  void _handleError(String errorMessage) {
+    // TODO: Should Add proper logging here
+    print('HomeViewModel Error: $errorMessage');
+    _updateState(HomeState.error);
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
 
-// Home state enum for better state management
+/// Represents the different states of the HomeViewModel
 enum HomeState {
-  initial,
-  loading,
-  success,
-  error
+  initial,      // Initial state when ViewModel is first created
+  loading,      // Loading state during async operations
+  success,      // Success state when operations complete successfully
+  error          // Error state when operations fail
 }

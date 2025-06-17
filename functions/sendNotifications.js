@@ -98,7 +98,7 @@ async function getRandomMessage(uid) {
 module.exports = {
     sendScheduledNotification: onSchedule(
         {
-            schedule: "*/30 8-22 * * *",
+            schedule: "*/30 9-22 * * *",
             secrets: ["OPENAI_API_KEY"],
             timeZone: "America/Los_Angeles",
         },
