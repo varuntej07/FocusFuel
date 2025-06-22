@@ -129,6 +129,21 @@ class ChatService {
     });
   }
 
+  Future<int> getMessageCount(String conversationId) async {
+    try {
+      final QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('Conversations')
+          .doc(conversationId)
+          .collection('Messages')
+          .get();
+
+      return snapshot.docs.length;
+    } catch (e) {
+      print('Error getting message count: $e');
+      return 0;
+    }
+  }
+
   // Retry sending a message
   Future<void> retryMessage(String message, String conversationId) async {
     await sendMessage(message, conversationId);

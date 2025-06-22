@@ -67,4 +67,11 @@ class ChatViewModel extends ChangeNotifier {
   Stream<List<ConversationModel>> getConversationsStream() {
     return _chatService.getPastConversations();
   }
+
+  String trimString(String str, length) {
+  if (str.length > length) {
+    return "${str.substring(0, length)}...";
+  }
+  return str;
+  }
 }

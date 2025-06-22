@@ -130,84 +130,97 @@ class _ChatHistoryCard extends StatelessWidget {
   _ChatHistoryCard({required this.conversation});
 
   final ConversationModel conversation;
-  final ChatService _gptService = ChatService();    // ChatService instance to fetch notification messages
+  final ChatService _gptService = ChatService();
 
   @override
   Widget build(BuildContext context) {
     final time = DateFormat.jm().format(conversation.startedAt);
+    final chatVM = context.read<ChatViewModel>();
+    final conversationFocus = conversation.userFocus;
 
-    return GestureDetector(
-      onTap: () {
-        // Navigate to chat with this specific conversation
-        context.read<ChatViewModel>().setConversation(conversation.id);
-        Navigator.pop(context); // Go back to chat screen
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+    return FutureBuilder<int>(
+      future: _gptService.getMessageCount(conversation.id),
+      builder: (context, messageCountSnapshot) {
+        // Determine card color based on message count
+        final hasMultipleMessages = (messageCountSnapshot.data ?? 0) > 1;
+        final cardColor = hasMultipleMessages ? Colors.blue.shade50 : Colors.white;
+        final borderColor = hasMultipleMessages ? Colors.blue.shade50 : Colors.grey.shade300;
 
-                    const SizedBox(height: 2),
+        return GestureDetector(
+          onTap: () {
+            // Navigate to chat with this specific conversation
+            chatVM.setConversation(conversation.id);
+            Navigator.pop(context); // Go back to chat screen
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: cardColor,
+              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
 
-                    FutureBuilder<NotificationModel?>(
-                      future: conversation.notificationId != null
-                          ? _gptService.getNotification(conversation.notificationId!)
-                          : null,
-                      builder: (context, snapshot) {
-                        String displayText;
+                        const SizedBox(height: 2),
 
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          displayText = 'Fetching notification...';
-                        } else if (snapshot.hasData && snapshot.data != null) {
-                          displayText = snapshot.data!.message;
-                        } else {
-                          // Fallback to userFocus or default text
-                          displayText = conversation.userFocus ?? 'Focus Session';
-                        }
+                        FutureBuilder<NotificationModel?>(
+                          future: conversation.notificationId != null
+                              ? _gptService.getNotification(conversation.notificationId!)
+                              : null,
+                          builder: (context, snapshot) {
+                            String displayText;
 
-                        return Text(
-                          displayText,
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              displayText = 'Fetching notification...';
+                            } else if (snapshot.hasData && snapshot.data != null) {
+                              final chatHistoryMessage = snapshot.data!.message;
+                              displayText = chatVM.trimString(chatHistoryMessage, 90);
+                            } else {
+                              // Fallback to userFocus or default text
+                              displayText = chatVM.trimString(conversationFocus ?? 'Focus Session', 40);
+                            }
+
+                            return Text(
+                              displayText,
+                              style: GoogleFonts.poppins(
+                                textStyle: const TextStyle(
+                                  color: Colors.black, fontSize: 13, fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Focus was: ${chatVM.trimString(conversationFocus ?? 'Not set', 40)}',
                           style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              color: Colors.black, fontSize: 13, fontWeight: FontWeight.w500,
-                            ),
+                            textStyle: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Focus was: ${conversation.userFocus ?? 'Not set'}',
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    color: Colors.grey,
+                    onPressed: () {
+                      // TODO: archive/delete chat history
+                    },
+                    icon: const Icon(Icons.more_vert),
+                  ),
+                ],
               ),
-              IconButton(
-                color: Colors.grey,
-                onPressed: () {
-                  // TODO: archive/delete chat history
-                },
-                icon: const Icon(Icons.more_vert),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

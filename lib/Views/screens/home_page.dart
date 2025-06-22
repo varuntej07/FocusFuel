@@ -21,22 +21,32 @@ class _HomeFeedState extends State<HomeFeed> {
   void initState(){
     super.initState();
     // Calling once, right after the first build frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        context.read<HomeViewModel>().bumpStreakIfNeeded();
-      }
-      context.read<HomeViewModel>().shouldPromptGoals().then((shouldPrompt) {
-        if (shouldPrompt) {
-          // executed after the 2-second delay
-          Future.delayed(const Duration(seconds: 2), () => _promptForGoals(context));
+        final homeVM = context.read<HomeViewModel>();
+
+        // Wait for initialization
+        while (!homeVM.isInitialized) {
+          await Future.delayed(const Duration(milliseconds: 100));
         }
-      });
+
+        if (homeVM.isAuthenticated) {
+          await homeVM.bumpStreakIfNeeded();
+
+          final shouldPrompt = await homeVM.shouldPromptGoals();
+          if (shouldPrompt) {
+            // executed after the 2-second delay
+            Future.delayed(const Duration(seconds: 2), () => _promptForGoals(context));
+          }
+        }
+      }
     });
   }
 
   void _promptForGoals(BuildContext ctx) {
     String todayGoal = '';
     String weekGoal  = '';
+    final homeVM =  ctx.read<HomeViewModel>();
     showDialog(
       context: ctx,
       barrierDismissible: false,  // force a decision
@@ -48,7 +58,10 @@ class _HomeFeedState extends State<HomeFeed> {
             // today's goal input
             TextField(
               autofocus: true,
-              decoration: const InputDecoration(labelText: "what's ya goal today?"),
+              decoration: InputDecoration(
+                  hintText: homeVM.currentFocus,
+                  labelText: "what's ya goal today?"
+              ),
               onChanged: (v) => todayGoal = v,
             ),
             const SizedBox(height: 12),
@@ -66,10 +79,10 @@ class _HomeFeedState extends State<HomeFeed> {
           TextButton(
             onPressed: () {
               if (todayGoal.trim().isNotEmpty) {
-                ctx.read<HomeViewModel>().setFocusGoal(todayGoal.trim());
+                homeVM.setFocusGoal(todayGoal.trim());
               }
               if (weekGoal.trim().isNotEmpty || weekGoal.trim().isEmpty) {
-                ctx.read<HomeViewModel>().setWeeklyGoal(weekGoal.trim());
+                homeVM.setWeeklyGoal(weekGoal.trim());
               }
               Navigator.pop(ctx);
             },

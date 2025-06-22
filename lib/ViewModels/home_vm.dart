@@ -41,6 +41,9 @@ class HomeViewModel extends ChangeNotifier {
     _initializeViewModel();
   }
 
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   // Initializing view model
   // This is the main entry point that sets up the entire state management
   Future<void> _initializeViewModel() async {
@@ -60,6 +63,7 @@ class HomeViewModel extends ChangeNotifier {
       } else {
         clearAllUserData(); // Clear all data if not authenticated
       }
+      _isInitialized = true;
     } catch (e) {
       _handleError('Failed to initialize HomeViewModel: $e');
     }
@@ -206,19 +210,6 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Fetch user data from Firestore
-  /// Returns null if document doesn't exist
-  Future<Map<String, dynamic>?> _fetchUserDataFromFirestore() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return null;
-
-    final snapshot = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(uid)
-        .get();
-
-    return snapshot.exists ? snapshot.data() : null;
-  }
 
   // Merge data into user document
   Future<void> _mergeIntoUserDoc(Map<String, dynamic> data) async {
