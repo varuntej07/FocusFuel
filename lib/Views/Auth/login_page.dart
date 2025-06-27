@@ -48,7 +48,7 @@ class _LoginState extends State<Login> {
             children: [
               const Text(
                 "Welcome back to Focus Fuel",
-                style: TextStyle(color: Colors.purple, fontSize: 26, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.black87, fontSize: 26, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 32),
 

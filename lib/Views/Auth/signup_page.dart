@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../ViewModels/home_vm.dart';
 import '../screens/main_scaffold.dart';
 import 'login_page.dart';
+import 'onboarding_flow.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -121,9 +122,32 @@ class _SignupState extends State<Signup> {
 
                   if (!context.mounted) return;
 
-                  if (await auth.signUp() != null) {
+                  final user = await auth.signUp();
+                  if (user != null) {
                     await context.read<HomeViewModel>().loadFromPrefs();
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+
+                    // Start full-screen onboarding for new users
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) =>
+                              OnboardingScreen(userId: user.uid),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            return FadeTransition(opacity: animation, child: child);
+                          },
+                          transitionDuration: const Duration(milliseconds: 500),
+                        ),
+                      ).then((_) {
+                        // Navigate to main app after onboarding completes
+                        if (context.mounted) {
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const HomePage())
+                          );
+                        }
+                      });
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(

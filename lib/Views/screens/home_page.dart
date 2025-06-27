@@ -35,8 +35,8 @@ class _HomeFeedState extends State<HomeFeed> {
 
           final shouldPrompt = await homeVM.shouldPromptGoals();
           if (shouldPrompt) {
-            // executed after the 2-second delay
-            Future.delayed(const Duration(seconds: 2), () => _promptForGoals(context));
+            // executed after the 5-second delay
+            Future.delayed(const Duration(seconds: 5), () => _promptForGoals(context));
           }
         }
       }

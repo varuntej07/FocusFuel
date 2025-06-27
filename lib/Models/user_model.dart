@@ -16,6 +16,17 @@ class UserModel {
   final DateTime? lastNotificationTime;
   final bool notificationsEnabled;
 
+  // Onboarding fields for personalized notifications
+  final String? dailyScreenTime;
+  final String? mostUsedApp;
+  final List<String>? primaryInterests;
+  final List<String>? specificInterests;
+  final String? ageRange;
+  final String? primaryGoal;
+  final String? motivationStyle;
+  final String? preferredNotificationTime;
+  final bool onboardingCompleted;
+
   UserModel({
     required this.uid,
     required this.email,
@@ -33,6 +44,16 @@ class UserModel {
     this.notificationInterval = 30,   // Default notification interval is 30 minutes
     this.lastNotificationTime,
     this.notificationsEnabled = true,
+
+    this.dailyScreenTime,
+    this.mostUsedApp,
+    this.primaryInterests,
+    this.specificInterests,
+    this.ageRange,
+    this.primaryGoal,
+    this.motivationStyle,
+    this.preferredNotificationTime,
+    this.onboardingCompleted = false,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -53,6 +74,15 @@ class UserModel {
       notificationInterval: map['notificationInterval'] ?? 30,
       lastNotificationTime: map['lastNotificationTime']?.toDate(),
       notificationsEnabled: map['notificationsEnabled'] ?? true,
+      dailyScreenTime: map['dailyScreenTime'],
+      mostUsedApp: map['mostUsedApp'],
+      primaryInterests: map['primaryInterests']?.cast<String>(),
+      specificInterests: map['specificInterests']?.cast<String>(),
+      ageRange: map['ageRange'],
+      primaryGoal: map['primaryGoal'],
+      motivationStyle: map['motivationStyle'],
+      preferredNotificationTime: map['preferredNotificationTime'],
+      onboardingCompleted: map['onboardingCompleted'] ?? false,
     );
   }
 
@@ -74,6 +104,15 @@ class UserModel {
       'notificationInterval': notificationInterval,
       'lastNotificationTime': lastNotificationTime,
       'notificationsEnabled': notificationsEnabled,
+      'dailyScreenTime': dailyScreenTime,
+      'mostUsedApp': mostUsedApp,
+      'primaryInterests': primaryInterests,
+      'specificInterests': specificInterests,
+      'ageRange': ageRange,
+      'primaryGoal': primaryGoal,
+      'motivationStyle': motivationStyle,
+      'preferredNotificationTime': preferredNotificationTime,
+      'onboardingCompleted': onboardingCompleted,
     };
   }
 }

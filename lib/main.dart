@@ -7,9 +7,11 @@ import 'package:focus_fuel/Services/route_navigator.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/ViewModels/chat_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'Services/shared_prefs_service.dart';
 import 'Services/streak_repo.dart';
+import 'ViewModels/onboarding_vm.dart';
 import 'firebase_options.dart';
 import 'Services/chat_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -123,11 +125,20 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => AuthViewModel()),
             ChangeNotifierProvider(create: (context) => HomeViewModel(context.read<StreakRepository>())),
             ChangeNotifierProvider(create: (context) => ChatViewModel()),
+            ChangeNotifierProvider(create: (_) => OnboardingViewModel())
           ],
           child: MaterialApp(
             navigatorKey: navigationKey,
             initialRoute: user != null ? '/' : '/login',
             onGenerateRoute: RouteNavigator.routeGenerator,
+            theme: ThemeData(
+              textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+              scaffoldBackgroundColor: Colors.white, // Background color of the entire app
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.white, // prevents color change on scroll
+              ),
+            )
           ),
         );
       },

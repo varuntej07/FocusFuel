@@ -130,7 +130,7 @@ class _ChatHistoryCard extends StatelessWidget {
   _ChatHistoryCard({required this.conversation});
 
   final ConversationModel conversation;
-  final ChatService _gptService = ChatService();
+  final ChatService _gptService = ChatService();    // ChatService instance to fetch notification messages
 
   @override
   Widget build(BuildContext context) {
