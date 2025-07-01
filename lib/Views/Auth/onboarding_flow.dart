@@ -145,17 +145,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget _buildCurrentStep(OnboardingViewModel vm) {
     switch (vm.currentStep) {
       case 0:
-        return _buildScreenTimeStep(vm);
-      case 1:
-        return _buildMostUsedAppStep(vm);
-      case 2:
         return _buildPrimaryInterestsStep(vm);
-      case 3:
+      case 1:
         return _buildSpecificInterestsStep(vm);
-      case 4:
-        return _buildAgeRangeStep(vm);
-      case 5:
+      case 2:
         return _buildPrimaryGoalStep(vm);
+      case 3:
+        return _buildMostUsedAppStep(vm);
+      case 4:
+        return _buildScreenTimeStep(vm);
+      case 5:
+        return _buildAgeRangeStep(vm);
       case 6:
         return _buildFinalStep(vm);
       default:
@@ -254,7 +254,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 8),
           const Text(
-            'Choose up to 5 specific areas you\'d like to focus on',
+            'Choose up to 7 specific areas you\'d like to focus on',
             style: TextStyle(
               fontSize: 16,
               color: Colors.black54,
@@ -270,7 +270,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 alignment: WrapAlignment.center,
                 children: availableSubInterests.map((subInterest) {
                   final isSelected = vm.selectedSubInterests.contains(subInterest);
-                  final canSelect = vm.selectedSubInterests.length < 5 || isSelected;
+                  final canSelect = vm.selectedSubInterests.length < 7 || isSelected;
 
                   return _buildSimpleChip(
                     label: subInterest,

@@ -65,6 +65,7 @@ class HomePageState extends State<HomePage> {
             children: _pages,
           ),
           bottomNavigationBar: BottomNavigationBar(
+              backgroundColor: Colors.white,
               currentIndex: _selectedIndex,
               onTap: _onTap,
               items: const [

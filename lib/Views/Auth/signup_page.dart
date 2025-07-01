@@ -24,7 +24,6 @@ class _SignupState extends State<Signup> {
     final auth = context.watch<AuthViewModel>(); // Provides access to AuthViewModel
 
     return Scaffold(
-      backgroundColor: Colors.purple[50],
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -36,7 +35,7 @@ class _SignupState extends State<Signup> {
               const Center(
                 child: Text(
                     "Create account to be in top 10%",
-                    style: TextStyle(color: Colors.purple, fontSize: 26, fontWeight: FontWeight.bold)
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)
                 ),
               ),
               const SizedBox(height: 40),

@@ -38,7 +38,6 @@ class _LoginState extends State<Login> {
     final auth = context.watch<AuthViewModel>(); // Listen for isLoading & errorMessage
 
     return Scaffold(
-      backgroundColor: Colors.purple[50],
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Form(
@@ -95,12 +94,12 @@ class _LoginState extends State<Login> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple[600],
+                  backgroundColor: Colors.black87,
                   minimumSize: const Size.fromHeight(48),
                 ),
                 child: auth.isLoading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text("Log In", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    : const Text("Log In", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
 
               const SizedBox(height: 16),
@@ -114,7 +113,7 @@ class _LoginState extends State<Login> {
                       context.read<AuthViewModel>().clearError(); // Clear error before navigation
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const Signup()));
                     },
-                    child: const Text("Sign Up"),
+                    child: const Text("Sign Up", ),
                   ),
                 ],
               ),
