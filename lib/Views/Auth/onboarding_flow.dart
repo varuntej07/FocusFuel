@@ -598,6 +598,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _handleFinish(OnboardingViewModel vm) async {
+    bool saveSuccess = await vm.saveOnboardingData(widget.userId);
+    
+    if (!saveSuccess) {
+      // Show error if save failed
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(vm.errorMessage ?? 'Failed to save preferences'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     if (mounted) {
       // Show completion screen
@@ -663,6 +675,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pop();
+                           Navigator.of(context).pop(); // Go back to main app
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.purple,

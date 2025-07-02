@@ -1,108 +1,92 @@
 const {onSchedule} = require("firebase-functions/v2/scheduler");
-const { buildPrompt } = require("./utils/promptTemplates");
-const { callOpenAI } = require("./utils/openai");
+const { NotificationOrchestrator } = require("./agents/orchestrator");
 
 const admin = require("firebase-admin");
 admin.initializeApp();
 
 const db = admin.firestore();
 
-const todayKey = () =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
-
 const DEFAULT_GOAL = "Work hard, stay hard, no excuses, no shortcuts";
 
-// Helper function to get user focus
-async function getUserFocus(uid) {
+// Helper function to get full user profile (ENHANCED)
+async function getUserProfile(uid) {
     const userDoc = await db.doc(`Users/${uid}`).get();
-    return userDoc.data()?.currentFocus || DEFAULT_GOAL;
+    const userData = userDoc.data();
+
+    return {
+        uid: userDoc.id,
+        username: userData?.username || "Anonymous",
+        currentFocus: userData?.currentFocus || DEFAULT_GOAL,
+        primaryInterests: userData?.primaryInterests || [],
+        subInterests: userData?.subInterests || [],
+        primaryGoal: userData?.primaryGoal || DEFAULT_GOAL,
+        motivationStyle: userData?.motivationStyle || "gentle reminders",
+        ageRange: userData?.ageRange || "23-29",
+        preferredNotificationTime: userData?.preferredNotificationTime || "Morning (8-11 AM)",
+        dailyScreenTime: userData?.dailyScreenTime || "",
+        mostUsedApp: userData?.mostUsedApp || ""
+    };
 }
 
-// Helper function to check if pack needs refresh
-async function shouldRefreshPack(uid, currentFocus) {
-    const packRef = db.doc(`NotificationPacks/${todayKey()}`);
-    const packSnapshot = await packRef.get();
+// Helper function to get time context
+function getTimeContext(userData) {
+    // Date object in PDT/PST timezone
+    const now = new Date();
+    const pstOptions = { timeZone: "America/Los_Angeles" };
+    const pstTime = new Date(now.toLocaleString("en-US", pstOptions));
 
-    if (!packSnapshot.exists) return true;
-
-    const packData = packSnapshot.data();
-    return !packData.messages?.length || packData.onFocus !== currentFocus;
+    console.log(`Current PST time from getTimeContext is: ${pstTime.toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}`);
+    return {
+        currentTime: pstTime.toLocaleString("en-US"), // Readable time string
+        dayOfWeek: pstTime.toLocaleDateString('en-US', {
+            weekday: 'long',
+            timeZone: "America/Los_Angeles"
+        }),
+        currentHour: pstTime.getHours(), // agents to know what time it is
+        lastNotificationType: userData.lastNotificationType || "none"
+    };
 }
 
-async function generateGptResponse(uid, focus) {
+async function generateSmartNotification(userProfile, timeContext, openaiApiKey) {
     try {
-        const response = await callOpenAI({
-            model: "gpt-4o",
-            messages: [
-                { role: "system", content: "You are a expert productivity coach." },
-                { role: "user", content: buildPrompt(focus) }
-            ],
-            temperature: 0.9
-        });
+        console.log(`Profile: ${userProfile.primaryInterests?.join(", ")} | Goal: ${userProfile.primaryGoal}`);
 
-        const rawResponse = response.data.choices[0].message.content.trim();
+        // Initialize LangChain orchestrator
+        const orchestrator = new NotificationOrchestrator(openaiApiKey);
 
-        let parsedResponse;
-        try {
-            parsedResponse = JSON.parse(rawResponse);
-        } catch (e) {
-            console.error("GPT did not return valid JSON:", rawResponse);
-            return;
-        }
+        // Generate smart notification
+        const result = await orchestrator.generateSmartNotification(userProfile, timeContext);
 
-        if (!Array.isArray(parsedResponse) || parsedResponse.length !== 30) {
-            console.error("GPT returned wrong shape:", parsedResponse.length);
-        }
+        console.log(`Generated ${result.agentType} notification for user, ${userProfile.username}`);
+        console.log("Notification content for passing to send", result.notification);
+        return {
+            message: result.notification,
+            agentType: result.agentType
+        };
 
-        console.log(`Refilled notificationPack with ${parsedResponse.length} messages`);
-        await saveNotificationPackToFirestore(uid, parsedResponse, focus);
-
-        return parsedResponse; // Return the parsed pack of messages
-
-    } catch (err) {
-        console.error("OpenAI error:", err.message);
-        return "You're slacking. Wtf? Check your OpenAI API key and try again!";
+    } catch (error) {
+        console.error("LangChain error occured while initiaitng the agent:", error);
+        return {
+            message: "Why the f!",
+            agentType: "error_fallback"
+        };
     }
-}
-
-async function getRandomMessage(uid) {
-    const focus = await getUserFocus(uid);
-
-    // Check if we need to refresh the pack
-    if (await shouldRefreshPack(uid, focus)) {
-        console.log("Refilling notificationPack");
-        const newPack = await generateGptResponse(uid, focus);
-        if (!newPack) {
-            return "Error generating new messages. Please try again later.";
-        }
-    }
-
-    const packRef = db.doc(`NotificationPacks/${todayKey()}`);
-    const packSnapshot = await packRef.get();
-    const pack = packSnapshot.exists ? packSnapshot.data().messages : [];
-
-    if (!pack.length) {
-        console.log("No messages available in notificationPack");
-        return "No messages available.";
-    }
-
-    const idx = Math.floor(Math.random() * pack.length);
-    const [msg] = pack.splice(idx, 1); // Modify local copy
-
-    await packRef.update({ messages: pack }); // Update Firestore
-
-    return msg;
 }
 
 // entry point is here to send scheduled notifications
 module.exports = {
     sendScheduledNotification: onSchedule(
         {
-            schedule: "*/30 9-22 * * *",
+            schedule: "0 9-23 * * *",
             secrets: ["OPENAI_API_KEY"],
             timeZone: "America/Los_Angeles",
         },
         async () => {
+            const openaiApiKey = process.env.OPENAI_API_KEY;
+
+            if (!openaiApiKey) {
+                console.log("OpenAI API key not found");
+            }
             const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();
 
             // Iterating through each user document
@@ -110,49 +94,78 @@ module.exports = {
                 const uid = doc.id;                 // dynamic userId
                 const data = doc.data();
                 const token = data.fcmToken;        // FCM token here
-                const focus = data.currentFocus || DEFAULT_GOAL;
-                const weeklyGoal = data.weeklyGoal;
-                // const lastNotificationTime = data.lastNotificationTime?.toDate();
-                // const notificationInterval = data.notificationInterval || 30;
 
                 if (!token) {
                     console.warn(`No FCM token for user ${uid}`);
                     continue;
                 }
 
-                // getting a random message from the pack
-                const notificationBody = await getRandomMessage(uid);
+                try {
+                    const userProfile = await getUserProfile(uid);
+                    const timeContext = getTimeContext(data);
 
-               // Create notification and conversation together
-               await saveNotificationAndCreateConversation(uid, notificationBody, focus, weeklyGoal);
+                    console.log(`${userProfile.username}'s Profile with interests ${userProfile.primaryInterests?.join(", ")} | Goal: ${userProfile.primaryGoal}`);
+                    console.log(`Current time context fetched : ${timeContext.currentTime}, Day: ${timeContext.dayOfWeek}, Hour: ${timeContext.currentHour}`);
 
-               // Update user's lastNotificationTime
-               await db.collection('Users').doc(uid).update({
-                   lastNotificationTime: admin.firestore.FieldValue.serverTimestamp()
-               });
+                    const notificationResult = await generateSmartNotification(userProfile, timeContext, openaiApiKey);
+                    console.log(`Notification result for user ${userProfile.username}:`, notificationResult);
 
-                const message = {
-                    token,
-                    android: {
-                        priority: 'high',
-                        notification: {
-                            channel_id: 'focusfuel_channel',  // custom channel
-                            click_action: 'FLUTTER_NOTIFICATION_CLICK',   // deep-link guarantee
-                        }
-                    },
-                    notification: {
-                        title: 'Stay hard!',
-                        body: notificationBody
-                    },
-                    data: {
-                        deep_link: "/chat",
+                    if (!notificationResult || !notificationResult.message) {
+                        console.error(`Failed to generate notification for user ${userProfile.username} with ${uid}`);
+                        continue; // Skip this user
                     }
-                };
 
-                try {  // sending the notification to FCM servers
+                    let parsedNotification;
+                    try {
+                        // Extract JSON from response if it contains extra text
+                        const jsonMatch = notificationResult.message.match(/\{.*\}/);
+                        const jsonString = jsonMatch ? jsonMatch[0] : notificationResult.message;
+                        console.log(`JSON string extracted for user ${userProfile.username}:`, jsonString);
+
+                        parsedNotification = JSON.parse(jsonString);
+                        console.log(`Parsed notification for user ${userProfile.username}:`, parsedNotification);
+
+                    } catch (e) {
+                        console.log(`JSON parse failed for user ${userProfile.username}: ${notificationResult.message}`);
+                        parsedNotification = { title: notificationResult.title, content: notificationResult.message };
+                    }
+
+                    const notificationTitle = parsedNotification.title || "Fuck again!";
+                    console.log(`Notification title for user ${userProfile.username}: ${notificationTitle}`);
+
+                    const notificationBody = parsedNotification.content || notificationResult.message;
+                    const agentType = notificationResult.agentType;
+
+                    // Create notification and conversation
+                    await saveNotificationAndCreateConversation(parsedNotification, userProfile);
+
+                    // Update user's last notification info
+                    await db.collection('Users').doc(uid).update({
+                        lastNotificationTime: admin.firestore.FieldValue.serverTimestamp(),
+                        lastNotificationType: agentType // Track if we used an agent
+                    });
+
+                    const message = {
+                        token,
+                        android: {
+                            priority: 'high',
+                            notification: {
+                                channel_id: 'focusfuel_channel',  // custom channel
+                                click_action: 'FLUTTER_NOTIFICATION_CLICK',   // deep-link guarantee
+                            }
+                        },
+                        notification: {
+                            title: notificationTitle,
+                            body: notificationBody
+                        },
+                        data: {
+                            deep_link: "/chat",
+                        }
+                    };
+
                     console.log("Notification message that to be sent is ", message);
-                    console.log(`Notification Sent to ${uid}: ${notificationBody.slice(0, 40)}…`);
 
+                    // sending the notification to FCM servers 
                     const result = await admin.messaging().send(message);
                     console.log("Notification sent:", result);
                 } catch (err) {
@@ -163,23 +176,25 @@ module.exports = {
     )
 };
 
-async function saveNotificationAndCreateConversation(userId, message, focus, weeklyGoal) {
+async function saveNotificationAndCreateConversation(message, userProfile) {
+  
     try {
+        // first save the notification to the Notifications collection
         const notificationRef = await db.collection("Notifications").add({
-            userId: userId,
+            userId: userProfile.uid,
             message: message,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             clicked: false,
-            type: focus
+            type: userProfile.currentFocus
         });
 
         // Create conversation linked to notification
         const conversationRef = await db.collection('Conversations').add({
-            userId: userId,
+            userId: userProfile.uid,
             startedAt: admin.firestore.FieldValue.serverTimestamp(),
             notificationId: notificationRef.id,
-            userFocus: focus,
-            weeklyGoal: weeklyGoal,
+            userFocus: userProfile.currentFocus,
+            primaryGoal: userProfile.primaryGoal,
             status: 'active',
         });
 
@@ -207,20 +222,5 @@ async function saveNotificationAndCreateConversation(userId, message, focus, wee
     } catch(err) {
         console.error("Error saving notification and creating conversation:", err);
         throw err;
-    }
-}
-
-
-async function saveNotificationPackToFirestore(userId, pack, focus){
-    try {
-        const packData = {
-            author: "GPT-4o",
-            receivedAt: admin.firestore.FieldValue.serverTimestamp(),
-            onFocus: focus,
-            messages: pack,
-        }
-        await db.doc(`NotificationPacks/${todayKey()}`).set(packData);
-    } catch(err) {
-        console.error("Error saving GPT notification pack to Firestore:", err);
     }
 }

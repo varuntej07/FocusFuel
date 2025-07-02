@@ -131,7 +131,7 @@ class OnboardingViewModel extends ChangeNotifier {
       final subInterests = specificInterestsMap[interest] ?? [];
       _selectedSubInterests.removeWhere((sub) => subInterests.contains(sub));
     } else {
-      if (_selectedPrimaryInterests.length < 3) {
+      if (_selectedPrimaryInterests.length < 5) {
         _selectedPrimaryInterests.add(interest);
       }
     }
@@ -142,7 +142,7 @@ class OnboardingViewModel extends ChangeNotifier {
     if (_selectedSubInterests.contains(subInterest)) {
       _selectedSubInterests.remove(subInterest);
     } else {
-      if (_selectedSubInterests.length < 5) {
+      if (_selectedSubInterests.length < 7) {
         _selectedSubInterests.add(subInterest);
       }
     }
@@ -196,12 +196,12 @@ class OnboardingViewModel extends ChangeNotifier {
   // Validation methods
   bool canProceedFromCurrentStep() {
     switch (_currentStep) {
-      case 0: return _selectedScreenTime != null;
-      case 1: return _selectedMostUsedApp != null;
-      case 2: return _selectedPrimaryInterests.isNotEmpty;
-      case 3: return _selectedSubInterests.isNotEmpty;
-      case 4: return _selectedAgeRange != null;
-      case 5: return _selectedPrimaryGoal != null;
+      case 0: return  _selectedPrimaryInterests.isNotEmpty;
+      case 1: return _selectedSubInterests.isNotEmpty;
+      case 2: return _selectedPrimaryGoal != null;
+      case 3: return _selectedMostUsedApp != null;
+      case 4: return _selectedScreenTime != null; 
+      case 5: return _selectedAgeRange != null;
       case 6: return _selectedMotivationStyle != null && _selectedNotificationTime != null;
       default: return false;
     }
@@ -214,7 +214,7 @@ class OnboardingViewModel extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      await _firestore.collection('users').doc(userId).update({
+      await _firestore.collection('Users').doc(userId).update({
         'dailyScreenTime': _selectedScreenTime,
         'mostUsedApp': _selectedMostUsedApp,
         'primaryInterests': _selectedPrimaryInterests,
@@ -225,6 +225,11 @@ class OnboardingViewModel extends ChangeNotifier {
         'preferredNotificationTime': _selectedNotificationTime,
         'onboardingCompleted': true,
         'updatedAt': FieldValue.serverTimestamp(),
+
+        // for LangChain system
+        'currentFocus': _selectedPrimaryGoal ?? 'Master productivity and plan strategies for professional growth',
+        'lastNotificationType': 'none',
+        'lastNotificationTime': null,
       });
 
       _isLoading = false;
