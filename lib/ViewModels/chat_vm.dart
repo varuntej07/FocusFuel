@@ -7,6 +7,13 @@ import '../Services/chat_service.dart';
 class ChatViewModel extends ChangeNotifier {
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   String? _currentConversationId;
   bool _isSending = false;
@@ -19,7 +26,11 @@ class ChatViewModel extends ChangeNotifier {
   Future<void> initializeWithLatestConversation() async {
     try {
       _currentConversationId = await _chatService.getLatestConversationId();
-      notifyListeners();
+
+      // Only notify if the widget is still mounted
+      if (!_disposed) {
+        notifyListeners();
+      }
     } catch (e) {
       print('Error initializing conversation: $e');
     }

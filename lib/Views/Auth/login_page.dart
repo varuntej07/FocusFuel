@@ -39,15 +39,15 @@ class _LoginState extends State<Login> {
 
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.all(28.0),
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                "Welcome back to Focus Fuel",
-                style: TextStyle(color: Colors.black87, fontSize: 26, fontWeight: FontWeight.bold),
+                "Welcome to Focus Fuel",
+                style: TextStyle(color: Colors.black87, fontSize: 30, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 32),
 
@@ -57,7 +57,7 @@ class _LoginState extends State<Login> {
                 decoration: InputDecoration(
                   hintText: "Email",
                   prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(26)),
                 ),
                 validator: (v) => (v?.isEmpty ?? true) ? "Enter your email" : null),
               const SizedBox(height: 12),
@@ -72,7 +72,7 @@ class _LoginState extends State<Login> {
                     icon: Icon(_viewPassword ? Icons.visibility_off : Icons.visibility),
                     onPressed: _togglePassword
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(26)),
                 ),
                 validator: (v) => (v?.isEmpty ?? true) ? "Enter your password" : null,
               ),
@@ -99,7 +99,7 @@ class _LoginState extends State<Login> {
                 ),
                 child: auth.isLoading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text("Log In", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    : const Text("Log In", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white,)),
               ),
 
               const SizedBox(height: 16),
@@ -113,7 +113,7 @@ class _LoginState extends State<Login> {
                       context.read<AuthViewModel>().clearError(); // Clear error before navigation
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const Signup()));
                     },
-                    child: const Text("Sign Up", ),
+                    child: const Text("Sign Up", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

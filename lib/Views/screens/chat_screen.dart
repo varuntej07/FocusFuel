@@ -203,8 +203,9 @@ class _ChatScreenState extends State<ChatScreen>{
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Text("Get Plus", style: TextStyle(color: Colors.deepPurple, fontSize: 20)),
-                Icon(Icons.star, color: Colors.deepPurple, size: 20),
+                Text("Get Plus", style: TextStyle(color: Colors.black87, fontSize: 24, fontWeight: FontWeight.bold)),
+                SizedBox(width: 4),
+                Icon(Icons.star, color: Colors.black87, size: 25),
             ],
           ),
           )
@@ -276,7 +277,7 @@ class _ChatScreenState extends State<ChatScreen>{
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send, color: Colors.deepPurple),
+                  icon: const Icon(Icons.send, color: Colors.black87),
                   onPressed: chatVM.isSending ? null : _sendMessage,
                 ),
               ],

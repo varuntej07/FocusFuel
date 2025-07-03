@@ -116,17 +116,31 @@ class ChatService {
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data();
+        final convData = doc.data();
         return ChatModel(
-          text: data['content'] ?? '',
-          isUser: data['role'] == 'user',
-          timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          username: data['role'] == 'user' ? 'user' : 'assistant',
-          status: data['status'],
-          errorDetails: data['errorDetails'],
+          text: _extractNotificationContent(convData['content']),
+          isUser: convData['role'] == 'user',
+          timestamp: (convData['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          username: convData['role'] == 'user' ? 'user' : 'assistant',
+          status: convData['status'],
+          errorDetails: convData['errorDetails'],
         );
       }).toList();
     });
+  }
+
+  // Helper function to extract message content from Notification object saved in firestore
+  String _extractNotificationContent(dynamic content) {
+    if (content is String) {    // If content is already a string, return as-is
+      return content;
+    }
+
+    if (content is Map<String, dynamic>) {
+      return content['content'] ?? content.toString();
+    }
+
+    // Fallback for any other type
+    return content.toString();
   }
 
   Future<int> getMessageCount(String conversationId) async {

@@ -18,14 +18,25 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final notificationData = doc.data() as Map<String, dynamic>;
+
+    // Handle the message field as either object or string
+    String messageContent;
+    final messageData = notificationData['message'];    // message is a map with title and content of notification
+
+    if (messageData is Map<String, dynamic>) {
+      messageContent = messageData['content'] ?? '';
+    } else {
+      messageContent = messageData?.toString() ?? '';
+    }
+
     return NotificationModel(
       id: doc.id,
-      userId: data['userId'] ?? '',
-      message: data['message'] ?? '',
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
-      clicked: data['clicked'] ?? false,
-      type: data['type'] ?? 'focus',
+      userId: notificationData['userId'] ?? '',
+      message: messageContent,
+      timestamp: (notificationData['timestamp'] as Timestamp).toDate(),
+      clicked: notificationData['clicked'] ?? false,
+      type: notificationData['type'] ?? 'focus',
     );
   }
 

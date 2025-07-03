@@ -37,21 +37,19 @@ class _SignupState extends State<Signup> {
             ),
             child: const Text(
               'Skip',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black
               ),
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(28.0),
         child: Form(
           key: _formKey, // Links to _formKey for validation
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 30),
-
               Text(
                   "Focus Fuel",
                   style: GoogleFonts.dmSerifText(
@@ -77,7 +75,7 @@ class _SignupState extends State<Signup> {
                   validator: (v) => (v?.isEmpty ?? true)? "Create a username brotha": null,
                   decoration: InputDecoration(
                     hintText: "Create username", labelText: "Username",
-                    hintStyle: const TextStyle(color: Colors.black54),
+                    labelStyle: const TextStyle(color: Colors.black87),
                     border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(26))),
                     prefixIcon: const Icon(Icons.person_outline),
                     enabledBorder: OutlineInputBorder(
@@ -97,6 +95,7 @@ class _SignupState extends State<Signup> {
                 controller: auth.emailController,
                 decoration: InputDecoration(
                   hintText: "Enter ya email", labelText: 'Email',
+                  labelStyle: TextStyle(color: Colors.black87),
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
                   prefixIcon: Icon(Icons.email_outlined),
                   enabledBorder: OutlineInputBorder(
@@ -125,6 +124,7 @@ class _SignupState extends State<Signup> {
                 obscureText: _viewPassword,
                 decoration: InputDecoration(
                     hintText: 'Password', labelText: 'Create Password',
+                    labelStyle: TextStyle(color: Colors.black87),
                     border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(26)),
                       ),
@@ -155,17 +155,18 @@ class _SignupState extends State<Signup> {
                 controller: auth.confirmPasswordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                    hintText: 'Confirm password', labelText: 'Confirm password',
-                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(26))),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(26),
-                      borderSide: const BorderSide(color: Colors.black26),
-                      ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(26),
-                      borderSide: BorderSide(color: Colors.black87),
+                  hintText: 'Confirm password', labelText: 'Confirm password',
+                  labelStyle: TextStyle(color: Colors.black87),
+                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(26))),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(26),
+                    borderSide: const BorderSide(color: Colors.black26),
                     ),
-                    prefixIcon: const Icon(Icons.password_outlined),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(26),
+                    borderSide: BorderSide(color: Colors.black87),
+                  ),
+                  prefixIcon: const Icon(Icons.password_outlined),
                 ),
                 validator: (value) {
                   if ((value?.isEmpty ?? true)) return 'Please confirm ya password';
@@ -194,7 +195,7 @@ class _SignupState extends State<Signup> {
                         _isTermsAccepted = value ?? false;
                       });
                     },
-                    activeColor: Colors.purple[600],
+                    activeColor: Colors.black87,
                     side: const BorderSide(color: Colors.black26),
                   ),
                   Expanded(
@@ -213,7 +214,10 @@ class _SignupState extends State<Signup> {
                             ),
                             TextSpan(
                               text: 'Terms of Use',
-                              style: TextStyle(color: Colors.black87,),
+                              style: TextStyle(
+                                color: Colors.black87, fontWeight: FontWeight.w500,
+                                decoration: TextDecoration.underline,
+                              ),
                             ),
                           ],
                         ),
@@ -262,7 +266,7 @@ class _SignupState extends State<Signup> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple[600],
+                  backgroundColor: Colors.black87,
                   minimumSize: const Size.fromHeight(48),
                 ),
                 child: auth.isLoading
@@ -281,7 +285,7 @@ class _SignupState extends State<Signup> {
                         context.read<AuthViewModel>().clearError(); // Clear error before navigation
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const Login()));
                       },
-                      child: const Text("Login", style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold))
+                      child: const Text("Login", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold))
                   ),
                 ],
               ),

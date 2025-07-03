@@ -84,15 +84,17 @@ class _MenuPageState extends State<MenuPage> {
     return Scaffold(
       backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
         child: Column(
           children: [
+            SizedBox(height: 10),
+
             _buildMenuCard(
               context: context,
               title: 'Try Premium 🔥',
               subtitle: 'Unlock pro features, stay extra hard!',
               icon: Icons.diamond,
-              background: Colors.deepPurpleAccent,
+              background: Colors.black87,
               isIconTrailing: true,
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => SubscriptionScreen()));

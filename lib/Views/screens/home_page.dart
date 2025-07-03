@@ -157,20 +157,20 @@ class _HomeFeedState extends State<HomeFeed> {
 
               Text("Hey $userName!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.orange)),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
-              const Text("Let's not let procrastination win today! Stay hard!!!",
+              const Text("Let's not let procrastination win today!!",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
 
               const SizedBox(height: 50),
 
               const Text("Choose a focus goal from below",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  style: TextStyle(fontSize: 20, color: Colors.black87)),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 10),
 
               Center(
                 child: Wrap(
