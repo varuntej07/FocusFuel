@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:focus_fuel/Views/screens/menu_page.dart';
+import 'package:focus_fuel/Views/screens/news_feed.dart';
 import 'chat_screen.dart';
 import 'home_page.dart';
 
@@ -51,31 +52,33 @@ class HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = [
     const HomeFeed(),
+    const Newsfeed(),
     const ChatScreen(),
-    const MenuPage()
+    const MenuPage(),
   ];
 
   void _onTap(int index) => setState(() => _selectedIndex = index);
 
   @override
-    Widget build(BuildContext context) {
-      return Scaffold(
-          body: IndexedStack(   // Only changes which one is painted, doesn’t dispose/rebuild others
-            index: _selectedIndex,
-            children: _pages,
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-              backgroundColor: Colors.white,
-              selectedItemColor: Colors.black87,
-              unselectedItemColor: Colors.grey,
-              currentIndex: _selectedIndex,
-              onTap: _onTap,
-              items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-                BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-                BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu')
-              ]
-          )
-      );
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: IndexedStack(   // Only changes which one is painted, doesn’t dispose/rebuild others
+          index: _selectedIndex,
+          children: _pages,
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+            backgroundColor: Colors.white,
+            selectedItemColor: Colors.black87,
+            unselectedItemColor: Colors.grey,
+            currentIndex: _selectedIndex,
+            onTap: _onTap,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(icon: Icon(Icons.memory_sharp), label: 'Web'),
+              BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
+              BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu')
+            ]
+        )
+    );
   }
 }

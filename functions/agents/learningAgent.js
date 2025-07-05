@@ -21,16 +21,26 @@ class LearningAgent {
             - Current Time: {currentTime}
             - subInterests: {subInterests}
 
-            Your job: Make them DO something specific in the next 10 minutes that moves their goal forward.
+            
+            Create ONE specific micro-learning task they can complete RIGHT NOW in 10 minutes or less.
 
-            Rules:
-            - Focus on skill-building, knowledge gaps, or curiosity triggers
-            - NO vague advice. NO "consider doing". Tell them EXACTLY what to do.
+            Requirements:
+            - Give ONE concrete action with specific steps with serious tone
+            - Make it immediately doable (no prep, no signup, no purchases)
+            - Connect directly to their primary goal
+            - Use specific resources, tools, or techniques
+            - No generic advice - be precise and actionable
 
-            Strictly No explanations. No Markdown. 
-            Return ONLY valid JSON in this format:
-            {{"title": "Priority Check", "content": "Look at your to-do list. Circle the ONE thing that matters most today."}}
-`);
+            Examples of GOOD tasks:
+            - "Do you know doing this [specific topic] results in a better [specific results]"
+            - "Read the first 3 pages of [specific document/article]"
+            - "Write down 5 questions about [specific topic] you can't answer yet"
+            - "Find and bookmark 2 code examples for [specific programming concept]"
+
+            Strictly No markdown, NO explanation. Return ONLY valid JSON:
+            {{"title": "[Clear 2-3 word action]", "content": "[Specific task they can do in 10 minutes with exact steps]"}}
+
+            `);
 
         const chain = learningPrompt.pipe(this.model).pipe(new StringOutputParser());
 

@@ -1,32 +1,10 @@
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const { NotificationOrchestrator } = require("./agents/orchestrator");
+const { getUserProfile } = require("./utils/getUserProfile");
+const { admin } = require("./utils/firebase");
 
-const admin = require("firebase-admin");
-admin.initializeApp();
-
+// Firestore DB instance for the active Firebase project (android/app/google-services.json)
 const db = admin.firestore();
-
-const DEFAULT_GOAL = "Work hard, stay hard, no excuses, no shortcuts";
-
-// Helper function to get full user profile (ENHANCED)
-async function getUserProfile(uid) {
-    const userDoc = await db.doc(`Users/${uid}`).get();
-    const userData = userDoc.data();
-
-    return {
-        uid: userDoc.id,
-        username: userData?.username || "Anonymous",
-        currentFocus: userData?.currentFocus || DEFAULT_GOAL,
-        primaryInterests: userData?.primaryInterests || [],
-        subInterests: userData?.subInterests || [],
-        primaryGoal: userData?.primaryGoal || DEFAULT_GOAL,
-        motivationStyle: userData?.motivationStyle || "gentle reminders",
-        ageRange: userData?.ageRange || "23-29",
-        preferredNotificationTime: userData?.preferredNotificationTime || "Morning (8-11 AM)",
-        dailyScreenTime: userData?.dailyScreenTime || "",
-        mostUsedApp: userData?.mostUsedApp || ""
-    };
-}
 
 // Helper function to get time context
 function getTimeContext(userData) {
@@ -65,7 +43,7 @@ async function generateSmartNotification(userProfile, timeContext, openaiApiKey)
         };
 
     } catch (error) {
-        console.error("LangChain error occured while initiaitng the agent:", error);
+        console.error("LangChain error occurred while initiating the agent:", error);
         return {
             message: "Why the f!",
             agentType: "error_fallback"
@@ -87,6 +65,8 @@ module.exports = {
             if (!openaiApiKey) {
                 console.log("OpenAI API key not found");
             }
+
+            // Fetch all active users from Firestore
             const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();
 
             // Iterating through each user document
@@ -101,7 +81,7 @@ module.exports = {
                 }
 
                 try {
-                    const userProfile = await getUserProfile(uid);
+                    const userProfile = await getUserProfile(uid);      // User profile from utils/getUserProfile.js
                     const timeContext = getTimeContext(data);
 
                     console.log(`${userProfile.username}'s Profile with interests ${userProfile.primaryInterests?.join(", ")} | Goal: ${userProfile.primaryGoal}`);
@@ -120,7 +100,6 @@ module.exports = {
                         // Extract JSON from response if it contains extra text
                         const jsonMatch = notificationResult.message.match(/\{.*\}/);
                         const jsonString = jsonMatch ? jsonMatch[0] : notificationResult.message;
-                        console.log(`JSON string extracted for user ${userProfile.username}:`, jsonString);
 
                         parsedNotification = JSON.parse(jsonString);
                         console.log(`Parsed notification for user ${userProfile.username}:`, parsedNotification);
@@ -131,9 +110,8 @@ module.exports = {
                     }
 
                     const notificationTitle = parsedNotification.title || "Fuck again!";
-                    console.log(`Notification title for user ${userProfile.username}: ${notificationTitle}`);
-
                     const notificationBody = parsedNotification.content || notificationResult.message;
+
                     const agentType = notificationResult.agentType;
 
                     // Create notification and conversation
@@ -165,9 +143,8 @@ module.exports = {
 
                     console.log("Notification message that to be sent is ", message);
 
-                    // sending the notification to FCM servers 
-                    const result = await admin.messaging().send(message);
-                    console.log("Notification sent:", result);
+                    // sending the notification to FCM servers, remote message listeners are set up in the main.dart
+                    await admin.messaging().send(message);
                 } catch (err) {
                     console.error("FCM send error:", err.message);
                 }
@@ -176,6 +153,8 @@ module.exports = {
     )
 };
 
+// Helper function to save notification in Notifications collection and 
+// also save notification as initial conversation meassage in Conversations collection
 async function saveNotificationAndCreateConversation(message, userProfile) {
   
     try {

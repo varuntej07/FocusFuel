@@ -6,7 +6,6 @@ async function callOpenAI(options) {
     if (!OPENAI_API_KEY) {
         console.log("OpenAI API key is not configured. Please set it in your environment variables.");
     }
-    console.log("Calling OpenAI API with options:", options, "as the key is configured already")
     return await axios.post(
         "https://api.openai.com/v1/chat/completions",
         options,

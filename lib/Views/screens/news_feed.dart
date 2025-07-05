@@ -1,0 +1,195 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'news_feed_card.dart';
+
+class Newsfeed extends StatefulWidget {
+  const Newsfeed({super.key});
+
+  @override
+  State<Newsfeed> createState() => NewsFeedState();
+}
+
+class NewsFeedState extends State<Newsfeed> {
+  bool _isLoading = false;
+  List<Map<String, dynamic>> _articles = [];
+  String? _errorMessage;
+  int selectedTabIndex = 0;
+
+  final List<String> tabs = ['For You', 'Top Stories', 'Tech & Science', 'Finance', 'Sports'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('News Feed'),
+        centerTitle: true,
+      ),
+      body: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 30),
+          child: Column(
+              children: [
+                _buildTabSlider(),
+                _buildBody()
+              ]
+          )
+      ),
+    );
+  }
+
+  Widget _buildTabSlider() {
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: tabs.length,
+        itemBuilder: (context, index) {
+          final isSelected = index == selectedTabIndex;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                selectedTabIndex = index;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(26),
+                border: isSelected
+                    ? Border.all(color: Colors.black45, width: 1)
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  tabs[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.black87 : Colors.grey[500],
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Hold on while we load best news for you...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Error loading news',
+                style: TextStyle(fontSize: 18, color: Colors.red),
+              ),
+              SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black87),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadNewsFeed,
+                child: Text('Try Again'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_articles.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.newspaper, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'No articles loaded',
+                style: TextStyle(fontSize: 18, color: Colors.black38),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadNewsFeed,
+                child: Text('Load News'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return NewsFeedCard(articles: _articles);
+  }
+
+  Future<void> _loadNewsFeed() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Get current user ID
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('No user logged in');
+      }
+
+      print('Loading news feed for user: ${user.uid}');
+
+      // Call your Cloud Function
+      final callable = FirebaseFunctions.instance.httpsCallable('collectUserNewsFeed');
+      final result = await callable.call({'userId': user.uid});
+
+      if (result.data['success'] == true) {
+        final articlesData = result.data['articles'] as List<dynamic>? ?? [];
+        final articles = articlesData.map((article) {
+          return Map<String, dynamic>.from(article as Map<Object?, Object?>);
+        }).toList();
+
+        setState(() {
+          _articles = articles;
+          _isLoading = false;
+        });
+
+      } else {
+        throw Exception(result.data['error'] ?? 'Failed to load news');
+      }
+    } catch (e) {
+      print('Error loading news feed: $e');
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+}

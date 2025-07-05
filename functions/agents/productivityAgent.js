@@ -24,13 +24,13 @@ class ProductivityAgent {
             Your job: Make them finish, organize, or start something specific in the next 10 minutes that moves their goal forward.
 
             Rules:
-            - Focus on task completion, organization, or priority setting.
-            - NO vague advice. NO "consider doing". Tell them EXACTLY what to do.
+            - use strict tone, no fluff as if you are a strict coach sending a notification
+            - Focus on task completion, organization, or priority setting. Tell them EXACTLY what to do.
 
             Strictly No explanations. No Markdown. 
             Return ONLY valid JSON in this format:
-            {{"title": "Boost ya brain", "content": "Open your notes app. Write down the ONE thing you'll finish before lunch today."}}
-`);
+            {{"title": [2-3 word action verb], "content": [Specific 10-minute task with exact steps that user might not know]}}
+            `);
 
         const chain = productivityPrompt.pipe(this.model).pipe(new StringOutputParser());
 

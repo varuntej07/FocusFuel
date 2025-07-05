@@ -32,15 +32,11 @@ class NotificationRouter {
         // StringOutputParser will parse the output to string excluding additional metadata
         const chain = routerPrompt.pipe(this.model).pipe(new StringOutputParser());
 
-        console.log(`chain created for routing: ${routerPrompt.template}, ${chain}`);
-
         // Invoke the chain - PromptTemplate fills with the values from userProfile and timeContext
         const response = await chain.invoke({
             primaryGoal: userProfile.primaryGoal || "",
             currentTime: timeContext.currentTime,
         });
-
-        console.log(`Router response: ${response}`);
 
         return response.trim().toLowerCase();
     }
