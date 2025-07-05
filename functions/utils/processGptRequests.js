@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const { callOpenAI } = require("./utils/openai");
+const { callOpenAI } = require("./openai");
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 
 // Helper function to build GPT prompt with context and system prompt

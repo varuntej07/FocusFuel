@@ -1,15 +1,18 @@
-const { onCall } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const fetch = require("node-fetch");
 const xml2js = require("xml2js");
 const { callOpenAI } = require("../utils/openai");
 const { getUserProfile } = require("../utils/getUserProfile");
 const { isMoreReputableSource } = require("../utils/reputableNewsSources");
+const { saveUserNewsArticles } = require("../newsFeed/newsStorageService");
 
-//Main entry point for collecting personalized news feed
-//This function orchestrates the entire data collection process
-const collectUserNewsFeed = onCall(
+// Main entry point for collecting personalized news feed
+// This function orchestrates the entire data collection process
+const scheduledNewsCollection = onSchedule(
     {
+        schedule: "0 6 * * *",
         secrets: ["OPENAI_API_KEY"],
+        timeZone: "America/Los_Angeles",
     },
     async (request) => {
         try {
@@ -36,6 +39,10 @@ const collectUserNewsFeed = onCall(
             // Filter and clean articles
             const cleanArticles = await filterAndCleanArticles(articles);
             console.log(`After filtering: ${cleanArticles.length} clean articles`);
+
+            // Save articles to Firestore
+            const saveResult = await saveUserNewsArticles(userId, cleanArticles);
+            console.log(`Storage result is:`, saveResult);
 
             return {
                 success: true,
@@ -103,22 +110,14 @@ async function generateSearchTerms(primaryInterests) {
             max_tokens: 500
         });
 
-        // generated JSON response of search terms
+        // generated JSON response of search terms, response format as shown in prompt
         const aiResponse = response.data.choices[0].message.content;
-
-        // This is the expected format of the AI response:
-        /** { 
-              "Technology": ["AI advancements", ....], 
-              "Health & Fitness": ["fitness technology innovations", ....],
-              "Personal Development": [ "leadership skills development", ....]
-             }
-        **/
 
         // Parse JSON response
         const searchTermsObj = JSON.parse(aiResponse);
 
         // Convert to flat array with all metadata
-        const searchTerms = [];
+     ti   const searchTerms = [];
         for (const [interest, terms] of Object.entries(searchTermsObj)) {
             for (const term of terms) {
                 searchTerms.push({
@@ -357,7 +356,7 @@ function calculateSimilarity(str1, str2) {
 }
 
 module.exports = {
-    collectUserNewsFeed,
+    scheduledNewsCollection,
     generateSearchTerms,
     collectArticlesForSearchTerms,
     filterAndCleanArticles

@@ -1,6 +1,6 @@
-const { sendScheduledNotification } = require('./sendNotifications');
-const { clearDailyGoals } = require('./clearDailyGoals');
-const { processGptRequest } = require('./processGptRequests');
+const { sendScheduledNotification } = require('./notifications/sendNotifications');
+const { clearDailyGoals } = require('./clearData/clearDailyGoals');
+const { processGptRequest } = require('./utils/processGptRequests');
 const { collectUserNewsFeed } = require('./newsFeed/dataCollection');
 
 exports.sendScheduledNotification = sendScheduledNotification;

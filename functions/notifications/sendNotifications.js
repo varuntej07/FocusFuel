@@ -1,7 +1,7 @@
-const {onSchedule} = require("firebase-functions/v2/scheduler");
-const { NotificationOrchestrator } = require("./agents/orchestrator");
-const { getUserProfile } = require("./utils/getUserProfile");
-const { admin } = require("./utils/firebase");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { NotificationOrchestrator } = require("../agents/orchestrator");
+const { getUserProfile } = require("../utils/getUserProfile");
+const { admin } = require("../utils/firebase");
 
 // Firestore DB instance for the active Firebase project (android/app/google-services.json)
 const db = admin.firestore();
