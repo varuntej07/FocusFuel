@@ -8,85 +8,87 @@ const { saveUserNewsArticles } = require("../newsFeed/newsStorageService");
 const { admin } = require("../utils/firebase");
 
 // Main entry point for collecting personalized news feed
-// This function orchestrates the entire data collection process
-const scheduledNewsCollection = onSchedule(
-    {
-        schedule: "0 6 * * *",
-        secrets: ["OPENAI_API_KEY"],
-        timeZone: "America/Los_Angeles",
-    },
-    async () => {
-        try {
-            console.log("Scheduled news collection started");
+// This function orchestrates the entire news data collection process
+module.exports = {
+    scheduledNewsCollection: onSchedule(
+        {
+            schedule: "0 6 * * *",
+            secrets: ["OPENAI_API_KEY"],
+            timeZone: "America/Los_Angeles",
+        },
+        async () => {
+            try {
+                console.log("Scheduled news collection started");
 
-            const db = admin.firestore();
-            const usersSnapshot = await db.collection('users').get();
-            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const db = admin.firestore();
+                const usersSnapshot = await db.collection('users').get();
+                const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            console.log(`Processing news collection for ${users.length} users`);
+                console.log(`Processing news collection for ${users.length} users`);
 
-            const results = [];
+                const results = [];
 
-            // Processing through each user
-            for (const user of users) {
-                try {
-                    const userId = user.id;
-                    console.log(`Starting news feed collection for user: ${userId}`);
+                // Processing through each user
+                for (const user of users) {
+                    try {
+                        const userId = user.id;
+                        console.log(`Starting news feed collection for user: ${userId}`);
 
-                    // Get user profile 
-                    const userProfile = await getUserProfile(userId);
-                    console.log(`User profile retrieved: ${userProfile.username}, interests: ${userProfile.primaryInterests?.join(", ")}`);
+                        // Get user profile 
+                        const userProfile = await getUserProfile(userId);
+                        console.log(`User profile retrieved: ${userProfile.username}, interests: ${userProfile.primaryInterests?.join(", ")}`);
 
-                    // for each interest generating few search terms that relates to that interest
-                    const searchTerms = await generateSearchTerms(userProfile.primaryInterests);
-                    console.log(`Generated search terms:`, searchTerms);
+                        // for each interest generating few search terms that relates to that interest
+                        const searchTerms = await generateSearchTerms(userProfile.primaryInterests);
+                        console.log(`Generated search terms:`, searchTerms);
 
-                    // Collect articles for each search term
-                    const articles = await collectArticlesForSearchTerms(searchTerms, userProfile);
-                    console.log(`Collected a total of ${articles.length} articles`);
+                        // Collect articles for each search term
+                        const articles = await collectArticlesForSearchTerms(searchTerms, userProfile);
+                        console.log(`Collected a total of ${articles.length} articles`);
 
-                    // Filter and clean articles
-                    const cleanArticles = await filterAndCleanArticles(articles);
-                    console.log(`After filtering: ${cleanArticles.length} clean articles`);
+                        // Filter and clean articles
+                        const cleanArticles = await filterAndCleanArticles(articles);
+                        console.log(`After filtering: ${cleanArticles.length} clean articles`);
 
-                    // Save articles to Firestore
-                    const saveResult = await saveUserNewsArticles(userId, cleanArticles);
-                    console.log(`Storage result is:`, saveResult);
+                        // Save articles to Firestore
+                        const saveResult = await saveUserNewsArticles(userId, cleanArticles);
+                        console.log(`Storage result is:`, saveResult);
 
-                    results.push({
-                        success: true,
-                        userId: userId,
-                        totalArticles: cleanArticles.length,
-                        savedCount: saveResult.savedCount
-                    });
+                        results.push({
+                            success: true,
+                            userId: userId,
+                            totalArticles: cleanArticles.length,
+                            savedCount: saveResult.savedCount
+                        });
 
-                } catch (userError) {
-                    console.error(`Error processing user ${user.id}:`, userError);
-                    results.push({
-                        success: false,
-                        userId: user.id,
-                        error: userError.message
-                    });
+                    } catch (userError) {
+                        console.error(`Error processing user ${user.id}:`, userError);
+                        results.push({
+                            success: false,
+                            userId: user.id,
+                            error: userError.message
+                        });
+                    }
                 }
+
+                console.log(`Completed news collection for all users. Results:`, results);
+                return {
+                    success: true,
+                    processedUsers: users.length,
+                    results: results,
+                    completedAt: new Date().toISOString()
+                };
+
+            } catch (error) {
+                console.error("Error in scheduled news collection:", error);
+                return {
+                    success: false,
+                    error: error.message
+                };
             }
-
-            console.log(`Completed news collection for all users. Results:`, results);
-            return {
-                success: true,
-                processedUsers: users.length,
-                results: results,
-                completedAt: new Date().toISOString()
-            };
-
-        } catch (error) {
-            console.error("Error in scheduled news collection:", error);
-            return {
-                success: false,
-                error: error.message
-            };
         }
-    }
-);
+    )
+}
 
 // Generate search terms using OpenAI based on user interests
 // This replaces hardcoded search terms with AI-generated ones
@@ -378,10 +380,3 @@ function calculateSimilarity(str1, str2) {
 
     return intersection.length / union.length;
 }
-
-module.exports = {
-    scheduledNewsCollection,
-    generateSearchTerms,
-    collectArticlesForSearchTerms,
-    filterAndCleanArticles
-};
