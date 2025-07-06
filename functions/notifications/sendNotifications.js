@@ -13,7 +13,6 @@ function getTimeContext(userData) {
     const pstOptions = { timeZone: "America/Los_Angeles" };
     const pstTime = new Date(now.toLocaleString("en-US", pstOptions));
 
-    console.log(`Current PST time from getTimeContext is: ${pstTime.toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}`);
     return {
         currentTime: pstTime.toLocaleString("en-US"), // Readable time string
         dayOfWeek: pstTime.toLocaleDateString('en-US', {

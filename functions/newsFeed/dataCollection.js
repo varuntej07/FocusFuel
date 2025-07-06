@@ -5,6 +5,7 @@ const { callOpenAI } = require("../utils/openai");
 const { getUserProfile } = require("../utils/getUserProfile");
 const { isMoreReputableSource } = require("../utils/reputableNewsSources");
 const { saveUserNewsArticles } = require("../newsFeed/newsStorageService");
+const { admin } = require("../utils/firebase");
 
 // Main entry point for collecting personalized news feed
 // This function orchestrates the entire data collection process
@@ -14,51 +15,74 @@ const scheduledNewsCollection = onSchedule(
         secrets: ["OPENAI_API_KEY"],
         timeZone: "America/Los_Angeles",
     },
-    async (request) => {
+    async () => {
         try {
-            const { userId } = request.data;
+            console.log("Scheduled news collection started");
 
-            if (!userId) {
-                throw new Error("User ID is required");
+            const db = admin.firestore();
+            const usersSnapshot = await db.collection('users').get();
+            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            console.log(`Processing news collection for ${users.length} users`);
+
+            const results = [];
+
+            // Processing through each user
+            for (const user of users) {
+                try {
+                    const userId = user.id;
+                    console.log(`Starting news feed collection for user: ${userId}`);
+
+                    // Get user profile 
+                    const userProfile = await getUserProfile(userId);
+                    console.log(`User profile retrieved: ${userProfile.username}, interests: ${userProfile.primaryInterests?.join(", ")}`);
+
+                    // for each interest generating few search terms that relates to that interest
+                    const searchTerms = await generateSearchTerms(userProfile.primaryInterests);
+                    console.log(`Generated search terms:`, searchTerms);
+
+                    // Collect articles for each search term
+                    const articles = await collectArticlesForSearchTerms(searchTerms, userProfile);
+                    console.log(`Collected a total of ${articles.length} articles`);
+
+                    // Filter and clean articles
+                    const cleanArticles = await filterAndCleanArticles(articles);
+                    console.log(`After filtering: ${cleanArticles.length} clean articles`);
+
+                    // Save articles to Firestore
+                    const saveResult = await saveUserNewsArticles(userId, cleanArticles);
+                    console.log(`Storage result is:`, saveResult);
+
+                    results.push({
+                        success: true,
+                        userId: userId,
+                        totalArticles: cleanArticles.length,
+                        savedCount: saveResult.savedCount
+                    });
+
+                } catch (userError) {
+                    console.error(`Error processing user ${user.id}:`, userError);
+                    results.push({
+                        success: false,
+                        userId: user.id,
+                        error: userError.message
+                    });
+                }
             }
 
-            console.log(`Starting news feed collection for user: ${userId}`);
-
-            // Get user profile 
-            const userProfile = await getUserProfile(userId);
-            console.log(`User profile retrieved: ${userProfile.username}, interests: ${userProfile.primaryInterests?.join(", ")}`);
-
-            // for each interest generating few search terms that relates to that interest
-            const searchTerms = await generateSearchTerms(userProfile.primaryInterests);
-            console.log(`Generated search terms:`, searchTerms);
-
-            // Collect articles for each search term
-            const articles = await collectArticlesForSearchTerms(searchTerms, userProfile);
-            console.log(`Collected a total of ${articles.length} articles`);
-            
-            // Filter and clean articles
-            const cleanArticles = await filterAndCleanArticles(articles);
-            console.log(`After filtering: ${cleanArticles.length} clean articles`);
-
-            // Save articles to Firestore
-            const saveResult = await saveUserNewsArticles(userId, cleanArticles);
-            console.log(`Storage result is:`, saveResult);
-
+            console.log(`Completed news collection for all users. Results:`, results);
             return {
                 success: true,
-                userId: userId,
-                totalArticles: cleanArticles.length,
-                articles: cleanArticles,
-                searchTermsUsed: searchTerms,
-                generatedAt: new Date().toISOString()
+                processedUsers: users.length,
+                results: results,
+                completedAt: new Date().toISOString()
             };
 
         } catch (error) {
-            console.error("Error in collectUserNewsFeed:", error);
+            console.error("Error in scheduled news collection:", error);
             return {
                 success: false,
-                error: error.message,
-                userId: request.data.userId
+                error: error.message
             };
         }
     }
@@ -117,7 +141,7 @@ async function generateSearchTerms(primaryInterests) {
         const searchTermsObj = JSON.parse(aiResponse);
 
         // Convert to flat array with all metadata
-     ti   const searchTerms = [];
+        const searchTerms = [];
         for (const [interest, terms] of Object.entries(searchTermsObj)) {
             for (const term of terms) {
                 searchTerms.push({
