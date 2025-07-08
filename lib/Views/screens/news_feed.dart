@@ -19,6 +19,12 @@ class NewsFeedState extends State<Newsfeed> {
   final List<String> tabs = ['For You', 'Top Stories', 'Tech & Science', 'Finance', 'Sports'];
 
   @override
+  void initState() {
+    super.initState();
+    _loadNewsFeed(); // Automatically load articles when screen opens
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -166,8 +172,8 @@ class NewsFeedState extends State<Newsfeed> {
 
       print('Loading news feed for user: ${user.uid}');
 
-      // Call your Cloud Function
-      final callable = FirebaseFunctions.instance.httpsCallable('collectUserNewsFeed');
+      // Call the Cloud Function to get stored articles
+      final callable = FirebaseFunctions.instance.httpsCallable('getUserNewsFeed');
       final result = await callable.call({'userId': user.uid});
 
       if (result.data['success'] == true) {
@@ -180,6 +186,8 @@ class NewsFeedState extends State<Newsfeed> {
           _articles = articles;
           _isLoading = false;
         });
+
+        print('Loaded ${articles.length} articles from Firestore');
 
       } else {
         throw Exception(result.data['error'] ?? 'Failed to load news');
