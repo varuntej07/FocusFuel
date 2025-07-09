@@ -9,6 +9,9 @@ class ChatViewModel extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _disposed = false;
 
+  // Store the last user message for retry functionality
+  String? _lastUserMessage;
+
   @override
   void dispose() {
     _disposed = true;
@@ -21,6 +24,7 @@ class ChatViewModel extends ChangeNotifier {
   String get userId => _auth.currentUser?.uid ?? '';
   bool get isSending => _isSending;
   String? get currentConversationId => _currentConversationId;
+  String? get lastUserMessage => _lastUserMessage;
 
   // Initialize with latest conversation when chat UI renders for the first time
   Future<void> initializeWithLatestConversation() async {
@@ -56,6 +60,9 @@ class ChatViewModel extends ChangeNotifier {
       return;
     }
 
+    // Store the message for potential retry
+    _lastUserMessage = message;
+
     _isSending = true;
     notifyListeners();
 
@@ -69,9 +76,30 @@ class ChatViewModel extends ChangeNotifier {
     }
   }
 
-  // Retry message
-  Future<void> retryMessage(String message) async {
-    await sendMessage(message);
+  // Retry the last message that failed
+  Future<void> retryLastMessage() async {
+    if (_lastUserMessage != null && _currentConversationId != null) {
+      await sendMessage(_lastUserMessage!);
+    }
+  }
+
+  // Retry a specific message (useful when you have the original content)
+  Future<void> retryMessage(String originalMessage) async {
+    if (_currentConversationId == null || originalMessage.trim().isEmpty) {
+      return;
+    }
+
+    _isSending = true;
+    notifyListeners();
+
+    try {
+      await _chatService.retryMessage(originalMessage, _currentConversationId!);
+    } catch (e) {
+      print('Error retrying message: $e');
+    } finally {
+      _isSending = false;
+      notifyListeners();
+    }
   }
 
   // Get all conversations to display in chat history

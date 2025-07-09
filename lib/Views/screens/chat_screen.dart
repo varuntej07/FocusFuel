@@ -58,15 +58,6 @@ class _ChatScreenState extends State<ChatScreen>{
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
       final chatVM = context.read<ChatViewModel>();
-
-      // Check if we have an active conversation
-      if (chatVM.currentConversationId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No active conversation!. Start a new chat or fetch through your history.')),
-        );
-        return;
-      }
-
       try {
         chatVM.sendMessage(text);
       } catch(e) {
@@ -101,7 +92,7 @@ class _ChatScreenState extends State<ChatScreen>{
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,

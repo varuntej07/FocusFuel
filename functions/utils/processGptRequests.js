@@ -2,6 +2,29 @@ const admin = require('firebase-admin');
 const { callOpenAI } = require("./openai");
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 
+// Helper function to extract clean text content from messages
+function extractMessageContent(content) {
+    // If content is already a string, return it
+    if (typeof content === 'string') {
+        return content;
+    }
+
+    // If it's an object (like from error messages), extract the actual content
+    if (content && typeof content === 'object') {
+        // Handle the notification object structure
+        if (content.content) {
+            return content.content;
+        }
+        // Handle error object structure
+        if (content.message) {
+            return content.message;
+        }
+    }
+
+    // Fallback to string conversion
+    return String(content || '');
+}
+
 // Helper function to build GPT prompt with context and system prompt
 async function buildPromptWithContext(userId, message, conversationId) {
   const db = admin.firestore();
@@ -21,14 +44,17 @@ async function buildPromptWithContext(userId, message, conversationId) {
     .limit(5)           //  last 5 messages for context
     .get();
 
+  // Build conversation history, filtering out error messages
   const conversationHistory = messagesSnapshot.docs
     .map(doc => {
       const data = doc.data();
+      const content = extractMessageContent(data.content);
       return {
         role: data.role === 'user' ? 'user' : 'assistant',
-        content: data.content
+        content: content
       };
     })
+    .filter(msg => msg !== null)  // Remove null entries
     .reverse();  // Reverse to get chronological order
 
   const systemPrompt = `
@@ -47,20 +73,22 @@ async function buildPromptWithContext(userId, message, conversationId) {
     }
   ];
 
-  // Add conversation history if it exists (skip if this is the first user message)
-  if (conversationHistory.length > 1) {
-    // Only add history if there are messages other than the current one
-    const historyWithoutCurrent = conversationHistory.slice(0, -1);
-    messages.push(...historyWithoutCurrent);
-  }
+  // Add conversation history if it exists (excluding the current message)
+  const historyWithoutCurrent = conversationHistory.filter(msg =>
+      msg.content !== message
+  );
 
-  console.log('Conversation gathered along with system prompt is:', messages);
+  if (historyWithoutCurrent.length > 0) {
+       messages.push(...historyWithoutCurrent);
+  }
 
   // Add the current user message
   messages.push({
     role: 'user',
     content: message
   });
+
+  console.log(`Built prompt with ${messages.length} messages`);
 
   return messages;
 }
@@ -84,12 +112,27 @@ module.exports = {
         .collection('Messages');
 
       let gptResponse;
+      // Track if we've already created a response for this request
+      const requestId = event.params.requestId;
+
       try {
+      // Check if this request has already been processed
+      const existingResponse = await messagesRef
+          .where('requestId', '==', requestId)
+          .where('role', '==', 'assistant')
+          .limit(1)
+          .get();
+
+      if (!existingResponse.empty) {
+          console.log(`Request ${requestId} already processed, skipping`);
+          await snap.ref.update({ status: 'duplicate' });
+          return;
+      }
         // return the conversation history for context + system prompt using the helper function: buildPromptWithContext
         const messages = await buildPromptWithContext(userId, content, conversationId);
 
         console.log(`Processing GPT request for user ${userId}, conversation ${conversationId}`);
-        console.log(`Message count for context: ${messages.length}`);
+        console.log(`Message count for context processing is: ${messages.length}`);
 
         // Call API with the context attached
         const response = await callOpenAI({
@@ -107,7 +150,8 @@ module.exports = {
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
           role: 'assistant',
           isFirstMessage: false,
-          status: 'success'
+          status: 'success',
+          requestId: requestId  // Track which request created this response
         });
 
         // Update conversation's lastMessageAt
@@ -119,16 +163,17 @@ module.exports = {
         await snap.ref.update({ status: 'completed' });
 
       } catch (error) {
-        console.error('GPT API Error:', error);
+        console.error(`Error processing request ${requestId}:`, error);
 
-        // Saving error message
-        await messagesRef.add({
-          content: `Sorry, encountered an error: ${error}`,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          role: 'assistant',
-          isFirstMessage: false,
-          status: 'error',
-          errorDetails: error.message
+        // Create an error message in the conversation
+        const errorMessage = await messagesRef.add({
+            content: "I apologize, but I encountered an error processing your message. Please try again.",
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            role: 'assistant',
+            isFirstMessage: false,
+            status: 'error',
+            errorDetails: error.message,
+            requestId: requestId  // Track which request created this error
         });
 
         // Update request status

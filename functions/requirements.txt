@@ -1,0 +1,4 @@
+npm install @langchain/openai
+npm install @langchain/core
+npm install axios
+npm install xml2js

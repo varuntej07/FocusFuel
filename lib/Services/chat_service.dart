@@ -58,6 +58,10 @@ class ChatService {
     final userId = _auth.currentUser?.uid;
     if (userId == null) throw Exception('User not authenticated');
 
+    // Generate a unique request ID to prevent duplicates
+    final requestId = '${DateTime.now().millisecondsSinceEpoch}_$userId';
+
+
     // Create user message document in the Messages sub-collection
     final messageRef = await _firestore
         .collection('Conversations')
@@ -68,6 +72,7 @@ class ChatService {
       'timestamp': FieldValue.serverTimestamp(),
       'role': 'user',
       'isFirstMessage': false,
+      'requestId': requestId,  // request ID to track this message
     });
 
     // Update conversation's lastMessageAt
@@ -84,20 +89,15 @@ class ChatService {
         'content': message,
         'userId': userId,  // Includes userId for Cloud Function
         'createdAt': FieldValue.serverTimestamp(),
-        'status': 'pending'
+        'status': 'pending',
+        'requestId': requestId,  // Use same ID to link request and message
       });
     } catch (e) {
-      // If GPT request fails, saving the error message
-      await _firestore.collection('Conversations')
-          .doc(conversationId)
-          .collection('Messages')
-          .add({
-        'content': 'Sorry bro, encountered an error. Please try again.',
-        'timestamp': FieldValue.serverTimestamp(),
-        'role': 'assistant',
-        'isFirstMessage': false,
-        'status': 'error',
-        'errorDetails': e.toString(),
+      print('Error creating GPT request: $e');
+      // Update the message status to failed
+      await messageRef.update({
+        'status': 'failed',
+        'errorDetails': 'Failed to create GPT request'
       });
       rethrow;
     }
