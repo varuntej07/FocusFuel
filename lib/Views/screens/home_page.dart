@@ -35,8 +35,12 @@ class _HomeFeedState extends State<HomeFeed> {
 
           final shouldPrompt = await homeVM.shouldPromptGoals();
           if (shouldPrompt) {
-            // executed after the X-second delay
-            Future.delayed(const Duration(seconds: 45), () => _promptForGoals(context));
+            // executed after the X-second delay, but check if widget is still mounted
+            Future.delayed(const Duration(seconds: 45), () {
+              if (mounted) {
+                _promptForGoals(context);
+              }
+            });
           }
         }
       }
@@ -47,6 +51,10 @@ class _HomeFeedState extends State<HomeFeed> {
     String todayGoal = '';
     String weekGoal  = '';
     final homeVM =  ctx.read<HomeViewModel>();
+
+    // Mark that prompt was shown today
+    homeVM.markGoalPromptShown();
+
     showDialog(
       context: ctx,
       barrierDismissible: false,  // force a decision

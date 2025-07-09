@@ -170,9 +170,7 @@ class NewsFeedState extends State<Newsfeed> {
         throw Exception('No user logged in');
       }
 
-      print('Loading news feed for user: ${user.uid}');
-
-      // Call the Cloud Function to get stored articles
+      // Call the Cloud Function to get stored articles from firestore
       final callable = FirebaseFunctions.instance.httpsCallable('getUserNewsFeed');
       final result = await callable.call({'userId': user.uid});
 
@@ -194,10 +192,6 @@ class NewsFeedState extends State<Newsfeed> {
       }
     } catch (e) {
       print('Error loading news feed: $e');
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
     }
   }
 }

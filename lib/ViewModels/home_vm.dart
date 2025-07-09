@@ -112,12 +112,43 @@ class HomeViewModel extends ChangeNotifier {
       final data = snap.data() ?? {};
       _currentFocus = data['currentFocus'];           // may be null
       _weeklyGoal = data['weeklyGoal'];             // may be null
+
+      // Check if prompt was already shown today
+      final lastPromptDate = data['lastGoalPromptDate'];
+      final today = DateTime.now();
+      final todayString = '${today.year}-${today.month}-${today.day}';
+
+      // If prompt was shown today, don't show again
+      if (lastPromptDate == todayString) {
+        if (!_disposed) notifyListeners();
+        return false;
+      }
+
       if (!_disposed) notifyListeners();
 
       return _currentFocus == null;
     } catch (e) {
       _handleError('Failed to check goal status: $e');
       return false;
+    }
+  }
+
+  /// Mark that goal prompt was shown today
+  Future<void> markGoalPromptShown() async {
+    if (!_isAuthenticated) return;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final today = DateTime.now();
+      final todayString = '${today.year}-${today.month}-${today.day}';
+
+      await FirebaseFirestore.instance.collection('Users').doc(uid).update({
+        'lastGoalPromptDate': todayString,
+      });
+    } catch (e) {
+      _handleError('Failed to mark prompt shown: $e');
     }
   }
 
