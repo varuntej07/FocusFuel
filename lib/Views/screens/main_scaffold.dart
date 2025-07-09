@@ -8,20 +8,23 @@ import 'chat_screen.dart';
 import 'home_page.dart';
 
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class MainScaffold extends StatefulWidget {
+  final int initialIndex;
+
+  const MainScaffold({super.key, this.initialIndex = 0}); // Default to home tab
+
   @override
-  HomePageState createState() => HomePageState();
+  MainScaffoldState createState() => MainScaffoldState();
 }
 
-class HomePageState extends State<HomePage> {
+class MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
-  String userName = '';
 
   @override
   void initState() {
     super.initState();
     _setupFcm();
+    _selectedIndex = widget.initialIndex;
   }
 
   // requesting permission from the user to send notifications, then fetch FCM token

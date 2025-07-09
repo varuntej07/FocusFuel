@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:focus_fuel/Services/route_navigator.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/ViewModels/chat_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
@@ -12,6 +11,8 @@ import 'package:provider/provider.dart';
 import 'Services/shared_prefs_service.dart';
 import 'Services/streak_repo.dart';
 import 'ViewModels/onboarding_vm.dart';
+import 'Views/Auth/login_page.dart';
+import 'Views/screens/main_scaffold.dart';
 import 'firebase_options.dart';
 import 'Services/chat_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -80,19 +81,23 @@ void _setupNotificationHandlers() async {
 
   // When app is in background and user taps notification
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    final deepLink = message.data['deep_link'];
-    if (deepLink == '/chat' && navigationKey.currentState != null) {
-      navigationKey.currentState!.pushNamed('/chat');
+    if (navigationKey.currentState != null) {
+      navigationKey.currentState!.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainScaffold(initialIndex: 2)), // 2 = Chat tab
+            (route) => false, // Remove all previous routes
+      );
     }
   });
 
   // When app is terminated and user taps notification
   FirebaseMessaging.instance.getInitialMessage().then((message) {
-    if (message?.data['deep_link'] == '/chat') {
-      // Wait for navigation to be ready
+    if (message != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (navigationKey.currentState != null) {
-          navigationKey.currentState!.pushNamed('/chat');
+          navigationKey.currentState!.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainScaffold(initialIndex: 2)), // 2 = Chat tab
+                (route) => false, // Remove all previous routes
+          );
         }
       });
     }
@@ -129,8 +134,7 @@ class MyApp extends StatelessWidget {
           ],
           child: MaterialApp(
             navigatorKey: navigationKey,
-            initialRoute: user != null ? '/' : '/login',
-            onGenerateRoute: RouteNavigator.routeGenerator,
+            home: user != null ? const MainScaffold() : const Login(),
             theme: ThemeData(
               textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
               scaffoldBackgroundColor: Colors.white, // Background color of the entire app

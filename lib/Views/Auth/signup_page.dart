@@ -33,7 +33,7 @@ class _SignupState extends State<Signup> {
           TextButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const HomePage()),
+              MaterialPageRoute(builder: (_) => const MainScaffold()),
             ),
             child: const Text(
               'Skip',
@@ -258,7 +258,7 @@ class _SignupState extends State<Signup> {
                         if (context.mounted) {
                           Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (_) => const HomePage())
+                              MaterialPageRoute(builder: (_) => const MainScaffold())
                           );
                         }
                       });

@@ -128,7 +128,6 @@ module.exports = {
                             priority: 'high',
                             notification: {
                                 channel_id: 'focusfuel_channel',  // custom channel
-                                click_action: 'FLUTTER_NOTIFICATION_CLICK',   // deep-link guarantee
                             }
                         },
                         notification: {
@@ -136,7 +135,8 @@ module.exports = {
                             body: notificationBody
                         },
                         data: {
-                            deep_link: "/chat",
+                            click_action: 'FLUTTER_NOTIFICATION_CLICK',
+                            screen: 'chat',  // for Flutter routing
                         }
                     };
 
@@ -153,7 +153,7 @@ module.exports = {
 };
 
 // Helper function to save notification in Notifications collection and 
-// also save notification as initial conversation meassage in Conversations collection
+// also save notification as initial conversation message in Conversations collection
 async function saveNotificationAndCreateConversation(message, userProfile) {
   
     try {
