@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'news_feed_card.dart';
+import '../../Services/shared_prefs_service.dart';
 
 class Newsfeed extends StatefulWidget {
   const Newsfeed({super.key});
@@ -18,10 +19,17 @@ class NewsFeedState extends State<Newsfeed> {
 
   final List<String> tabs = ['For You', 'Top Stories', 'Tech & Science', 'Finance', 'Sports'];
 
+  late SharedPreferencesService _prefsService;
+
   @override
   void initState() {
     super.initState();
-    _loadNewsFeed(); // Automatically load articles when screen opens
+    _initializeAndLoadNews();
+  }
+
+  Future<void> _initializeAndLoadNews() async {
+    _prefsService = await SharedPreferencesService.getInstance();
+    _loadNewsFeed(); // Now load articles if not already loaded from cache
   }
 
   @override
@@ -122,8 +130,8 @@ class NewsFeedState extends State<Newsfeed> {
               ),
               SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _loadNewsFeed,
-                child: Text('Try Again'),
+                onPressed: () => _loadNewsFeed(forceRefresh: true),
+                child: Text('Load News'),
               ),
             ],
           ),
@@ -157,20 +165,45 @@ class NewsFeedState extends State<Newsfeed> {
     return NewsFeedCard(articles: _articles);
   }
 
-  Future<void> _loadNewsFeed() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _loadNewsFeed({bool forceRefresh = false}) async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
+      // Check if we have cached data and it's still fresh (less than 30 minutes old)
+      if (!forceRefresh) {
+        final cachedArticles = _prefsService.getCachedNewsArticles();
+        final lastFetchTime = _prefsService.getLastNewsFetchTime();
+
+        if (cachedArticles != null && lastFetchTime != null) {
+          final timeDifference = DateTime.now().millisecondsSinceEpoch - lastFetchTime;
+          final thirtyMinutesInMs = 2 * 60 * 60 * 1000; // 2 hours
+
+          if (timeDifference < thirtyMinutesInMs) {
+            // Use cached data
+            setState(() {
+              _articles = cachedArticles;
+              _isLoading = false;
+            });
+            print('Loaded ${cachedArticles.length} articles from cache');
+            return;
+          }
+        }
+      }
+
       // Get current user ID
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('No user logged in');
       }
 
-      // Call the Cloud Function to get stored articles from firestore
+      print('Loading fresh news feed for user: ${user.uid}');
+
+      // Call the Cloud Function to get stored articles
       final callable = FirebaseFunctions.instance.httpsCallable('getUserNewsFeed');
       final result = await callable.call({'userId': user.uid});
 
@@ -180,18 +213,41 @@ class NewsFeedState extends State<Newsfeed> {
           return Map<String, dynamic>.from(article as Map<Object?, Object?>);
         }).toList();
 
+        // Cache the fresh data
+        await _prefsService.saveNewsArticles(articles);
+        await _prefsService.saveLastNewsFetchTime();
+
         setState(() {
           _articles = articles;
           _isLoading = false;
         });
 
-        print('Loaded ${articles.length} articles from Firestore');
+        print('Loaded ${articles.length} fresh articles from Firestore and cached them');
 
       } else {
         throw Exception(result.data['error'] ?? 'Failed to load news');
       }
     } catch (e) {
       print('Error loading news feed: $e');
+
+      // If network fails, try to use cached data as fallback
+      final cachedArticles = _prefsService.getCachedNewsArticles();
+      if (cachedArticles != null) {
+        if (mounted) {
+          setState(() {
+            _articles = cachedArticles;
+            _isLoading = false;
+          });
+        }
+        print('Network failed, using cached articles as fallback');
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage = e.toString();
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 }

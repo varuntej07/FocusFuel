@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedPreferencesService {
@@ -71,5 +73,44 @@ class SharedPreferencesService {
 
   int? getNotificationInterval() {
     return _preferences?.getInt('notificationInterval');
+  }
+
+  // Cache news articles
+  Future<void> saveNewsArticles(List<Map<String, dynamic>> articles) async {
+    final articlesJson = articles.map((article) => jsonEncode(article)).toList();
+    await _preferences?.setStringList('cached_news_articles', articlesJson);
+  }
+
+  List<Map<String, dynamic>>? getCachedNewsArticles() {
+    final articlesJson = _preferences?.getStringList('cached_news_articles');
+    if (articlesJson == null) return null;
+
+    return articlesJson.map((articleStr) {
+      return Map<String, dynamic>.from(jsonDecode(articleStr));
+    }).toList();
+  }
+
+  // Cache last news fetch timestamp
+  Future<void> saveLastNewsFetchTime() async {
+    await _preferences?.setInt('last_news_fetch', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  int? getLastNewsFetchTime() {
+    return _preferences?.getInt('last_news_fetch');
+  }
+
+  // Cache selected tab articles separately (optional for tab-specific caching)
+  Future<void> saveTabNewsArticles(int tabIndex, List<Map<String, dynamic>> articles) async {
+    final articlesJson = articles.map((article) => jsonEncode(article)).toList();
+    await _preferences?.setStringList('cached_news_tab_$tabIndex', articlesJson);
+  }
+
+  List<Map<String, dynamic>>? getCachedTabArticles(int tabIndex) {
+    final articlesJson = _preferences?.getStringList('cached_news_tab_$tabIndex');
+    if (articlesJson == null) return null;
+
+    return articlesJson.map((articleStr) {
+      return Map<String, dynamic>.from(jsonDecode(articleStr));
+    }).toList();
   }
 }
