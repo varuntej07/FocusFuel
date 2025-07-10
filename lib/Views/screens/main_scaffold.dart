@@ -55,7 +55,7 @@ class MainScaffoldState extends State<MainScaffold> {
 
   final List<Widget> _pages = [
     const HomeFeed(),
-    const Newsfeed(),
+    const NewsFeed(),
     const ChatScreen(),
     const MenuPage(),
   ];
@@ -65,6 +65,7 @@ class MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
         body: IndexedStack(   // Only changes which one is painted, doesn’t dispose/rebuild others
           index: _selectedIndex,
           children: _pages,

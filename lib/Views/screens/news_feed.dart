@@ -1,88 +1,104 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'news_feed_card.dart';
-import '../../Services/shared_prefs_service.dart';
+import 'package:provider/provider.dart';
+import '../../ViewModels/newsfeed_vm.dart';
+import 'news_list_item.dart';
 
-class Newsfeed extends StatefulWidget {
-  const Newsfeed({super.key});
+class NewsFeed extends StatefulWidget {
+  const NewsFeed({super.key});
 
   @override
-  State<Newsfeed> createState() => NewsFeedState();
+  State<NewsFeed> createState() => _NewsFeedState();
 }
 
-class NewsFeedState extends State<Newsfeed> {
-  bool _isLoading = false;
-  List<Map<String, dynamic>> _articles = [];
-  String? _errorMessage;
-  int selectedTabIndex = 0;
-
-  final List<String> tabs = ['For You', 'Top Stories', 'Tech & Science', 'Finance', 'Sports'];
-
-  late SharedPreferencesService _prefsService;
+class _NewsFeedState extends State<NewsFeed> {
+  late NewsFeedViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _initializeAndLoadNews();
-  }
 
-  Future<void> _initializeAndLoadNews() async {
-    _prefsService = await SharedPreferencesService.getInstance();
-    _loadNewsFeed(); // Now load articles if not already loaded from cache
+    // Initialize ViewModel
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewModel = Provider.of<NewsFeedViewModel>(context, listen: false);
+      _viewModel.initialize();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('News Feed'),
-        centerTitle: true,
-      ),
-      body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 30),
-          child: Column(
-              children: [
-                _buildTabSlider(),
-                _buildBody()
-              ]
-          )
+      appBar: _buildAppBar(),
+      body: Consumer<NewsFeedViewModel>(
+        builder: (context, viewModel, child) {
+          _viewModel = viewModel; // Update reference
+
+          return Column(
+            children: [
+              _buildTabSlider(viewModel),
+
+              Expanded(child: _buildBody(viewModel)),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildTabSlider() {
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      actionsPadding: EdgeInsetsGeometry.fromLTRB(10, 10, 10, 10),
+      backgroundColor: Colors.white,
+      elevation: 0,
+      title: const Text(
+        'Discover',
+        style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 28),
+      ),
+
+      // personalize the feed button
+      actions: [
+        IconButton(
+          onPressed: () {},
+          icon: Icon(Icons.headphones, color: Colors.grey[500]),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.favorite_border, color: Colors.grey),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabSlider(NewsFeedViewModel viewModel) {
     return Container(
-      height: 40,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 50,
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: tabs.length,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: viewModel.tabs.length,
         itemBuilder: (context, index) {
-          final isSelected = index == selectedTabIndex;
+          final isSelected = index == viewModel.selectedTabIndex;
+
           return GestureDetector(
-            onTap: () {
-              setState(() {
-                selectedTabIndex = index;
-              });
-            },
+            onTap: () => viewModel.selectTab(index),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.transparent,
-                borderRadius: BorderRadius.circular(26),
-                border: isSelected
-                    ? Border.all(color: Colors.black45, width: 1)
-                    : null,
+                color: isSelected ? Colors.black87 : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? Colors.black87 : Colors.grey[300]!,
+                  width: 1,
+                ),
               ),
               child: Center(
                 child: Text(
-                  tabs[index],
+                  viewModel.tabs[index],
                   style: TextStyle(
-                    color: isSelected ? Colors.black87 : Colors.grey[500],
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected ? Colors.white : Colors.grey[600],
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     fontSize: 14,
                   ),
                 ),
@@ -94,160 +110,156 @@ class NewsFeedState extends State<Newsfeed> {
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Hold on while we load best news for you...'),
-            ],
-          ),
-        ),
-      );
+  Widget _buildBody(NewsFeedViewModel viewModel) {
+    // Loading state
+    if (viewModel.loadingState == NewsLoadingState.loading && !viewModel.hasArticles) {
+      return _buildLoadingState();
     }
 
-    if (_errorMessage != null) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error, size: 64, color: Colors.red),
-              SizedBox(height: 16),
-              Text(
-                'Error loading news',
-                style: TextStyle(fontSize: 18, color: Colors.red),
-              ),
-              SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black87),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => _loadNewsFeed(forceRefresh: true),
-                child: Text('Load News'),
-              ),
-            ],
-          ),
-        ),
-      );
+    // Error state
+    if (viewModel.loadingState == NewsLoadingState.error && !viewModel.hasArticles) {
+      return _buildErrorState(viewModel);
     }
 
-    if (_articles.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.newspaper, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
-              Text(
-                'No articles loaded',
-                style: TextStyle(fontSize: 18, color: Colors.black38),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadNewsFeed,
-                child: Text('Load News'),
-              ),
-            ],
-          ),
-        ),
-      );
+    // Empty state
+    if (!viewModel.hasArticles && viewModel.loadingState == NewsLoadingState.loaded) {
+      return _buildEmptyState(viewModel);
     }
 
-    return NewsFeedCard(articles: _articles);
+    // Content state
+    return _buildContentState(viewModel);
   }
 
-  Future<void> _loadNewsFeed({bool forceRefresh = false}) async {
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-    }
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text(
+            'Loading the best news for you...',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
 
-    try {
-      // Check if we have cached data and it's still fresh (less than 30 minutes old)
-      if (!forceRefresh) {
-        final cachedArticles = _prefsService.getCachedNewsArticles();
-        final lastFetchTime = _prefsService.getLastNewsFetchTime();
+  Widget _buildErrorState(NewsFeedViewModel viewModel) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'Oops! Something went wrong',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              viewModel.errorMessage ?? 'Unknown error occurred',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => viewModel.loadNewsFeed(forceRefresh: true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black87,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-        if (cachedArticles != null && lastFetchTime != null) {
-          final timeDifference = DateTime.now().millisecondsSinceEpoch - lastFetchTime;
-          final thirtyMinutesInMs = 2 * 60 * 60 * 1000; // 2 hours
+  Widget _buildEmptyState(NewsFeedViewModel viewModel) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.newspaper_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'No articles found',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try selecting a different category',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => viewModel.refreshArticles(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black87,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Refresh'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          if (timeDifference < thirtyMinutesInMs) {
-            // Use cached data
-            setState(() {
-              _articles = cachedArticles;
-              _isLoading = false;
-            });
-            print('Loaded ${cachedArticles.length} articles from cache');
-            return;
-          }
-        }
-      }
+  Widget _buildContentState(NewsFeedViewModel viewModel) {
+    return RefreshIndicator(
+      onRefresh: viewModel.refreshArticles,
+      color: Colors.black87,
+      child: viewModel.articles.isNotEmpty ? ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: viewModel.articles.length,
+        itemExtent: MediaQuery.of(context).size.height * 0.33, // Each card takes 50% of screen height
+        itemBuilder: (context, index) {
+          final article = viewModel.articles[index];
 
-      // Get current user ID
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('No user logged in');
-      }
+          return NewsListItem(
+            article: article,
+            onTap: () => _handleArticleTap(article),
+            onBookmark: () => _handleBookmark(article),
+            onListen: () => _handleListen(article),
+          );
+        },
+      ) :
+      const Center(
+        child: Text(
+          'Pull to refresh to load cached articles',
+          style: TextStyle(color: Colors.grey),
+        ),
+      ),
+    );
+  }
 
-      print('Loading fresh news feed for user: ${user.uid}');
+  // Event handlers
+  void _handleArticleTap(Map<String, dynamic> article) {
+    // TODO: Navigate to full article view with animation
+    print('Article tapped: ${article['title']}');
+  }
 
-      // Call the Cloud Function to get stored articles
-      final callable = FirebaseFunctions.instance.httpsCallable('getUserNewsFeed');
-      final result = await callable.call({'userId': user.uid});
+  void _handleBookmark(Map<String, dynamic> article) {
+    // TODO: Handle bookmark action
+    print('Bookmark tapped: ${article['title']}');
+  }
 
-      if (result.data['success'] == true) {
-        final articlesData = result.data['articles'] as List<dynamic>? ?? [];
-        final articles = articlesData.map((article) {
-          return Map<String, dynamic>.from(article as Map<Object?, Object?>);
-        }).toList();
-
-        // Cache the fresh data
-        await _prefsService.saveNewsArticles(articles);
-        await _prefsService.saveLastNewsFetchTime();
-
-        setState(() {
-          _articles = articles;
-          _isLoading = false;
-        });
-
-        print('Loaded ${articles.length} fresh articles from Firestore and cached them');
-
-      } else {
-        throw Exception(result.data['error'] ?? 'Failed to load news');
-      }
-    } catch (e) {
-      print('Error loading news feed: $e');
-
-      // If network fails, try to use cached data as fallback
-      final cachedArticles = _prefsService.getCachedNewsArticles();
-      if (cachedArticles != null) {
-        if (mounted) {
-          setState(() {
-            _articles = cachedArticles;
-            _isLoading = false;
-          });
-        }
-        print('Network failed, using cached articles as fallback');
-      } else {
-        if (mounted) {
-          setState(() {
-            _errorMessage = e.toString();
-            _isLoading = false;
-          });
-        }
-      }
-    }
+  void _handleListen(Map<String, dynamic> article) {
+    // TODO: Handle listen/audio action
+    print('Listen tapped: ${article['title']}');
   }
 }

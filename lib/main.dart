@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'Services/shared_prefs_service.dart';
 import 'Services/streak_repo.dart';
+import 'ViewModels/newsfeed_vm.dart';
 import 'ViewModels/onboarding_vm.dart';
 import 'Views/Auth/login_page.dart';
 import 'Views/screens/main_scaffold.dart';
@@ -130,7 +131,8 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => AuthViewModel()),
             ChangeNotifierProvider(create: (context) => HomeViewModel(context.read<StreakRepository>())),
             ChangeNotifierProvider(create: (context) => ChatViewModel()),
-            ChangeNotifierProvider(create: (_) => OnboardingViewModel())
+            ChangeNotifierProvider(create: (_) => OnboardingViewModel()),
+            ChangeNotifierProvider(create: (_) => NewsFeedViewModel()),
           ],
           child: MaterialApp(
             navigatorKey: navigationKey,
