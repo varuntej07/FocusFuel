@@ -16,7 +16,10 @@ class RSSService {
             { url: 'https://www.theverge.com/rss/index.xml', category: 'technology' },
             { url: 'https://feeds.reuters.com/reuters/technologyNews', category: 'technology' },
             { url: 'https://feeds.bbci.co.uk/news/business/rss.xml', category: 'business' },
-            { url: 'https://feeds.bbci.co.uk/news/health/rss.xml', category: 'health' }
+            { url: 'https://feeds.bbci.co.uk/news/health/rss.xml', category: 'health' },
+            { url: 'https://feeds.npr.org/1001/rss.xml', category: 'general' },
+            { url: 'https://feeds.washingtonpost.com/rss/business', category: 'business' },
+            { url: 'https://feeds.cnn.com/rss/edition.rss', category: 'general' },
         ];
     }
 
@@ -80,10 +83,17 @@ class RSSService {
     }
 
     selectRelevantFeeds(searchTerms) {
-        const categories = [...new Set(searchTerms.map(term => term.category.toLowerCase()))];
+        const categories = [...new Set(searchTerms.map(term => {
+            // Normalize category names to match RSS feed categories
+            const cat = term.category.toLowerCase();
+            if (cat.includes('tech')) return 'technology';
+            if (cat.includes('health') || cat.includes('fitness')) return 'health';
+            if (cat.includes('business')) return 'business';
+            return 'technology'; // default fallback
+        }))];
 
         return this.feeds.filter(feed =>
-            categories.includes(feed.category) || categories.includes('general')
+            categories.includes(feed.category)
         );
     }
 

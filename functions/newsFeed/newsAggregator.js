@@ -1,6 +1,7 @@
 const { NewsDataService } = require('./newsDataService');
 const { RSSService } = require('./rssService');
 
+// NewsDataService handles API calls to NewsData.io RSSService is a fallback option when something goes wrong
 class NewsAggregator {
     constructor() {
         this.newsDataService = new NewsDataService();
@@ -12,7 +13,9 @@ class NewsAggregator {
         };
     }
 
-    async fetchNews(searchTerms, userProfile) {
+    // Attempts each news source in order and returns array of article objects with specific enrichment
+    // Expected format: [{title, link, pubDate, description, source, relevanceScore, userId}, ...]
+    async fetchNews(searchTerms, userProfile, options = {}) {
         const sources = [
             { name: 'NewsData.io', service: this.newsDataService },
             { name: 'RSS', service: this.rssService }
@@ -22,7 +25,7 @@ class NewsAggregator {
             try {
                 console.log(`Attempting to fetch from ${source.name}`);
                 const articles = await this.retryWrapper(
-                    () => source.service.fetchNews(searchTerms),
+                    () => source.service.fetchNews(searchTerms, options),
                     source.name
                 );
 
@@ -39,6 +42,7 @@ class NewsAggregator {
         throw new Error('All news sources failed');
     }
 
+    // Retry wrapper with exponential backoff for resilient API calls
     async retryWrapper(fetchFunction, sourceName) {
         let lastError;
 
@@ -67,28 +71,16 @@ class NewsAggregator {
         throw lastError;
     }
 
+    // Enrich articles with user context and relevance scoring
     enrichArticles(articles, userProfile) {
         return articles.map(article => ({
             ...article,
             userId: userProfile.uid,
-            relevanceScore: this.calculateRelevance(article, userProfile)
         }));
     }
 
-    calculateRelevance(article, userProfile) {
-        const interests = userProfile.primaryInterests || [];
-        const content = `${article.title} ${article.description}`.toLowerCase();
 
-        let score = 0;
-        for (const interest of interests) {
-            if (content.includes(interest.toLowerCase())) {
-                score += 1;
-            }
-        }
-
-        return Math.min(score / interests.length, 1); // Normalize to 0-1
-    }
-
+    // Utility function for adding delays
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }

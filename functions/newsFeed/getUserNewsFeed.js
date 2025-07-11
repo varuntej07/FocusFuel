@@ -12,9 +12,8 @@ module.exports = {
 
             console.log(`Retrieving news articles for user: ${userId}`);
 
-            // Get articles from Firestore
-            const result = await getUserNewsArticles(userId, 30); // Get up to 30 articles
-
+            // Get articles from Firestore, expects (userID, dateKey, num of articles)
+            const result = await getUserNewsArticles(userId, null, 100);
             if (!result.success) {
                 throw new Error(result.error || 'Failed to retrieve articles');
             }

@@ -11,7 +11,7 @@ const { NewsAggregator } = require('./newsAggregator');
 module.exports = {
     scheduledNewsCollection: onSchedule(
         {
-            schedule: "0 7 * * *",
+            schedule: "0 7,14 * * *",
             secrets: ["OPENAI_API_KEY", "NEWSDATA_API_KEY"],
             timeZone: "America/Los_Angeles",
         },
@@ -24,6 +24,12 @@ module.exports = {
                 const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                 console.log(`Processing news collection for ${users.length} users`);
+
+                const MAX_CREDITS_PER_RUN = 100; // Half of daily free 200, cuz running twice
+                const activeUsers = users.filter(u => u.primaryInterests?.length > 0);
+                const creditsPerUser = Math.floor(MAX_CREDITS_PER_RUN / activeUsers.length);
+
+                console.log(`${activeUsers.length} active users, ${creditsPerUser} credits each`);
 
                 const results = [];
 
@@ -50,7 +56,7 @@ module.exports = {
                         console.log(`Generated search terms:`, searchTerms);
 
                         // Collect articles for each search term
-                        const articles = await collectArticlesForSearchTerms(searchTerms, userProfile);
+                        const articles = await collectArticlesForSearchTerms(searchTerms, userProfile, creditsPerUser);
                         console.log(`Collected a total of ${articles.length} articles`);
 
                         // Filter and clean articles
@@ -161,7 +167,6 @@ async function generateSearchTerms(primaryInterests) {
         }
         // Now the searchTerms array is objects with term and category
         // [{ term: 'AI advancements', category: 'Technology' }, {..}, ....]
-        console.log(`Finally returning search terms: ${searchTerms}`);
         return searchTerms;
 
     } catch (error) {
@@ -178,11 +183,11 @@ async function generateSearchTerms(primaryInterests) {
 }
 
 // Collect articles for all search terms
-async function collectArticlesForSearchTerms(searchTerms, userProfile) {
+async function collectArticlesForSearchTerms(searchTerms, userProfile, creditsPerUser) {
     const newsAggregator = new NewsAggregator();
 
     try {
-        return await newsAggregator.fetchNews(searchTerms, userProfile);
+        return await newsAggregator.fetchNews(searchTerms, userProfile, {maxRequests: creditsPerUser});
     } catch (error) {
         console.error('All news sources failed:', error);
         return []; // Return empty array instead of crashing
@@ -229,7 +234,8 @@ async function filterAndCleanArticles(articles) {
     );
 
     // Limiting to top X articles to keep response manageable
-    const limitedArticles = sortedArticles.slice(0, 15);
+    const ARTICLES_TO_KEEP = 100;
+    const limitedArticles = sortedArticles.slice(0, ARTICLES_TO_KEEP);
 
     console.log(`Final filtered articles: ${limitedArticles.length}`);
 
@@ -247,7 +253,7 @@ function removeDuplicateArticles(articles) {
 
         // Iterate through seen and check if the title already exists in the seen map
         for (const [seenTitle, seenArticle] of seen) {
-            if (calculateSimilarity(normalizedTitle, seenTitle) > 0.8) {
+            if (calculateSimilarity(normalizedTitle, seenTitle) > 0.8) {   // 80% title similarity threshold
                 isDuplicate = true;
 
                 // Keep the article from a more reputable source or more recent
