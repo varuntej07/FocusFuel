@@ -40,7 +40,7 @@ class NewsDataService {
                 language: 'en',
                 country: 'us',
                 image: 1,
-                size: 45,       // max allowed by newsdata.io
+                size: 10,       // max allowed by newsdata.io
                 category: this.mapToNewsDataCategory(category)
             });
 

@@ -14,7 +14,6 @@ class RSSService {
             { url: 'https://feeds.bbci.co.uk/news/technology/rss.xml', category: 'technology' },
             { url: 'https://feeds.feedburner.com/TechCrunch/', category: 'technology' },
             { url: 'https://www.theverge.com/rss/index.xml', category: 'technology' },
-            { url: 'https://feeds.reuters.com/reuters/technologyNews', category: 'technology' },
             { url: 'https://feeds.bbci.co.uk/news/business/rss.xml', category: 'business' },
             { url: 'https://feeds.bbci.co.uk/news/health/rss.xml', category: 'health' },
             { url: 'https://feeds.npr.org/1001/rss.xml', category: 'general' },

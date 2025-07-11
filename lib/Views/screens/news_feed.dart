@@ -188,9 +188,7 @@ class _NewsFeedState extends State<NewsFeed> {
             const SizedBox(height: 16),
             const Text(
               'Oops! Something went wrong',
-              style: TextStyle(fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
             ),
             const SizedBox(height: 8),
             Text(
@@ -204,11 +202,8 @@ class _NewsFeedState extends State<NewsFeed> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black87,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               child: const Text('Try Again'),
             ),
           ],
@@ -228,9 +223,7 @@ class _NewsFeedState extends State<NewsFeed> {
             const SizedBox(height: 16),
             const Text(
               'No articles found',
-              style: TextStyle(fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
             ),
             const SizedBox(height: 8),
             Text(
@@ -243,11 +236,8 @@ class _NewsFeedState extends State<NewsFeed> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black87,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: const Text('Refresh'),
             ),

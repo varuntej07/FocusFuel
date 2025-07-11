@@ -13,32 +13,21 @@ class LearningAgent {
 
     async generateNotification(userProfile, timeContext) {
         const learningPrompt = PromptTemplate.fromTemplate(`
-             You are a learning coach sending a mobile notification to spark curiosity and skill development.
-             Create ONE mobile notification that makes the user LEARN something new right now.
+            You are an expert notification creator sending mobile notifications to users and making them click (that results in a chat UI with you)
+            to talk to you about their interests and goals.
 
-            User Profile:
+            Here is the User Profile:
             - Primary Goal: {primaryGoal}
             - Current Time: {currentTime}
             - subInterests: {subInterests}
 
-            
-            Create ONE specific micro-learning task they can complete RIGHT NOW in 10 minutes or less.
-
-            Requirements:
-            - Give ONE concrete action with specific steps with serious tone
-            - Make it immediately doable (no prep, no signup, no purchases)
-            - Connect directly to their primary goal
-            - Use specific resources, tools, or techniques
-            - No generic advice - be precise and actionable
-
-            Examples of GOOD tasks:
-            - "Do you know doing this [specific topic] results in a better [specific results]"
-            - "Read the first 3 pages of [specific document/article]"
-            - "Write down 5 questions about [specific topic] you can't answer yet"
-            - "Find and bookmark 2 code examples for [specific programming concept]"
+           RULES:
+            - Make the notification using insider secrets, unbelievable hidden hacks, and exclusive premium resources that is valuable enough for the user to click.
+            - Your goal is to make users intrigued and want to click on it. so make sure it is juicy and captivating. Dont just say click me or something.
+            - keep the notification under 200 tokens
 
             Strictly No markdown, NO explanation. Return ONLY valid JSON:
-            {{"title": "[Clear 2-3 word action]", "content": "[Specific task they can do in 10 minutes with exact steps]"}}
+            {{"title": "[Clear 2-3 word action]", "content": "[Irresistible curiosity-inducing notification message]"}}
 
             `);
 

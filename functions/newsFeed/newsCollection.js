@@ -209,21 +209,6 @@ async function filterAndCleanArticles(articles) {
 
     console.log(`After basic validation: ${validArticles.length} articles`);
 
-    // Now, removing articles that're older than 7 days
-    const recentArticles = validArticles.filter(article => {
-        try {
-            const articleDate = new Date(article.pubDate);
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            return articleDate > weekAgo;
-        } catch (error) {
-            console.error(`Error parsing date for article: ${article.title}`);
-            return false;
-        }
-    });
-
-    console.log(`After date filtering: ${recentArticles.length} articles`);
-
     // Removing duplicate articles based on title similarity
     const uniqueArticles = removeDuplicateArticles(recentArticles);
     console.log(`After duplicate removal: ${uniqueArticles.length} articles`);
