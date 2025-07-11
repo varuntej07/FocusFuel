@@ -75,10 +75,31 @@ class SharedPreferencesService {
     return _preferences?.getInt('notificationInterval');
   }
 
+  static const String _lastSyncTimeKey = 'last_news_sync_time';
+  static const String _lastCollectionDateKey = 'last_collection_date';
+
+  Future<void> setLastSyncTime(DateTime time) async {
+    await _preferences?.setString(_lastSyncTimeKey, time.toIso8601String());
+  }
+
+  DateTime? getLastSyncTime() {
+    final timeStr = _preferences?.getString(_lastSyncTimeKey);
+    return timeStr != null ? DateTime.parse(timeStr) : null;
+  }
+
+  Future<void> setLastCollectionDate(String date) async {
+    await _preferences?.setString(_lastCollectionDateKey, date);
+  }
+
+  String? getLastCollectionDate() {
+    return _preferences?.getString(_lastCollectionDateKey);
+  }
+
   // Cache news articles
   Future<void> saveNewsArticles(List<Map<String, dynamic>> articles) async {
     final articlesJson = articles.map((article) => jsonEncode(article)).toList();
     await _preferences?.setStringList('cached_news_articles', articlesJson);
+    await setLastSyncTime(DateTime.now());    // to track last sync time
   }
 
   List<Map<String, dynamic>>? getCachedNewsArticles() {

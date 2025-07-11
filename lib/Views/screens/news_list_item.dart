@@ -84,11 +84,12 @@ class NewsListItem extends StatelessWidget {
   Widget _buildContentSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           article['title'] ?? 'No Title Available',
           style: const TextStyle(
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.black87,
             height: 1.3,
@@ -98,24 +99,27 @@ class NewsListItem extends StatelessWidget {
 
         const SizedBox(height: 8),
 
-        Expanded(
-          child: Text(
-            article['description'] ?? 'No description available...',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.4),
-            maxLines: 5,
-          ),
+        Text(
+          article['description'] ?? 'No description available...',
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          maxLines: 5,
         ),
 
         const SizedBox(height: 12),
 
         // Footer: Source and actions
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(child: _buildSourceInfo()),
 
-            _buildActionButton(icon: Icons.bookmark_border_rounded, onPressed: onBookmark),
-
-            _buildActionButton(icon: Icons.headphones_rounded, onPressed: onListen),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildActionButton(icon: Icons.bookmark_border_rounded, onPressed: onBookmark),
+                _buildActionButton(icon: Icons.headphones_rounded, onPressed: onListen),
+              ],
+            ),
           ],
         ),
       ],

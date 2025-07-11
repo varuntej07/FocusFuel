@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../services/shared_prefs_service.dart';
+import '../Services/news_service.dart';
+import '../Services/shared_prefs_service.dart';
 
 enum NewsLoadingState { idle, loading, loaded, error, refreshing }
 
@@ -18,7 +19,7 @@ class NewsFeedViewModel extends ChangeNotifier {
     'Science',
     'Finance',
     'Sports',
-    'weather'
+    'Weather'
   ];
 
   // Public getters
@@ -30,11 +31,21 @@ class NewsFeedViewModel extends ChangeNotifier {
   bool get isRefreshing => _loadingState == NewsLoadingState.refreshing;
   bool get hasArticles => _articles.isNotEmpty;
 
+  late NewsService _newsService;
+  bool _isDisposed = false;
+
   // Initialize the view model
   Future<void> initialize() async {
+    if (_isDisposed) return;
+
     try {
       _prefsService = await SharedPreferencesService.getInstance();
-      await loadNewsFeed();
+      _newsService = NewsService(_prefsService);   // news service instance with prefs
+
+      if (!_isDisposed) {
+        await loadNewsFeed();     // starts actual news loading
+      }
+
     } catch (e) {
       _handleError('Failed to initialize: $e');
     }
@@ -50,7 +61,7 @@ class NewsFeedViewModel extends ChangeNotifier {
     // TODO: Implement tab selection logic by loading articles for the selected tab
   }
 
-  // Load news feed with caching - only from SharedPrefs for now
+  // Load news feed with caching
   Future<void> loadNewsFeed({bool forceRefresh = false}) async {
     if (_loadingState == NewsLoadingState.loading) return;
 
@@ -58,9 +69,13 @@ class NewsFeedViewModel extends ChangeNotifier {
       _setLoadingState(
           forceRefresh ? NewsLoadingState.refreshing : NewsLoadingState.loading
       );
+
       _clearError();
 
-      await _loadFromCache();
+      final articles = await _newsService.getNewsArticles(forceRefresh: forceRefresh);
+
+      _articles = articles;         // updates internal state with articles from news service
+      _setLoadingState(NewsLoadingState.loaded);
 
     } catch (e) {
       _handleError('Failed to load articles: $e');
@@ -72,8 +87,15 @@ class NewsFeedViewModel extends ChangeNotifier {
     await loadNewsFeed(forceRefresh: true);
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
   // Private helper methods
   void _setLoadingState(NewsLoadingState state) {
+    if (_isDisposed) return;
     _loadingState = state;
     notifyListeners();
   }
@@ -83,26 +105,8 @@ class NewsFeedViewModel extends ChangeNotifier {
   }
 
   void _handleError(String error) {
+    if (_isDisposed) return;
     _errorMessage = error;
     _setLoadingState(NewsLoadingState.error);
-  }
-
-  Future<void> _loadFromCache() async {
-    try {
-      final cachedArticles = _prefsService.getCachedNewsArticles();
-
-      if (cachedArticles != null && cachedArticles.isNotEmpty) {
-        _articles = List.from(cachedArticles);
-        _setLoadingState(NewsLoadingState.loaded);
-        print('Loaded ${cachedArticles.length} articles from cache');
-      } else {
-        // No cached articles available
-        _articles = [];
-        _setLoadingState(NewsLoadingState.loaded);
-        print('No cached articles found');
-      }
-    } catch (e) {
-      _handleError('Failed to load cached articles: $e');
-    }
   }
 }

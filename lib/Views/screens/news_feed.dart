@@ -11,26 +11,54 @@ class NewsFeed extends StatefulWidget {
 }
 
 class _NewsFeedState extends State<NewsFeed> {
-  late NewsFeedViewModel _viewModel;
+  late NewsFeedViewModel newsVM;
+  bool _isInitialized = false;
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeViewModel();    // triggers the entire flow
+  }
 
-    // Initialize ViewModel
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _viewModel = Provider.of<NewsFeedViewModel>(context, listen: false);
-      _viewModel.initialize();
-    });
+  Future<void> _initializeViewModel() async {
+    newsVM = Provider.of<NewsFeedViewModel>(context, listen: false);  // viewmodel instance
+
+    try {
+      await newsVM.initialize();
+
+      // Check if widget is still mounted before updating state
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isInitialized = true;    // Updates UI to show content
+        });
+      }
+    } catch (e) {
+      print('Error initializing ViewModel: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // early return if not initialized
+    if (!_isInitialized) {
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     return Scaffold(
       appBar: _buildAppBar(),
       body: Consumer<NewsFeedViewModel>(
         builder: (context, viewModel, child) {
-          _viewModel = viewModel; // Update reference
+          newsVM = viewModel; // Update reference
 
           return Column(
             children: [
@@ -112,17 +140,20 @@ class _NewsFeedState extends State<NewsFeed> {
 
   Widget _buildBody(NewsFeedViewModel viewModel) {
     // Loading state
-    if (viewModel.loadingState == NewsLoadingState.loading && !viewModel.hasArticles) {
+    if (viewModel.loadingState == NewsLoadingState.loading &&
+        !viewModel.hasArticles) {
       return _buildLoadingState();
     }
 
     // Error state
-    if (viewModel.loadingState == NewsLoadingState.error && !viewModel.hasArticles) {
+    if (viewModel.loadingState == NewsLoadingState.error &&
+        !viewModel.hasArticles) {
       return _buildErrorState(viewModel);
     }
 
     // Empty state
-    if (!viewModel.hasArticles && viewModel.loadingState == NewsLoadingState.loaded) {
+    if (!viewModel.hasArticles &&
+        viewModel.loadingState == NewsLoadingState.loaded) {
       return _buildEmptyState(viewModel);
     }
 
@@ -157,7 +188,9 @@ class _NewsFeedState extends State<NewsFeed> {
             const SizedBox(height: 16),
             const Text(
               'Oops! Something went wrong',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: TextStyle(fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87),
             ),
             const SizedBox(height: 8),
             Text(
@@ -171,8 +204,10 @@ class _NewsFeedState extends State<NewsFeed> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black87,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
               child: const Text('Try Again'),
             ),
@@ -193,7 +228,9 @@ class _NewsFeedState extends State<NewsFeed> {
             const SizedBox(height: 16),
             const Text(
               'No articles found',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: TextStyle(fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87),
             ),
             const SizedBox(height: 8),
             Text(
@@ -206,7 +243,8 @@ class _NewsFeedState extends State<NewsFeed> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black87,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -226,9 +264,8 @@ class _NewsFeedState extends State<NewsFeed> {
       child: viewModel.articles.isNotEmpty ? ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: viewModel.articles.length,
-        itemExtent: MediaQuery.of(context).size.height * 0.33, // Each card takes 50% of screen height
         itemBuilder: (context, index) {
-          final article = viewModel.articles[index];
+          final article = viewModel.articles[index];      // Each article renders as NewsListItem
 
           return NewsListItem(
             article: article,
