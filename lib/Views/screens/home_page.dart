@@ -174,9 +174,9 @@ class _HomeFeedState extends State<HomeFeed> {
 
               const SizedBox(height: 50),
 
-              const Text("Choose a focus goal from below",
+              const Text("Set a focus goal and be productive!",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, color: Colors.black87)),
+                  style: TextStyle(fontSize: 18, color: Colors.black87)),
 
               const SizedBox(height: 10),
 
@@ -224,16 +224,9 @@ class _HomeFeedState extends State<HomeFeed> {
                     childAspectRatio: 1.4,      // Aspect ratio for card dimensions
                   ),
                   children: [
-                    _InfoTile(
-                        emoji: '🧠',
-                        title: "Today’s Goal",
-                        subtitle: selectedFocus,
-                        editFocus: () {
-                          _promptForGoals(context);
-                        }
-                    ),
+                    _InfoTile(title: "Today’s Goal", subtitle: selectedFocus, editFocus: () {_promptForGoals(context);}),
 
-                    _InfoTile(emoji: '📅', title: "Weekly Goal", subtitle: weeklyGoal, editFocus: () { _promptForGoals(context); },),
+                    _InfoTile(title: "Weekly Goal", subtitle: weeklyGoal, editFocus: () { _promptForGoals(context); }),
 
                     _SliderTile(
                       label: "Interval",
@@ -268,12 +261,11 @@ class _HomeFeedState extends State<HomeFeed> {
 
 // _InfoTile widget to include an emoji for top cards
 class _InfoTile extends StatelessWidget {
-  final String emoji;
   final String title;
   final String subtitle;
   final VoidCallback editFocus;
 
-  const _InfoTile({required this.emoji, required this.title, required this.subtitle, required this.editFocus});
+  const _InfoTile({required this.title, required this.subtitle, required this.editFocus});
 
   @override
   Widget build(BuildContext context) {
@@ -282,10 +274,6 @@ class _InfoTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
-
-            const SizedBox(height: 8),
-
             TextButton(
               child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
               onPressed: () {

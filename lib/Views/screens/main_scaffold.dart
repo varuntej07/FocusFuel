@@ -71,16 +71,17 @@ class MainScaffoldState extends State<MainScaffold> {
           children: _pages,
         ),
         bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
             selectedItemColor: Colors.black87,
             unselectedItemColor: Colors.grey,
             currentIndex: _selectedIndex,
             onTap: _onTap,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.memory_sharp), label: 'Web'),
-              BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chat'),
-              BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu')
+            items: [
+              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/home.png', width: 24, height: 24), label: 'Home'),
+              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/news.png', width: 24, height: 24), label: 'News'),
+              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/chat.png', width: 24, height: 24), label: 'Chat'),
+              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/menu.png', width: 24, height: 24), label: 'Menu')
             ]
         )
     );
