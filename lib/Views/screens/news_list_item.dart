@@ -116,8 +116,8 @@ class NewsListItem extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildActionButton(icon: Icons.bookmark_border_rounded, onPressed: onBookmark),
-                _buildActionButton(icon: Icons.headphones_rounded, onPressed: onListen),
+                _buildActionButton(icon: Image.asset('lib/Assets/icons/save.png', width: 20, height: 18), onPressed: onBookmark),
+                _buildActionButton(icon: Image.asset('lib/Assets/icons/dark_headphone.png', width: 20, height: 18), onPressed: onListen)
               ],
             ),
           ],
@@ -151,13 +151,13 @@ class NewsListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton({required IconData icon, VoidCallback? onPressed}) {
+  Widget _buildActionButton({required icon, VoidCallback? onPressed}) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: Icon(icon, size: 22, color: Colors.grey[600]),
+        child: icon,
       ),
     );
   }

@@ -85,13 +85,15 @@ class _NewsFeedState extends State<NewsFeed> {
       // personalize the feed button
       actions: [
         IconButton(
-          onPressed: () {},
-          icon: Icon(Icons.headphones, color: Colors.grey[500]),
-        ),
+            onPressed: () {
+              // TODO: Listen to the news (premium feature)
+            },
+            icon: Image.asset('lib/Assets/icons/dark_headphone.png', width: 30, height: 30), color: Colors.black87),
         IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.favorite_border, color: Colors.grey),
-        ),
+            onPressed: () {
+              // TODO: Add topics for personalizing the feed
+            },
+            icon: Image.asset('lib/Assets/icons/add-to-favorites.png', width: 30, height: 34), color: Colors.black87),
       ],
     );
   }

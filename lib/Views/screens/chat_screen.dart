@@ -204,7 +204,7 @@ class _ChatScreenState extends State<ChatScreen>{
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_comment_outlined, size: 30),
+            icon: Image.asset('lib/Assets/icons/new-chat.png', width: 24, height: 24),
             onPressed: () {
               // TODO: Implement new chat functionality
             },

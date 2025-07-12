@@ -183,10 +183,10 @@ class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
 
   @override
-  _SubscriptionScreenState createState() => _SubscriptionScreenState();
+  SubscriptionScreenState createState() => SubscriptionScreenState();
 }
 
-class _SubscriptionScreenState extends State<SubscriptionScreen> {
+class SubscriptionScreenState extends State<SubscriptionScreen> {
   final PageController _pageController = PageController();
 
   @override
