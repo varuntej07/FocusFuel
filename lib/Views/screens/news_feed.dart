@@ -170,10 +170,7 @@ class _NewsFeedState extends State<NewsFeed> {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text(
-            'Loading the best news for you...',
-            style: TextStyle(color: Colors.grey),
-          ),
+          Text('Loading the best news for you...', style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
@@ -267,11 +264,7 @@ class _NewsFeedState extends State<NewsFeed> {
           );
         },
       ) :
-      const Center(
-        child: Text(
-          'Pull to refresh to load cached articles',
-          style: TextStyle(color: Colors.grey),
-        ),
+      const Center(child: Text('Pull to refresh to load cached articles', style: TextStyle(color: Colors.grey)),
       ),
     );
   }

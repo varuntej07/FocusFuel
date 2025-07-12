@@ -1,7 +1,6 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { callOpenAI } = require("../utils/openai");
 const { getUserProfile } = require("../utils/getUserProfile");
-const { isMoreReputableSource } = require("../utils/reputableNewsSources");
 const { saveUserNewsArticles } = require("../newsFeed/newsStorageService");
 const { admin } = require("../utils/firebase");
 const { NewsAggregator } = require('./newsAggregator');
@@ -242,8 +241,7 @@ function removeDuplicateArticles(articles) {
                 isDuplicate = true;
 
                 // Keep the article from a more reputable source or more recent
-                if (isMoreReputableSource(article.source, seenArticle.source) ||
-                    (article.source === seenArticle.source && new Date(article.pubDate) > new Date(seenArticle.pubDate))) {
+                if (article.source === seenArticle.source && new Date(article.pubDate) > new Date(seenArticle.pubDate)) {
 
                     // Replace the old article with the new one
                     const index = unique.findIndex(a => a.title === seenArticle.title);

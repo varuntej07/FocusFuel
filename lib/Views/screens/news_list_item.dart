@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class NewsListItem extends StatelessWidget {
   final Map<String, dynamic> article;
@@ -45,7 +46,7 @@ class NewsListItem extends StatelessWidget {
                 const SizedBox(width: 12),
 
                 // Right: Content
-                Expanded(child: _buildContentSection(context)),
+                Flexible(child: _buildContentSection(context)),
               ],
             ),
           ),
@@ -111,7 +112,7 @@ class NewsListItem extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: _buildSourceInfo()),
+            Flexible(child: _buildSourceInfo()),
 
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -128,6 +129,8 @@ class NewsListItem extends StatelessWidget {
 
   Widget _buildSourceInfo() {
     final source = article['source_id'] ?? article['source'] ?? 'Unknown';
+    final time = article['pubDate'] ?? 'Unknown';
+    final publishedDate = formatPublishedDateWithIntl(time);
 
     return Row(
       children: [
@@ -141,12 +144,16 @@ class NewsListItem extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
 
         Text(
           source,
           style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w500),
         ),
+
+        const SizedBox(width: 6),
+
+        Text(publishedDate, style: TextStyle(fontSize: 10, color: Colors.grey[600]))
       ],
     );
   }
@@ -160,5 +167,30 @@ class NewsListItem extends StatelessWidget {
         child: icon,
       ),
     );
+  }
+}
+
+String formatPublishedDateWithIntl(String publishedDateString) {
+  try {
+    // intl's DateFormat can parse it directly if you specify the locale
+    // that understands English month/day names, or be very explicit.
+    // We can manually parse or use a known pattern.
+
+    DateTime dateTime;
+    try {
+      dateTime = DateTime.parse(publishedDateString);
+    } catch (e) {
+      // Fallback to more explicit parsing if DateTime.parse fails for this specific GMT format.
+      final inputFormat = DateFormat('EEE, dd MMM yyyy HH:mm:ss \'GMT\'', 'en_US');
+      // We add 'GMT' as a literal string to match if it's always there.
+      dateTime = inputFormat.parseUtc(publishedDateString); // Parse as UTC
+    }
+
+
+    final outputFormat = DateFormat('d MMM', 'en_US'); // 'en_US' for English month names
+    return outputFormat.format(dateTime);
+  } catch (e) {
+    print('Error formatting date with intl: $e');
+    return 'Invalid Date';
   }
 }
