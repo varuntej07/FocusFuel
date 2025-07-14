@@ -6,6 +6,7 @@ class NewsListItem extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onBookmark;
   final VoidCallback? onListen;
+  final bool isBookmarked;
 
   const NewsListItem({
     super.key,
@@ -13,6 +14,7 @@ class NewsListItem extends StatelessWidget {
     this.onTap,
     this.onBookmark,
     this.onListen,
+    this.isBookmarked = false,
   });
 
   @override
@@ -117,8 +119,18 @@ class NewsListItem extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildActionButton(icon: Image.asset('lib/Assets/icons/save.png', width: 20, height: 18), onPressed: onBookmark),
-                _buildActionButton(icon: Image.asset('lib/Assets/icons/dark_headphone.png', width: 20, height: 18), onPressed: onListen)
+                _buildActionButton(
+                    icon: Image.asset(
+                        isBookmarked ? 'lib/Assets/icons/saved.png' : 'lib/Assets/icons/save.png',
+                        width: 20,
+                        height: 18
+                    ),
+                    onPressed: onBookmark
+                ),
+                _buildActionButton(
+                    icon: Image.asset('lib/Assets/icons/dark_headphone.png', width: 20, height: 18),
+                    onPressed: onListen
+                )
               ],
             ),
           ],

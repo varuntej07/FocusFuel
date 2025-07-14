@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:focus_fuel/Views/screens/subscription_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/newsfeed_vm.dart';
 import 'news_list_item.dart';
@@ -97,12 +98,18 @@ class _NewsFeedState extends State<NewsFeed> {
       actions: [
         IconButton(
             onPressed: () {
-              // TODO: Listen to the news (premium feature)
+              context.showSubscriptionDialog(
+                title: 'Premium Feature',
+                featureName: 'Listen to news articles just by a click',
+              );
             },
             icon: Image.asset('lib/Assets/icons/dark_headphone.png', width: 30, height: 30), color: Colors.black87),
         IconButton(
             onPressed: () {
-              // TODO: Add topics for personalizing the feed
+              context.showSubscriptionDialog(
+                title: 'Premium Feature',
+                featureName: 'Get personalized news feed recommendations',
+              );
             },
             icon: Image.asset('lib/Assets/icons/add-to-favorites.png', width: 30, height: 34), color: Colors.black87),
       ],
@@ -272,6 +279,7 @@ class _NewsFeedState extends State<NewsFeed> {
             onTap: () => _handleArticleTap(article),
             onBookmark: () => _handleBookmark(article),
             onListen: () => _handleListen(article),
+            isBookmarked: viewModel.isArticleBookmarked(article),
           );
         },
       ) :
@@ -282,19 +290,28 @@ class _NewsFeedState extends State<NewsFeed> {
 
   // Event handlers
   void _handleArticleTap(Map<String, dynamic> article) {
-    // TODO: Navigate to full article view with animation
     print('Article tapped: ${article['title']}');
     _showNewsSummaryDialog(context, article, _newsService);
   }
 
   void _handleBookmark(Map<String, dynamic> article) {
-    // TODO: Handle bookmark action
-    print('Bookmark tapped: ${article['title']}');
+    newsVM.toggleBookmark(article);
+
+    // Show feedback to user
+    final isBookmarked = newsVM.isArticleBookmarked(article);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isBookmarked ? 'Article bookmarked' : 'Bookmark removed'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   void _handleListen(Map<String, dynamic> article) {
-    // TODO: Handle listen/audio action
-    print('Listen tapped: ${article['title']}');
+    context.showSubscriptionDialog(
+      title: 'Premium Feature',
+      featureName: 'Listen to news articles just by a click',
+    );
   }
 }
 

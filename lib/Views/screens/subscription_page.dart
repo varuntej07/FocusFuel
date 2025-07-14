@@ -1,228 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-
-// Data Classes
-class Plan {
-  final String title;
-  final List<Section> sections;
-  final String price;
-
-  Plan({required this.title, required this.sections, required this.price});
-}
-
-class Section {
-  final String header;
-  final List<Feature> features;
-
-  Section({required this.header, required this.features});
-}
 
 class Feature {
   final String name;
   final bool isIncluded;
-
   Feature({required this.name, required this.isIncluded});
 }
 
-// Plan Data
-final basicPlan = Plan(
-  title: 'Basic',
-  sections: [
-    Section(
-      header: 'Enhanced Experience',
-      features: [
-        Feature(name: 'Ad-free experience', isIncluded: true),
-        Feature(name: 'Task prioritization', isIncluded: false),
-        Feature(name: 'Focus mode', isIncluded: true),
-        Feature(name: 'Customizable reminders', isIncluded: false),
-      ],
-    ),
-    Section(
-      header: 'AI Assistance',
-      features: [
-        Feature(name: 'Unlimited AI chat messages to an extent', isIncluded: true),
-        Feature(name: 'Attach codebases as a goal to accomplish a task', isIncluded: false),
-        Feature(name: 'Advanced AI analytics', isIncluded: false),
-      ],
-    ),
-    Section(
-      header: 'Productivity Hub',
-      features: [
-        Feature(name: 'Goal tracking', isIncluded: true),
-        Feature(name: 'Multi-task completion tracking', isIncluded: false),
-        Feature(name: 'Productivity reports', isIncluded: false),
-        Feature(name: 'Early access to new features', isIncluded: false),
-      ],
-    ),
-  ],
-  price: 'Starting at \$9.99',
-);
+final premiumFeatures = [
+  Feature(name: 'Ad-free experience', isIncluded: true),
+  Feature(name: 'Customizable tone of voice for notifications', isIncluded: true),
+  Feature(name: 'Customizable reminders to trigger notifications', isIncluded: true),
+  Feature(name: 'Unlimited AI chat messages', isIncluded: true),
+  Feature(name: 'Goal tracking', isIncluded: true),
+  Feature(name: 'Productivity reports', isIncluded: true),
+  Feature(name: 'Listen to articles', isIncluded: true),
+  Feature(name: 'Personalized news feed', isIncluded: true),
+  Feature(name: 'News-related question suggestions', isIncluded: true),
+  Feature(name: 'Early access to new features', isIncluded: true),
+];
 
-final premiumPlan = Plan(
-  title: 'Premium',
-  sections: [
-    Section(
-      header: 'Enhanced Experience',
-      features: [
-        Feature(name: 'Ad-free experience', isIncluded: true),
-        Feature(name: 'Task prioritization', isIncluded: true),
-        Feature(name: 'Focus mode', isIncluded: true),
-        Feature(name: 'Customizable reminders', isIncluded: true),
-      ],
-    ),
-    Section(
-      header: 'AI Assistance',
-      features: [
-        Feature(name: 'Truly unlimited AI chat messages', isIncluded: true),
-        Feature(name: 'Advanced productivity analytics', isIncluded: true),
-        Feature(name: 'Early access to new features', isIncluded: true),
-      ],
-    ),
-    Section(
-      header: 'Productivity Hub',
-      features: [
-        Feature(name: 'Goal tracking', isIncluded: true),
-        Feature(name: 'Multi-task completion tracking', isIncluded: true),
-        Feature(name: 'Productivity reports', isIncluded: true),
-        Feature(name: 'Integration with productivity apps', isIncluded: true),
-      ],
-    ),
-  ],
-  price: 'Starting at \$14.99',
-);
-
-
-class FeatureItem extends StatelessWidget {
-  final Feature feature;
-
-  const FeatureItem({super.key, required this.feature});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(feature.name, style: TextStyle(color: Colors.black)),
-          ),
-          SizedBox(width: 8),
-          Icon(
-            feature.isIncluded ? Icons.check_circle : Icons.lock,
-            color: feature.isIncluded ? Colors.green : Colors.grey,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Plan Card Widget
-class PlanCard extends StatelessWidget {
-  final Plan plan;
-
-  const PlanCard({super.key, required this.plan});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(child: Text(plan.title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black))),
-              SizedBox(height: 16),
-              ...plan.sections.map((section) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    section.header,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  ...section.features.map((feature) => FeatureItem(feature: feature)),
-                  SizedBox(height: 16),
-                ],
-              )),
-              Spacer(),
-              Center(
-                child: Column(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        print('Subscribing to ${plan.title}');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.black87,
-                        padding: EdgeInsets.symmetric(horizontal: 70, vertical: 20),
-                      ),
-                      child: Text(plan.price, style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class SubscriptionScreen extends StatefulWidget {
+class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
-
-  @override
-  SubscriptionScreenState createState() => SubscriptionScreenState();
-}
-
-class SubscriptionScreenState extends State<SubscriptionScreen> {
-  final PageController _pageController = PageController();
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Subscription')),
-      body: Column(
-        children: [
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              children: [
-                PlanCard(plan: basicPlan),
-                PlanCard(plan: premiumPlan),
-              ],
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Subscription'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text(
+              'Premium',
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: SmoothPageIndicator(
-              controller: _pageController,
-              count: 2,
-              effect: WormEffect(
-                dotColor: Colors.grey,
-                activeDotColor: Colors.blue,
+            SizedBox(height: 24),
+            Expanded(
+              child: ListView.builder(
+                itemCount: premiumFeatures.length,
+                itemBuilder: (context, index) {
+                  final feature = premiumFeatures[index];
+                  return Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          feature.isIncluded ? Icons.check : Icons.close,
+                          color: Colors.black,
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            feature.name,
+                            style: TextStyle(fontSize: 16, color: Colors.black),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
-          ),
-          SizedBox(height: 16),
-        ],
+            SizedBox(
+              width: 200,
+              child: ElevatedButton(
+                onPressed: () => print('Subscribing to Premium'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                child: Text(
+                  'Subscribe for \$7.99',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            SizedBox(height: 76),
+          ],
+        ),
       ),
     );
   }

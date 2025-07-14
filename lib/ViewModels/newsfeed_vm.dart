@@ -82,6 +82,23 @@ class NewsFeedViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> toggleBookmark(Map<String, dynamic> article) async {
+    if (_prefsService.isArticleBookmarked(article)) {
+      await _prefsService.removeBookmarkedArticle(article);
+    } else {
+      await _prefsService.saveBookmarkedArticle(article);
+    }
+    notifyListeners(); // Refresh UI to update bookmark icon
+  }
+
+  bool isArticleBookmarked(Map<String, dynamic> article) {
+    return _prefsService.isArticleBookmarked(article);
+  }
+
+  List<Map<String, dynamic>> getBookmarkedArticles() {
+    return _prefsService.getBookmarkedArticles();
+  }
+
   // Refresh articles (pull-to-refresh)
   Future<void> refreshArticles() async {
     await loadNewsFeed(forceRefresh: true);

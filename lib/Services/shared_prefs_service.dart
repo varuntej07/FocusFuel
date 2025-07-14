@@ -159,4 +159,51 @@ class SharedPreferencesService {
 
     return summaryData;
   }
+
+  // Save/remove bookmarked articles
+  Future<void> saveBookmarkedArticle(Map<String, dynamic> article) async {
+    final bookmarks = getBookmarkedArticles();
+    final articleId = _getArticleId(article);
+
+    // Remove if already exists to avoid duplicates
+    bookmarks.removeWhere((bookmark) => _getArticleId(bookmark) == articleId);
+
+    // Add to beginning of list
+    bookmarks.insert(0, article);
+
+    final bookmarksJson = bookmarks.map((bookmark) => jsonEncode(bookmark)).toList();
+    await _preferences?.setStringList('bookmarked_articles', bookmarksJson);
+  }
+
+  Future<void> removeBookmarkedArticle(Map<String, dynamic> article) async {
+    final bookmarks = getBookmarkedArticles();
+    final articleId = _getArticleId(article);
+
+    bookmarks.removeWhere((bookmark) => _getArticleId(bookmark) == articleId);
+
+    final bookmarksJson = bookmarks.map((bookmark) => jsonEncode(bookmark)).toList();
+    await _preferences?.setStringList('bookmarked_articles', bookmarksJson);
+  }
+
+  List<Map<String, dynamic>> getBookmarkedArticles() {
+    final bookmarksJson = _preferences?.getStringList('bookmarked_articles');
+    if (bookmarksJson == null) return [];
+
+    return bookmarksJson.map((bookmarkStr) {
+      return Map<String, dynamic>.from(jsonDecode(bookmarkStr));
+    }).toList();
+  }
+
+  bool isArticleBookmarked(Map<String, dynamic> article) {
+    final bookmarks = getBookmarkedArticles();
+    final articleId = _getArticleId(article);
+    return bookmarks.any((bookmark) => _getArticleId(bookmark) == articleId);
+  }
+
+  // Helper method to generate unique article ID
+  String _getArticleId(Map<String, dynamic> article) {
+    final title = article['title'] ?? '';
+    final link = article['link'] ?? '';
+    return '${title}_$link'.hashCode.toString();
+  }
 }
