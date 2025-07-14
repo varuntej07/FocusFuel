@@ -59,11 +59,6 @@ module.exports = {
             timeZone: "America/Los_Angeles",
         },
         async () => {
-            const openaiApiKey = process.env.OPENAI_API_KEY;
-
-            if (!openaiApiKey) {
-                console.log("OpenAI API key not found");
-            }
 
             // Fetch all active users from Firestore
             const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();

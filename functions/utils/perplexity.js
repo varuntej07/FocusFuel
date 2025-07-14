@@ -17,13 +17,13 @@ async function callPerplexity(options) {
             {
                 model: options.model || "sonar",
                 messages: options.messages,
-                max_tokens: options.max_tokens || 1000,
+                max_tokens: options.max_tokens || 500,
                 temperature: options.temperature || 0.2,
                 return_citations: options.return_citations || true,
                 return_images: options.return_images || false,
                 return_related_questions: options.return_related_questions || false,
                 search_domain_filter: options.search_domain_filter || [],
-                search_recency_filter: options.search_recency_filter || "month"
+                search_recency_filter: options.search_recency_filter || "week"
             },
             {
                 headers: {

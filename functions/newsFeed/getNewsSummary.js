@@ -25,17 +25,20 @@ module.exports = {
                     messages: [
                         {
                             role: "system",
-                            content: "You are a news summary expert. Create concise, accurate summaries of news articles. Focus on key facts, context, and implications. Keep summaries between 150-250 words."
+                            content: "You are a news briefing assistant. Research the topic and provide a clear, factual briefing that helps users understand what's happening and why it matters."
                         },
                         {
                             role: "user",
                             content: prompt
                         }
                     ],
-                    max_tokens: 400,
-                    temperature: 0.5,
-                    return_citations: true,
-                    search_recency_filter: "week" // Get recent context
+                    max_tokens: 300,
+                    temperature: 0.3,
+                    return_citations: false,
+                    search_recency_filter: "week",
+                    web_search_options: {
+                        search_context_size: "low"
+                    }
                 };
 
                 const response = await callPerplexity(perplexityOptions);
@@ -66,15 +69,10 @@ module.exports = {
 };
 
 function buildSummaryPrompt(title, description, category) {
-    let prompt = `Please provide a comprehensive summary of this news article:\n\n`;
-    prompt += `Title: ${title}\n`;
+    let prompt = `Find the latest news about: "${title}" and summarize the key facts that matter`;
     
     if (description) {
-        prompt += `Description: ${description}\n`;
-    }
-    
-    if (category) {
-        prompt += `Category: ${category}\n`;
+        prompt += `Description of the article: ${description}\n`;
     }
     
     return prompt;

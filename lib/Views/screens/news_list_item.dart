@@ -171,26 +171,80 @@ class NewsListItem extends StatelessWidget {
 }
 
 String formatPublishedDateWithIntl(String publishedDateString) {
-  try {
-    // intl's DateFormat can parse it directly if you specify the locale
-    // that understands English month/day names, or be very explicit.
-    // We can manually parse or use a known pattern.
+  // Handle empty or null strings
+  if (publishedDateString.isEmpty || publishedDateString.toLowerCase() == 'unknown') {
+    return 'Today';
+  }
 
-    DateTime dateTime;
+  try {
+    DateTime? dateTime;
+
+    // Try parsing with multiple strategies
     try {
+      // Try direct DateTime.parse (handles ISO 8601 like your data)
       dateTime = DateTime.parse(publishedDateString);
-    } catch (e) {
-      // Fallback to more explicit parsing if DateTime.parse fails for this specific GMT format.
-      final inputFormat = DateFormat('EEE, dd MMM yyyy HH:mm:ss \'GMT\'', 'en_US');
-      // We add 'GMT' as a literal string to match if it's always there.
-      dateTime = inputFormat.parseUtc(publishedDateString); // Parse as UTC
+    } catch (e1) {
+      try {
+        // Handle RFC 2822 format
+        final rfc2822Format = DateFormat('EEE, dd MMM yyyy HH:mm:ss \'GMT\'', 'en_US');
+        dateTime = rfc2822Format.parseUtc(publishedDateString);
+      } catch (e2) {
+        try {
+          // Handle other common formats
+          final commonFormats = [
+            DateFormat('yyyy-MM-dd HH:mm:ss'),
+            DateFormat('yyyy-MM-ddTHH:mm:ss'),
+            DateFormat('dd/MM/yyyy HH:mm:ss'),
+            DateFormat('MMM dd, yyyy HH:mm:ss'),
+            DateFormat('yyyy-MM-dd'),
+          ];
+
+          for (final format in commonFormats) {
+            try {
+              dateTime = format.parse(publishedDateString);
+              break;
+            } catch (_) {
+              continue;
+            }
+          }
+        } catch (e3) {
+          // All parsing failed, use current time
+          dateTime = DateTime.now();
+        }
+      }
     }
 
+    // Ensure we have a valid dateTime
+    dateTime ??= DateTime.now();
 
-    final outputFormat = DateFormat('d MMM', 'en_US'); // 'en_US' for English month names
-    return outputFormat.format(dateTime);
+    // Smart formatting based on time difference
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    // Handle future dates (sometimes happens with timezone issues)
+    if (diff.isNegative) {
+      return 'Just now';
+    }
+
+    // Format based on recency
+    if (diff.inMinutes < 1) {
+      return 'Just now';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    } else if (diff.inDays < 30) {
+      return DateFormat('d MMM').format(dateTime);
+    } else {
+      return DateFormat('d MMM yyyy').format(dateTime);
+    }
+
   } catch (e) {
-    print('Error formatting date with intl: $e');
-    return 'Invalid Date';
+    print('Date parsing completely failed for: $publishedDateString, error: $e');
+    return 'Recent';
   }
 }
