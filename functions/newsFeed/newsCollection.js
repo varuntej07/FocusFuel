@@ -48,7 +48,7 @@ module.exports = {
 
                         // Get user profile 
                         const userProfile = await getUserProfile(userId);
-                        console.log(`User profile retrieved: ${userProfile.username}, interests: ${userProfile.primaryInterests?.join(", ")}`);
+                        console.log(`User profile retrieved: ${userProfile.username}, with interests: ${userProfile.primaryInterests?.join(", ")}`);
 
                         // for each interest generating few search terms that relates to that interest
                         const searchTerms = await generateSearchTerms(userProfile.primaryInterests);
@@ -108,7 +108,11 @@ async function generateSearchTerms(primaryInterests) {
     try {
         if (!primaryInterests || primaryInterests.length === 0) {
             console.log("No primary interests found, returning default terms");
-            return ["technology", "business", "health"];
+            return [
+                { term: "technology", category: "technology" },
+                { term: "business", category: "business" },
+                { term: "health", category: "health" }
+            ];
         }
 
         const allInterests = [...primaryInterests];
@@ -124,8 +128,8 @@ async function generateSearchTerms(primaryInterests) {
 
             Example format:
             {
-              "artificial intelligence": ["Deep learning", "machine learning", "automation",],
-              "fitness": ["workout", "health", "nutrition",]
+              "artificial intelligence": ["AI breakthrough", "machine learning", "automation",],
+              "fitness": ["workout trends", "health studies", "nutrition research"]
             }
 
             Keep search terms concise and news-focused. Include both broad terms and specific trending topics.
@@ -144,24 +148,37 @@ async function generateSearchTerms(primaryInterests) {
                     content: prompt
                 }
             ],
-            temperature: 0.9,
+            temperature: 0.8,
             max_tokens: 500
         });
 
         // generated JSON response of search terms, response format as shown in prompt
-        const aiResponse = response.data.choices[0].message.content;
+        const aiResponse = response.data.choices[0].message.content.trim();
 
-        // Parse JSON response
-        const searchTermsObj = JSON.parse(aiResponse);
+        // More robust JSON parsing
+        let searchTermsObj;
+        try {
+            // Extract JSON if wrapped in markdown or extra text
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+            const jsonString = jsonMatch ? jsonMatch[0] : aiResponse;
+            searchTermsObj = JSON.parse(jsonString);
+        } catch (parseError) {
+            console.error("Failed to parse OpenAI response:", parseError);
+            throw new Error("Invalid JSON response from OpenAI");
+        }
 
-        // Convert to flat array with all metadata
-        const searchTerms = [];
+        // Convert to flat array with all metadata with validation
+         const searchTerms = [];
         for (const [interest, terms] of Object.entries(searchTermsObj)) {
-            for (const term of terms) {
-                searchTerms.push({
-                    term: term,
-                    category: interest
-                });
+            if (Array.isArray(terms)) {
+                for (const term of terms) {
+                    if (term && typeof term === 'string' && term.trim().length > 0) {
+                        searchTerms.push({
+                            term: term.trim(),
+                            category: interest.trim()
+                        });
+                    }
+                }
             }
         }
         // Now the searchTerms array is objects with term and category
@@ -169,18 +186,21 @@ async function generateSearchTerms(primaryInterests) {
         return searchTerms;
 
     } catch (error) {
-        console.error("Error generating search terms from OpenAI:", error);
+        console.log("Error generating search terms from OpenAI:", error);
 
-        // Fallback to basic terms if AI fails
-        const fallbackTerms = primaryInterests.map(interest => ({
-            term: interest,
-            category: interest
-        }));
+        // Robust fallback
+        const fallbackTerms = primaryInterests
+            .filter(interest => interest && typeof interest === 'string')
+            .map(interest => ({
+                term: interest.trim(),
+                category: interest.trim()
+            }));
 
-        return fallbackTerms;
+        return fallbackTerms.length > 0 ? fallbackTerms : [
+            { term: "breaking news", category: "general" }
+        ];
     }
 }
-
 // Collect articles for all search terms
 async function collectArticlesForSearchTerms(searchTerms, userProfile, creditsPerUser) {
     const newsAggregator = new NewsAggregator();
@@ -209,7 +229,7 @@ async function filterAndCleanArticles(articles) {
     console.log(`After basic validation: ${validArticles.length} articles`);
 
     // Removing duplicate articles based on title similarity
-    const uniqueArticles = removeDuplicateArticles(recentArticles);
+    const uniqueArticles = removeDuplicateArticles(validArticles);
     console.log(`After duplicate removal: ${uniqueArticles.length} articles`);
 
     // Sort by publication date (newest first)
@@ -231,31 +251,57 @@ function removeDuplicateArticles(articles) {
     const unique = [];
 
     for (const article of articles) {
+        if (!article.title) {
+            console.log(`Article missing title, ${article.description} skipping`);
+            continue;
+        }
+
         const normalizedTitle = normalizeTitle(article.title);
 
-        let isDuplicate = false;    // flag to track duplicate articles
-
-        // Iterate through seen and check if the title already exists in the seen map
-        for (const [seenTitle, seenArticle] of seen) {
-            if (calculateSimilarity(normalizedTitle, seenTitle) > 0.8) {   // 80% title similarity threshold
-                isDuplicate = true;
-
-                // Keep the article from a more reputable source or more recent
-                if (article.source === seenArticle.source && new Date(article.pubDate) > new Date(seenArticle.pubDate)) {
-
-                    // Replace the old article with the new one
-                    const index = unique.findIndex(a => a.title === seenArticle.title);
-                    if (index !== -1) {
-                        unique[index] = article;
-                        seen.delete(seenTitle);
-                        seen.set(normalizedTitle, article);
-                    }
+        // Check for exact duplicates first
+        if (seen.has(normalizedTitle)) {
+            const existingArticle = seen.get(normalizedTitle);
+            
+            // Keep more recent article or better source
+            if (new Date(article.pubDate) > new Date(existingArticle.pubDate) ||
+                (article.sourceQuality === 'premium' && existingArticle.sourceQuality !== 'premium')) {
+                
+                // Replace the existing article
+                const index = unique.findIndex(a => normalizeTitle(a.title) === normalizedTitle);
+                if (index !== -1) {
+                    unique[index] = article;
+                    seen.set(normalizedTitle, article);
                 }
-                break;
+            }
+            continue;
+        }
+
+        // Check for similar titles (only if no exact match)
+        let foundSimilar = false;
+        const titleWords = normalizedTitle.split(' ');
+        
+        // Only check similarity for titles with 4+ words (more precise)
+        if (titleWords.length >= 4) {
+            for (const [seenTitle, seenArticle] of seen) {
+                if (calculateSimilarity(normalizedTitle, seenTitle) > 0.85) {
+                    foundSimilar = true;
+                    
+                    // Keep better article
+                    if (new Date(article.pubDate) > new Date(seenArticle.pubDate)) {
+                        const index = unique.findIndex(a => normalizeTitle(a.title) === seenTitle);
+                        if (index !== -1) {
+                            unique[index] = article;
+                            seen.delete(seenTitle);
+                            seen.set(normalizedTitle, article);
+                        }
+                    }
+                    break;
+                }
             }
         }
-        // If no similar article was found, add article to both tracking structures
-        if (!isDuplicate) {
+
+        // if no duplicates found
+        if (!foundSimilar) {
             seen.set(normalizedTitle, article);
             unique.push(article);
         }

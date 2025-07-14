@@ -29,31 +29,29 @@ async function saveUserNewsArticles(userId, articles) {
                     .collection(dateKey)
                     .doc(articleId);  // Use specific ID instead of .add()
 
-                // Check if article already exists for today (prevents duplicates)
-                const existingDoc = await articleRef.get();
-                if (existingDoc.exists) {
-                    console.log(`Article already exists for today: ${article.title}`);
-                    continue; // Skip this article
-                }
-
-                // Save new article
-                await articleRef.set({
-                    ...article,
-                    savedAt: FieldValue.serverTimestamp(),
-                    collectionDate: dateKey,        // for organizing collections
-                    collectionTime: collectionTime,
-                    collectionSession: today.getHours() < 12 ? 'morning' : 'afternoon',     // as i run news fetch twice
-                    isRead: false,
-                    isBookmarked: false
+                await db.runTransaction(async (transaction) => {
+                    const existingDoc = await transaction.get(articleRef);
+                        
+                    if (!existingDoc.exists) {
+                        transaction.set(articleRef, {
+                            ...article,
+                            savedAt: FieldValue.serverTimestamp(),
+                            collectionDate: dateKey,
+                            collectionTime: collectionTime,
+                            collectionSession: today.getHours() < 12 ? 'morning' : 'afternoon',
+                            isRead: false,
+                            isBookmarked: false
+                        });
+                        savedArticles.push(articleId);
+                    }
                 });
-
-                savedArticles.push(articleId);
             } catch (error) {
                 console.error(`Failed to save article: ${article.title}`, error);
+                continue; // Skip this article and continue with the next
             }
         }
 
-        // Update user feed metadata with today's info
+        // Update user feed metadata with today's info if articles were saved
         if (savedArticles.length > 0) {
             await db.collection('UsersFeed').doc(userId).set({
                 lastUpdated: FieldValue.serverTimestamp(),
@@ -90,23 +88,34 @@ async function getUserNewsArticles(userId, dateKey, limit = 30) {
             const todayKey = today.toISOString().split('T')[0];
             const yesterdayKey = yesterday.toISOString().split('T')[0];
 
-            // Fetch from both days
-            const [todaySnapshot, yesterdaySnapshot] = await Promise.all([
-                db.collection('UsersFeed').doc(userId).collection(todayKey)
-                    .orderBy('savedAt', 'desc').limit(limit).get(),
-                db.collection('UsersFeed').doc(userId).collection(yesterdayKey)
-                    .orderBy('savedAt', 'desc').limit(limit).get()
+            const fetchSafeCollection = async (collectionDateKey) => {
+                try {
+                    const snapshot = await db.collection('UsersFeed')
+                        .doc(userId)
+                        .collection(collectionDateKey)
+                        .orderBy('savedAt', 'desc')
+                        .limit(limit)
+                        .get();
+                    
+                    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    // Collection doesn't exist or no documents with savedAt field
+                    console.log(`No articles found for ${collectionDateKey}: ${error.message}`);
+                    return [];
+                }
+            };
+
+            const [todayArticles, yesterdayArticles] = await Promise.all([
+                fetchSafeCollection(todayKey),
+                fetchSafeCollection(yesterdayKey)
             ]);
 
-            const articles = [
-                ...todaySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-                ...yesterdaySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-            ];
+            const allArticles = [...todayArticles, ...yesterdayArticles];
 
             // Sort combined results and limit
             return {
                 success: true,
-                articles: articles
+                articles: allArticles
                     .sort((a, b) => {
                         const dateA = a.savedAt?.toDate() || new Date(0);
                         const dateB = b.savedAt?.toDate() || new Date(0);
@@ -115,23 +124,32 @@ async function getUserNewsArticles(userId, dateKey, limit = 30) {
                     .slice(0, limit)
             };
         }else {
-             const articlesSnapshot = await db
-                 .collection('UsersFeed')
-                 .doc(userId)
-                 .collection(dateKey)
-                 .orderBy('savedAt', 'desc')
-                 .limit(limit)
-                 .get();
+            // Single date query with safety
+            try {
+                const articlesSnapshot = await db
+                    .collection('UsersFeed')
+                    .doc(userId)
+                    .collection(dateKey)
+                    .orderBy('savedAt', 'desc')
+                    .limit(limit)
+                    .get();
 
-             const articles = articlesSnapshot.docs.map(doc => ({
-                 id: doc.id,
-                 ...doc.data()
-             }));
+                const articles = articlesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
 
-             return {
-                 success: true,
-                 articles: articles
-             };
+                return {
+                    success: true,
+                    articles: articles
+                };
+            } catch (error) {
+                console.log(`No articles found for date ${dateKey}: ${error.message}`);
+                return {
+                    success: true,
+                    articles: []
+                };
+            }
         }
     } catch (error) {
         console.error(`Error getting articles for user ${userId}:`, error);
@@ -143,29 +161,7 @@ async function getUserNewsArticles(userId, dateKey, limit = 30) {
     }
 }
 
-// Check if user needs fresh articles
-async function needsUpdate(userId) {
-    try {
-        const userFeedDoc = await db.collection('UsersFeed').doc(userId).get();
-
-        if (!userFeedDoc.exists) {
-            return true; // No data = needs update
-        }
-
-        const lastUpdated = userFeedDoc.data().lastUpdated?.toDate();
-        const sixHoursAgo = new Date();
-        sixHoursAgo.setHours(sixHoursAgo.getHours() - 6);
-
-        return !lastUpdated || lastUpdated < sixHoursAgo;
-
-    } catch (error) {
-        console.error(`Error checking update status for user ${userId}:`, error);
-        return true; // Error = assuming it needs update
-    }
-}
-
 module.exports = {
     saveUserNewsArticles,
     getUserNewsArticles,
-    needsUpdate
 };
