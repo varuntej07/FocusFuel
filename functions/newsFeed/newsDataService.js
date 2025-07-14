@@ -35,12 +35,12 @@ class NewsDataService {
             console.log(`Fetching for ${category}: ${query}`);
 
             const params = new URLSearchParams({
-                apikey: NEWSDATA_API_KEY,
+                apikey: NEWSDATA_API_KEY,`
                 q: query,
                 language: 'en',
                 country: 'us',
                 image: 1,
-                size: 10,       // max allowed by newsdata.io
+                size: 10,
                 category: this.mapToNewsDataCategory(category)
             });
 

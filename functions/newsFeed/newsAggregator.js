@@ -13,36 +13,63 @@ class NewsAggregator {
         };
     }
 
+    // Fetches news from all sources in parallel
     // Attempts each news source in order and returns array of article objects with specific enrichment
-    // Expected format: [{title, link, pubDate, description, source, relevanceScore, userId}, ...]
     async fetchNews(searchTerms, userProfile, options = {}) {
-        const sources = [
-            { name: 'NewsData.io', service: this.newsDataService },
-            { name: 'RSS', service: this.rssService }
+        console.log("Fetching news for user:", userProfile.username);
+
+        const sourcePromises = [
+            // PERSONALIZED: NewsData.io with user's search terms
+            this.retryWrapper(
+                () => this.newsDataService.fetchNews(searchTerms, options),
+                'NewsData.io'
+            ),
+        
+            // UNIVERSAL: Trending content from RSS
+            this.retryWrapper(
+                () => this.rssService.fetchTrendingNews({ size: options.maxRequests || 10 }),
+                'RSS-Trending'
+            ),
+        
+            // DISCOVERY: Categories user hasn't chosen
+            this.retryWrapper(
+                () => this.rssService.fetchByCategories(
+                    this.getDiscoveryCategories(userProfile.primaryInterests), 
+                    { size: options.maxRequests || 10 }
+                ),
+                'RSS-Discovery'
+            )
         ];
 
-        for (const source of sources) {
-            try {
-                console.log(`Attempting to fetch from ${source.name}`);
-                const articles = await this.retryWrapper(
-                    () => source.service.fetchNews(searchTerms, options),
-                    source.name
-                );
+        try {
+            const results = await Promise.allSettled(sourcePromises);
+        
+            const allArticles = results
+                .filter(result => result.status === 'fulfilled' && result.value?.length > 0)
+                .flatMap(result => result.value);
 
-                if (articles && articles.length > 0) {
-                    console.log(`Successfully fetched ${articles.length} articles from ${source.name}`);
-                    return this.enrichArticles(articles, userProfile);
-                }
-            } catch (error) {
-                console.error(`${source.name} failed:`, error.message);
-                continue;
-            }
+            console.log(`Parallel fetch completed: ${allArticles.length} total articles fetched`);
+        
+            return this.enrichArticles(allArticles, userProfile);
+        
+        } catch (error) {
+            console.error('Critical error in parallel fetch:', error);
+            return [];
         }
-
-        throw new Error('All news sources failed');
     }
 
-    // Retry wrapper with exponential backoff for resilient API calls
+    // Gets categories for discovery content (categories user hasn't chosen)
+    getDiscoveryCategories(userInterests) {
+        const allCategories = ['business', 'health', 'entertainment', 'science', 'sports', 'lifestyle'];
+        const userCategories = userInterests?.map(i => i.toLowerCase()) || [];
+        
+        // Return categories user hasn't explicitly chosen
+        return allCategories.filter(cat => 
+            !userCategories.some(userCat => userCat.includes(cat))
+        );
+    }
+
+    // RETRY WRAPPER
     async retryWrapper(fetchFunction, sourceName) {
         let lastError;
 
@@ -51,27 +78,20 @@ class NewsAggregator {
                 return await fetchFunction();
             } catch (error) {
                 lastError = error;
+                
+                if (attempt === this.retryConfig.maxAttempts) break;
 
-                if (attempt === this.retryConfig.maxAttempts) {
-                    break;
-                }
-
-                // Exponential backoff with jitter
-                const delay = Math.min(
-                    this.retryConfig.baseDelay * Math.pow(2, attempt - 1),
-                    this.retryConfig.maxDelay
-                );
-                const jitter = Math.random() * 0.1 * delay;
-
-                console.log(`${sourceName} attempt ${attempt} failed, retrying in ${Math.round(delay + jitter)}ms`);
-                await this.delay(delay + jitter);
+                const delay = this.retryConfig.baseDelay * attempt;
+                console.log(`${sourceName} attempt ${attempt} failed, retrying in ${delay}ms`);
+                await this.delay(delay);
             }
         }
 
-        throw lastError;
+        console.error(`${sourceName} exhausted all retries:`, lastError.message);
+        return []; // Return empty array instead of throwing
     }
 
-    // Enrich articles with user context and relevance scoring
+    // ENRICH ARTICLES
     enrichArticles(articles, userProfile) {
         return articles.map(article => ({
             ...article,
@@ -79,8 +99,6 @@ class NewsAggregator {
         }));
     }
 
-
-    // Utility function for adding delays
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
