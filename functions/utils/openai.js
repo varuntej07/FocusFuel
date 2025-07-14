@@ -1,8 +1,11 @@
 const axios = require("axios");
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const { defineSecret } = require('firebase-functions/params');
 
 async function callOpenAI(options) {
+
+    const openaiApiKey = defineSecret('OPENAI_API_KEY');
+    const OPENAI_API_KEY = openaiApiKey.value();
+
     if (!OPENAI_API_KEY) {
         console.log("OpenAI API key is not configured. Please set it in your environment variables.");
     }
@@ -46,6 +49,7 @@ async function callOpenAI(options) {
 
     } catch (error) {
         console.log(error);
+        throw error; 
     }
 }
 
