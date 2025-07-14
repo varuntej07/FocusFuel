@@ -8,14 +8,10 @@ module.exports = {
         },
         async (request) => {
             try {
-                // Authentication check
-                if (!request.auth) {
-                    throw new Error('Authentication required');
-                }
-
                 const { title, description, link, category } = request.data;
 
                 if (!title) {
+                    console.log('Article title not found');
                     throw new Error('Article title is required');
                 }
 
@@ -25,7 +21,7 @@ module.exports = {
                 const prompt = buildSummaryPrompt(title, description, category);
 
                 const perplexityOptions = {
-                    model: "llama-3.1-sonar-small-128k-online",
+                    model: "sonar",
                     messages: [
                         {
                             role: "system",
@@ -37,7 +33,7 @@ module.exports = {
                         }
                     ],
                     max_tokens: 400,
-                    temperature: 0.2,
+                    temperature: 0.5,
                     return_citations: true,
                     search_recency_filter: "week" // Get recent context
                 };
@@ -58,7 +54,7 @@ module.exports = {
                 };
 
             } catch (error) {
-                console.error('Error in getNewsSummary:', error);
+                console.error('Error in getNewsSummary function:', error);
                 return {
                     success: false,
                     error: error.message,
@@ -80,13 +76,6 @@ function buildSummaryPrompt(title, description, category) {
     if (category) {
         prompt += `Category: ${category}\n`;
     }
-    
-    prompt += `\nPlease include:\n`;
-    prompt += `1. Key facts and main points\n`;
-    prompt += `2. Important context or background\n`;
-    prompt += `3. Potential implications or significance\n`;
-    prompt += `4. Any relevant recent developments\n\n`;
-    prompt += `Keep the summary concise but informative (150-250 words).`;
     
     return prompt;
 }

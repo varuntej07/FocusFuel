@@ -134,4 +134,29 @@ class SharedPreferencesService {
       return Map<String, dynamic>.from(jsonDecode(articleStr));
     }).toList();
   }
+
+  // Cache news summaries with 24-hour expiration
+  Future<void> saveNewsSummary(String articleTitle, Map<String, dynamic> summaryData) async {
+    final summaryWithTimestamp = {
+      ...summaryData,
+      'cachedAt': DateTime.now().toIso8601String(),
+    };
+    await _preferences?.setString('summary_${articleTitle.hashCode}', jsonEncode(summaryWithTimestamp));
+  }
+
+  Map<String, dynamic>? getCachedSummary(String articleTitle) {
+    final summaryJson = _preferences?.getString('summary_${articleTitle.hashCode}');
+    if (summaryJson == null) return null;
+
+    final summaryData = Map<String, dynamic>.from(jsonDecode(summaryJson));
+    final cachedAt = DateTime.parse(summaryData['cachedAt']);
+
+    // Check if cache is older than 24 hours
+    if (DateTime.now().difference(cachedAt).inHours >= 24) {
+      _preferences?.remove('summary_${articleTitle.hashCode}');
+      return null;
+    }
+
+    return summaryData;
+  }
 }

@@ -5,7 +5,7 @@ const perplexityApiKey = defineSecret('PERPLEXITY_API_KEY');
 
 async function callPerplexity(options) {
     const PERPLEXITY_API_KEY = perplexityApiKey.value();
-    
+
     if (!PERPLEXITY_API_KEY) {
         console.error("Perplexity API key is not configured.check firebase:secrets");
         throw new Error("Perplexity API key is missing");
@@ -15,7 +15,7 @@ async function callPerplexity(options) {
         const response = await axios.post(
             "https://api.perplexity.ai/chat/completions",
             {
-                model: options.model || "llama-3.1-sonar-small-128k-online",
+                model: options.model || "sonar",
                 messages: options.messages,
                 max_tokens: options.max_tokens || 1000,
                 temperature: options.temperature || 0.2,
@@ -32,7 +32,7 @@ async function callPerplexity(options) {
                 },
                 timeout: 30000, // 30 second timeout
                 validateStatus: function (status) {
-                    return true; // Don't throw for any status, we'll handle it manually
+                    return true;
                 }
             }
         );
@@ -58,11 +58,7 @@ async function callPerplexity(options) {
         }
 
     } catch (error) {
-        if (error.code === 'ECONNABORTED') {
-            throw new Error("Perplexity API request timed out");
-        }
-        
-        console.error("Perplexity API call failed:", error.message);
+        console.log("Perplexity API call failed, check callPerplexity:", error.message);
         throw error;
     }
 }

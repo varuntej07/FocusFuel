@@ -61,4 +61,65 @@ class NewsService {
 
     return false;         // Use cache
   }
+
+  Future<Map<String, dynamic>> getNewsSummary({
+    required String title,
+    String? description,
+    String? link,
+    String? category,
+  }) async {
+    try {
+      // Check cache first
+      final cachedSummary = _prefsService.getCachedSummary(title);
+      if (cachedSummary != null) {
+        print('Using cached summary for: $title');
+        return cachedSummary;
+      }
+
+      print('Calling getNewsSummary for: $title');
+
+      final HttpsCallable callable = _functions.httpsCallable('getNewsSummary');
+
+      final result = await callable.call({
+        'title': title,
+        'description': description,
+        'link': link,
+        'category': category,
+      });
+
+      final data = result.data as Map<String, dynamic>;
+
+      if (data['success'] == true) {
+        print('Summary generated successfully');
+        final summaryResult = {
+          'success': true,
+          'summary': data['summary'],
+          'citations': data['citations'] ?? [],
+          'originalTitle': data['originalTitle'],
+          'originalLink': data['originalLink'],
+          'generatedAt': data['generatedAt'],
+        };
+
+        // Cache the summary
+        await _prefsService.saveNewsSummary(title, summaryResult);
+
+        return summaryResult;
+      } else {
+        throw Exception(data['error'] ?? 'Failed to generate summary');
+      }
+
+    } on FirebaseFunctionsException catch (e) {
+      print('Firebase Functions Error: ${e.code} - ${e.message}');
+      return {
+        'success': false,
+        'error': 'Function error: ${e.message}',
+      };
+    } catch (e) {
+      print('Error calling getNewsSummary: $e');
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
 }
