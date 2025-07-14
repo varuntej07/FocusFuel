@@ -21,7 +21,7 @@ class RSSService {
             // BUSINESS & FINANCE  
             business: [
                 { url: 'https://feeds.bloomberg.com/markets/news.rss', source: 'Bloomberg', quality: 'premium' },
-                { url: 'https://feeds.cnbc.com/cnbc/world', source: 'CNBC', quality: 'standard' },=
+                { url: 'https://feeds.cnbc.com/cnbc/world', source: 'CNBC', quality: 'standard' },
             ],
 
             // HEALTH & FITNESS

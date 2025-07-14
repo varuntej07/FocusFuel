@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/newsfeed_vm.dart';
 import 'news_list_item.dart';
+import '../../Services/news_service.dart';
+import '../../Services/shared_prefs_service.dart';
 
 class NewsFeed extends StatefulWidget {
   const NewsFeed({super.key});
@@ -15,10 +17,19 @@ class _NewsFeedState extends State<NewsFeed> {
   bool _isInitialized = false;
   bool _isDisposed = false;
 
+  late NewsService _newsService;
+  late SharedPreferencesService _prefsService;
+
   @override
   void initState() {
     super.initState();
+    _initializeServices();      // initializes the services for news summary
     _initializeViewModel();    // triggers the entire flow
+  }
+
+  Future<void> _initializeServices() async {
+    _prefsService = await SharedPreferencesService.getInstance();
+    _newsService = NewsService(_prefsService);
   }
 
   Future<void> _initializeViewModel() async {
@@ -273,6 +284,7 @@ class _NewsFeedState extends State<NewsFeed> {
   void _handleArticleTap(Map<String, dynamic> article) {
     // TODO: Navigate to full article view with animation
     print('Article tapped: ${article['title']}');
+    _showNewsSummaryDialog(context, article, _newsService);
   }
 
   void _handleBookmark(Map<String, dynamic> article) {
@@ -283,5 +295,278 @@ class _NewsFeedState extends State<NewsFeed> {
   void _handleListen(Map<String, dynamic> article) {
     // TODO: Handle listen/audio action
     print('Listen tapped: ${article['title']}');
+  }
+}
+
+/// Shows an animated dialog with news summary
+void _showNewsSummaryDialog(BuildContext context, Map<String, dynamic> article, NewsService newsService) {
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Colors.black.withValues(alpha: 0.6),
+    transitionDuration: const Duration(milliseconds: 350),
+    pageBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
+      return const SizedBox.shrink();
+    },
+    transitionBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+      final screenSize = MediaQuery.of(context).size;
+      final dialogWidth = screenSize.width * 0.9;
+      final dialogHeight = screenSize.height * 0.9;
+
+      final curvedAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutBack,
+        reverseCurve: Curves.easeInBack,
+      );
+
+      return Center(
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(animation),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: dialogWidth,
+                height: dialogHeight,
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: _NewsSummaryDialog(article: article, newsService: newsService),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _NewsSummaryDialog extends StatefulWidget {
+  final Map<String, dynamic> article;
+  final NewsService newsService;
+
+  const _NewsSummaryDialog({required this.article, required this.newsService});
+
+  @override
+  State<_NewsSummaryDialog> createState() => _NewsSummaryDialogState();
+}
+
+class _NewsSummaryDialogState extends State<_NewsSummaryDialog> {
+  String? _summary;
+  bool _isLoadingSummary = false;
+  String? _summaryError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSummary();
+  }
+
+  Future<void> _loadSummary() async {
+    final title = widget.article['title'] ?? '';
+    if (title.isEmpty) return;
+
+    setState(() => _isLoadingSummary = true);
+
+    try {
+      final result = await widget.newsService.getNewsSummary(
+        title: title,
+        description: widget.article['description'],
+        link: widget.article['link'],
+        category: widget.article['category'],
+      );
+
+      if (result['success'] == true) {
+        setState(() {
+          _summary = result['summary'];
+          _isLoadingSummary = false;
+        });
+      } else {
+        setState(() {
+          _summaryError = result['error'] ?? 'Failed to generate summary';
+          _isLoadingSummary = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _summaryError = 'Failed to load summary';
+        _isLoadingSummary = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        children: [
+          // Header with close button
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'News Summary',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  color: Colors.grey[600],
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
+            ),
+          ),
+
+          // Scrollable content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Article title
+                  Text(
+                    widget.article['title'] ?? 'No Title Available',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      height: 1.4,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Article image if available
+                  if (widget.article['image_url'] != null && widget.article['image_url'].toString().isNotEmpty)
+                    Container(
+                      height: 200,
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: NetworkImage(widget.article['image_url']),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+
+                  // AI Summary or loading state
+                  if (_isLoadingSummary)
+                    const Center(
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 8),
+                          Text('Generating AI summary...', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    )
+                  else if (_summaryError != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Summary unavailable', style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text(widget.article['description'] ?? 'No content available...', style: TextStyle(fontSize: 16, color: Colors.grey[700], height: 1.6)),
+                        ],
+                      ),
+                    )
+                  else if (_summary != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.auto_awesome, size: 16, color: Colors.blue[700]),
+                                const SizedBox(width: 4),
+                                Text('AI Summary', style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w600, fontSize: 14)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(_summary!, style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.6)),
+                          ],
+                        ),
+                      )
+                    else
+                      Text(
+                        widget.article['description'] ?? 'No content available...',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700], height: 1.6),
+                      ),
+
+                  const SizedBox(height: 20),
+
+                  // Source and date info
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.deepOrangeAccent,
+                        child: Text(
+                          (widget.article['source_id'] ?? widget.article['source'] ?? 'U')[0].toUpperCase(),
+                          style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.article['source_id'] ?? widget.article['source'] ?? 'Unknown Source',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                            ),
+                            Text(
+                              formatPublishedDateWithIntl(widget.article['pubDate'] ?? 'Unknown'),
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+    );
   }
 }
