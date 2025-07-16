@@ -16,10 +16,10 @@ class NewsFeedViewModel extends ChangeNotifier {
     'For You',
     'Top Stories',
     'AI',
-    'Science',
-    'Finance',
+    'Business',
+    'Health',
     'Sports',
-    'Weather'
+    'Lifestyle'
   ];
 
   // Public getters
@@ -51,14 +51,66 @@ class NewsFeedViewModel extends ChangeNotifier {
     }
   }
 
+  List<Map<String, dynamic>> _allArticles = [];  // Store all articles
+  String _selectedCategory = 'For You';  // Tracks selected category
+
+  // getter for selected category
+  String get selectedCategory => _selectedCategory;
+
   // Handle tab selection
   void selectTab(int index) {
     if (index == _selectedTabIndex) return;
 
     _selectedTabIndex = index;
-    notifyListeners();
+    _selectedCategory = tabs[index];
 
-    // TODO: Implement tab selection logic by loading articles for the selected tab
+    // Filter articles based on selected category
+    _filterArticlesByCategory();
+    notifyListeners();
+  }
+
+  void _filterArticlesByCategory() {
+    if (_selectedCategory == 'For You') {
+      _articles = List.from(_allArticles);    // Show all articles for this tab
+    } else {
+      // Filter articles by category
+      _articles = _allArticles.where((article) {
+        final articleCategory = (article['category'] ?? '').toString().toLowerCase();
+        final searchCategory = (article['searchCategory'] ?? '').toString().toLowerCase();
+        final selectedCat = _selectedCategory.toLowerCase();
+
+        // Check if article category matches selected tab
+        return articleCategory.contains(selectedCat) ||
+            searchCategory.contains(selectedCat) ||
+            _isCategoryMatch(articleCategory, selectedCat) ||
+            _isCategoryMatch(searchCategory, selectedCat);
+      }).toList();
+    }
+  }
+
+  // helper method to handle category matching logic for _filterArticlesByCategory
+  bool _isCategoryMatch(String articleCategory, String selectedCategory) {
+    switch (selectedCategory) {
+      case 'ai':
+        return articleCategory.contains('tech') ||
+            articleCategory.contains('artificial') ||
+            articleCategory.contains('ai') ||
+            articleCategory.contains('research');
+      case 'business':
+        return articleCategory.contains('business');
+      case 'finance':
+        return articleCategory.contains('business') ||
+            articleCategory.contains('finance') ||
+            articleCategory.contains('economy');
+      case 'health':
+        return articleCategory.contains('health') || articleCategory.contains('fitness');
+      case 'sports':
+        return articleCategory.contains('sport');
+      case 'top stories':
+        return true; // Show all for top stories
+      default:
+        return articleCategory.contains(selectedCategory);
+    }
   }
 
   // Load news feed with caching
@@ -74,7 +126,9 @@ class NewsFeedViewModel extends ChangeNotifier {
 
       final articles = await _newsService.getNewsArticles(forceRefresh: forceRefresh);
 
-      _articles = articles;         // updates internal state with articles from news service
+      _allArticles = articles;         // updates internal state with all articles from news service
+      _filterArticlesByCategory();  // Apply current filter
+
       _setLoadingState(NewsLoadingState.loaded);
 
     } catch (e) {

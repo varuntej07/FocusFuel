@@ -142,13 +142,29 @@ class _NewsFeedState extends State<NewsFeed> {
                 ),
               ),
               child: Center(
-                child: Text(
-                  viewModel.tabs[index],
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey[600],
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    fontSize: 14,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      viewModel.tabs[index],
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.grey[600],
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    // Show loading indicator only for selected tab during filtering
+                    if (isSelected && viewModel.isRefreshing)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -244,7 +260,7 @@ class _NewsFeedState extends State<NewsFeed> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Try selecting a different category',
+              'No articles available for ${viewModel.selectedCategory}',
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
             const SizedBox(height: 24),
