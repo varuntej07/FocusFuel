@@ -39,6 +39,10 @@ class _SupportScreenState extends State<SupportScreen> {
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     filled: true,
     fillColor:Colors.grey[100],
+    focusedBorder: OutlineInputBorder( // Border when focused
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey[600]!, width: 2.0),
+    )
   );
 
   void _showSuccessMessage(String message) {
@@ -58,9 +62,9 @@ class _SupportScreenState extends State<SupportScreen> {
   Widget build(BuildContext context) {
     var sharedPrefs = SharedPreferencesService();
     return Scaffold(
-      appBar: AppBar(title: const Text('Support')),
+      appBar: AppBar(title: const Text('Support', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)), centerTitle: true),
       body: Container(
-        color: Colors.grey[50],
+        color: Colors.white,
         padding: const EdgeInsets.all(20),
         child: Consumer<AuthViewModel>(
           builder: (context, vm, _) {
@@ -73,7 +77,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     const Text(
                       'Facing a problem?',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
@@ -99,6 +103,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     const SizedBox(height: 15),
 
                     TextFormField(
+                      keyboardType: TextInputType.multiline,
                       controller: issueController,
                       maxLines: 8,
                       textCapitalization: TextCapitalization.sentences,
@@ -142,12 +147,13 @@ class _SupportScreenState extends State<SupportScreen> {
                         issueController.clear();
                       },
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black87,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                         elevation: 2,
                       ),
-                      child: const Text('Submit Support Request', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                      child: const Text('Submit Support Request', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
