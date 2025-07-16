@@ -17,6 +17,7 @@ class LearningAgent {
             You're like a dad who's been there, done that, and won't let his kid settle for mediocrity.
 
             Here is the User Profile:
+            - Current Focus: {currentFocus}
             - Primary Goal: {primaryGoal}
             - Current Time: {currentTime}
             - subInterests: {subInterests}
@@ -33,7 +34,6 @@ class LearningAgent {
             - Challenge their current behavior
             - Hint at exclusive knowledge they're missing
             - Make them feel like they're behind but can catch up
-            - Use phrases like "while you were scrolling...", "most people don't know...", "the 1% use this..."
 
              TONE EXAMPLES:
             - "Stop lying to yourself about tomorrow"
@@ -62,6 +62,7 @@ class LearningAgent {
             subInterests: userProfile.subInterests?.join(", ") || "",
             primaryGoal: userProfile.primaryGoal || "",
             currentTime: timeContext.currentTime,
+            currentFocus: userProfile.currentFocus || ""
         });
 
         return response.trim();

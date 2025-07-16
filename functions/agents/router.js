@@ -16,7 +16,8 @@ class NotificationRouter {
             You are a smart expert notification router. Pick the best agent for a user to send a mobile notification.
 
             Context: {currentTime}
-            User focus: {primaryGoal}
+            User current focus: {currentFocus}
+            User goal: {primaryGoal}
 
             Agents:
                 - productivity: Goals, habits, focus

@@ -8,15 +8,31 @@ const { DateTime } = require("luxon");
 // Firestore DB instance for the active Firebase project (android/app/google-services.json)
 const db = admin.firestore();
 
-async function generateSmartNotification(userProfile, timeContext, openaiApiKey) {
+// Gets last x notifications for a user
+async function getRecentNotifications(userId, limit = 3) {
+    try {
+        const recentNotifs = await db.collection("Notifications")
+            .where("userId", "==", userId)
+            .orderBy("timestamp", "desc")
+            .limit(limit)
+            .get();
+
+        return recentNotifs.docs.map(doc => doc.data().message);
+    } catch (error) {
+        console.error("Error fetching recent notifications:", error);
+        return [];
+    }
+}
+
+async function generateSmartNotification(userProfile, timeContext, openaiApiKey, recentNotifications) {
     try {
         console.log(`Profile: ${userProfile.primaryInterests?.join(", ")} | Goal: ${userProfile.primaryGoal}`);
 
         // Initialize LangChain orchestrator
         const orchestrator = new NotificationOrchestrator(openaiApiKey);
 
-        // Generate smart notification
-        const result = await orchestrator.generateSmartNotification(userProfile, timeContext);
+        // Generate smart notification by passing essential params
+        const result = await orchestrator.generateSmartNotification(userProfile, timeContext, recentNotifications);
 
         console.log(`Generated ${result.agentType} notification for user, ${userProfile.username}`);
         console.log("Notification content for passing to send", result.notification);
@@ -41,6 +57,8 @@ module.exports = {
             schedule: "0 * * * *",      // running every hour as t's not possible to schedule a onSchedule function with a dynamic user timezone.
             secrets: ["OPENAI_API_KEY"],
             timeZone: "America/Los_Angeles",
+            memory: "512MB",
+            timeout: 540
         },
         async () => {
 
@@ -62,18 +80,20 @@ module.exports = {
                 // Fetch time context based on user's timezone using Luxon which is a powerful JS date/time library
                 const userTime = DateTime.now().setZone(userTimezone);
                 const localHour = userTime.hour;
-                console.log(`Local hour for user ${uid} in timezone ${userTimezone} is ${localHour}`);
+                console.log(`Local hour for user ${data.username} in timezone ${userTimezone} is ${localHour}`);
 
                 if (localHour >= 9 && localHour <= 23){
                     try {
                         const userProfile = await getUserProfile(uid);      // User profile from utils/getUserProfile.js
                         const timeContext = getTimeContext(data);
 
-                        console.log(`${userProfile.username}'s Profile with interests ${userProfile.primaryInterests?.join(", ")} | Goal: ${userProfile.primaryGoal}`);
+                        console.log(`${userProfile.username}'s Profile with interests ${userProfile.primaryInterests?.join(", ")}`);
                         console.log(`Current time context fetched : ${timeContext.currentTime}, Day: ${timeContext.dayOfWeek}, Hour: ${timeContext.currentHour}`);
 
-                        const notificationResult = await generateSmartNotification(userProfile, timeContext, openaiApiKey);
-                        console.log(`Notification result for user ${userProfile.username}:`, notificationResult);
+                        const recentNotifications = await getRecentNotifications(uid);
+                        console.log(`Fetched ${recentNotifications.length} recent notifications for duplicate prevention for ${data.username}`);
+                        
+                        const notificationResult = await generateSmartNotification(userProfile, timeContext, openaiApiKey, recentNotifications);
 
                         if (!notificationResult || !notificationResult.message) {
                             console.error(`Failed to generate notification for user ${userProfile.username} with ${uid}`);
@@ -87,7 +107,6 @@ module.exports = {
                             const jsonString = jsonMatch ? jsonMatch[0] : notificationResult.message;
 
                             parsedNotification = JSON.parse(jsonString);
-                            console.log(`Parsed notification for user ${userProfile.username}:`, parsedNotification);
 
                         } catch (e) {
                             console.log(`JSON parse failed for user ${userProfile.username}: ${notificationResult.message}`);
@@ -125,8 +144,6 @@ module.exports = {
                                 screen: 'chat',  // for Flutter routing
                             }
                         };
-
-                        console.log("Notification message that to be sent is ", message);
 
                         // sending the notification to FCM servers, remote message listeners are set up in the main.dart
                         await admin.messaging().send(message);

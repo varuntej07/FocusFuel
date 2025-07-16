@@ -13,6 +13,8 @@ module.exports = {
             schedule: "0 7,14 * * *",
             secrets: ["OPENAI_API_KEY", "NEWSDATA_API_KEY"],
             timeZone: "America/Los_Angeles",
+            memory: '512MB',
+            timeoutSeconds: 540,
         },
         async () => {
             try {
@@ -238,7 +240,7 @@ async function filterAndCleanArticles(articles) {
     );
 
     // Limiting to top X articles to keep response manageable
-    const ARTICLES_TO_KEEP = 100;
+    const ARTICLES_TO_KEEP = 70;
     const limitedArticles = sortedArticles.slice(0, ARTICLES_TO_KEEP);
 
     console.log(`Final filtered articles: ${limitedArticles.length}`);

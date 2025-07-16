@@ -35,6 +35,7 @@ async function saveUserNewsArticles(userId, articles) {
                     if (!existingDoc.exists) {
                         transaction.set(articleRef, {
                             ...article,
+                            userId: userId,
                             savedAt: FieldValue.serverTimestamp(),
                             collectionDate: dateKey,
                             collectionTime: collectionTime,
