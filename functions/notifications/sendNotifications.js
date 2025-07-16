@@ -11,6 +11,7 @@ const db = admin.firestore();
 // Gets last x notifications for a user
 async function getRecentNotifications(userId, limit = 3) {
     try {
+        // Requires composite index, cuz of multiple filters - where + orderBy on different fields
         const recentNotifs = await db.collection("Notifications")
             .where("userId", "==", userId)
             .orderBy("timestamp", "desc")
@@ -61,6 +62,12 @@ module.exports = {
             timeout: 540
         },
         async () => {
+
+            const openaiApiKey = process.env.OPENAI_API_KEY;        // firebase secrets makes it available through this method
+
+            if (!openaiApiKey) {
+                console.log("Check ya OpenAI API key in firebase secrets as it seems to not configured");
+            }
 
             // Fetch all active users from Firestore
             const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();
