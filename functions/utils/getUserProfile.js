@@ -20,7 +20,8 @@ async function getUserProfile(uid) {
         ageRange: userData?.ageRange || "23-29",
         preferredNotificationTime: userData?.preferredNotificationTime || "Morning (8-11 AM)",
         dailyScreenTime: userData?.dailyScreenTime || "",
-        mostUsedApp: userData?.mostUsedApp || ""
+        mostUsedApp: userData?.mostUsedApp || "",
+        timezone: userData?.timezone || "America/Los_Angeles"
     };
 }
 

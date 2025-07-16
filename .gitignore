@@ -65,3 +65,4 @@ pubspec.lock
 functions/node_modules/
 functions/.secret.local
 functions/lib/
+node_modules

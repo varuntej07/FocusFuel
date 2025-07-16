@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import '../Services/shared_prefs_service.dart';
 import '../Services/streak_repo.dart';
 
@@ -60,6 +61,7 @@ class HomeViewModel extends ChangeNotifier {
       // Load initial data if user is authenticated
       if (_isAuthenticated) {
         await loadFromPrefs();
+        await _checkAndUpdateTimezone();
       } else {
         clearAllUserData(); // Clear all data if not authenticated
       }
@@ -241,6 +243,25 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> _checkAndUpdateTimezone() async {
+    if (!_isAuthenticated) return;
+
+    try {
+      final currentTimezone = await FlutterTimezone.getLocalTimezone();
+      print('Current timezone detected: $currentTimezone');
+
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        // Only update if timezone detection succeeds
+        await FirebaseFirestore.instance.collection('Users').doc(uid).update({
+          'timezone': currentTimezone,
+          'timezoneUpdatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      print('Timezone update failed: $e');
+    }
+  }
 
   // Merge data into user document
   Future<void> _mergeIntoUserDoc(Map<String, dynamic> data) async {

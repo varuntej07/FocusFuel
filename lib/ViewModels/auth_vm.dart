@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:focus_fuel/Models/user_model.dart';
 import '../Services/shared_prefs_service.dart';
 
@@ -124,7 +125,8 @@ class AuthViewModel extends ChangeNotifier {
 
       await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).update({
         'isActive': true,
-        'lastLogin': FieldValue.serverTimestamp()
+        'lastLogin': FieldValue.serverTimestamp(),
+        'timezone': await FlutterTimezone.getLocalTimezone(),
       });
 
       final snap = await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).get();
@@ -155,8 +157,9 @@ class AuthViewModel extends ChangeNotifier {
         'uid': credential.user!.uid,
         'email': emailController.text.trim(),
         'username': usernameController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),    // server timestamp in UTC timezone
         'isActive': true,
+        'timezone': await FlutterTimezone.getLocalTimezone(),
       };
 
       await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).set(userData);
