@@ -4,6 +4,7 @@ import 'package:focus_fuel/Views/Auth/login_page.dart';
 import 'package:focus_fuel/Views/screens/subscription_page.dart';
 import 'package:focus_fuel/Views/screens/support_page.dart';
 import 'package:provider/provider.dart';
+import '../../ViewModels/home_vm.dart';
 
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
@@ -14,6 +15,7 @@ class MenuPage extends StatefulWidget {
 
 class _MenuPageState extends State<MenuPage> {
   bool isDarkMode = false;
+  bool isLoggedin = false;
 
   Widget _buildMenuCard({
     required BuildContext context,
@@ -81,8 +83,9 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
+    isLoggedin = context.watch<HomeViewModel>().isAuthenticated;
+
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
         child: Column(
@@ -146,13 +149,17 @@ class _MenuPageState extends State<MenuPage> {
                     trailing: Switch(
                       value: isDarkMode,
                       onChanged: toggleTheme,
+                      activeColor: Colors.black87,
+                      activeTrackColor: Colors.black87,
+                      inactiveThumbColor: Colors.black87,
+                      inactiveTrackColor: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 30),
                   _buildMenuCard(
                     context: context,
-                    title: 'Logout',
-                    icon: Icons.exit_to_app,
+                    title: isLoggedin ? 'Logout' : 'Login',
+                    icon: isLoggedin ? Icons.exit_to_app : Icons.login,
                     onTap: () async {
                       await context.read<AuthViewModel>().logout();
                       Navigator.of(context).pushAndRemoveUntil(

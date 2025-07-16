@@ -39,6 +39,14 @@ class SharedPreferencesService {
     return _preferences?.getString('uid');
   }
 
+  Future<bool> isAuthenticated() async {
+    return _preferences?.containsKey('uid') ?? false;
+  }
+
+  Future<void> logout() async {
+    await _preferences?.clear();
+  }
+
   Future<void> clearAll() async {
     await _preferences?.clear();
   }

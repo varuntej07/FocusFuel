@@ -61,7 +61,7 @@ class _ChatScreenState extends State<ChatScreen>{
       try {
         chatVM.sendMessage(text);
       } catch(e) {
-        print("Error while sending query to GPT: $e");
+        debugPrint("Error while sending query to GPT: $e");
       }
       _controller.clear();
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
@@ -202,14 +202,14 @@ class _ChatScreenState extends State<ChatScreen>{
           )
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Image.asset('lib/Assets/icons/new-chat.png', width: 24, height: 24),
-            onPressed: () {
-              // TODO: Implement new chat functionality
-            },
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: Image.asset('lib/Assets/icons/new-chat.png', width: 24, height: 24),
+        //     onPressed: () {
+        //       // TODO: Implement new chat functionality
+        //     },
+        //   ),
+        // ],
       ),
       body: Column(
         children: [

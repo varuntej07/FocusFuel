@@ -7,7 +7,7 @@ import '../Services/shared_prefs_service.dart';
 
 // ViewModel for Authorization, responsible for business logic and Auth state
 class AuthViewModel extends ChangeNotifier {
-  // State management
+  // State management values defined in the AuthState enum. It represents the initial state of the authentication process.
   AuthState _state = AuthState.initial;
   AuthState get state => _state;
   
@@ -133,7 +133,13 @@ class AuthViewModel extends ChangeNotifier {
       _userModel = UserModel.fromMap(snap.data()!);
       await _cacheUser();
       _errorMessage = null;
+
+      // Save the uid to SharedPreferences
+      await _prefsService.saveUserId(credential.user!.uid);
+
       _state = AuthState.authenticated;
+      notifyListeners();
+
       return _userModel;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _mapFirebaseError(e);
@@ -200,7 +206,7 @@ class AuthViewModel extends ChangeNotifier {
 
       await FirebaseAuth.instance.signOut();
 
-      await _prefsService.clearAll();
+      await _prefsService.logout();
       
       _clearForm();
       _clearUserData();

@@ -59,6 +59,7 @@ class _HomeFeedState extends State<HomeFeed> {
       context: ctx,
       barrierDismissible: false,  // force a decision
       builder: (_) => AlertDialog(
+        backgroundColor: Colors.white,
         title: const Text("Set your focus goals"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -82,7 +83,7 @@ class _HomeFeedState extends State<HomeFeed> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Skip'),
+            child: const Text('Skip', style: TextStyle(color: Colors.black54)),
           ),
           TextButton(
             onPressed: () {
@@ -94,7 +95,7 @@ class _HomeFeedState extends State<HomeFeed> {
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Save'),
+            child: const Text('Save', style: TextStyle(color: Colors.black87)),
           ),
         ],
       ),
