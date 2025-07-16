@@ -37,6 +37,7 @@ class NotificationRouter {
         const response = await chain.invoke({
             primaryGoal: userProfile.primaryGoal || "",
             currentTime: timeContext.currentTime,
+            currentFocus: userProfile.currentFocus || ""
         });
 
         return response.trim().toLowerCase();

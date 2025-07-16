@@ -14,7 +14,7 @@ class NotificationOrchestrator {
         };
     }
 
-    async generateSmartNotification(userProfile, timeContext) {
+    async generateSmartNotification(userProfile, timeContext, recentNotifications) {
         try {
             console.log('Starting notification generation using orchestrator...');
 

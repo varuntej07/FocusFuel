@@ -117,10 +117,10 @@ module.exports = {
 
                         } catch (e) {
                             console.log(`JSON parse failed for user ${userProfile.username}: ${notificationResult.message}`);
-                            parsedNotification = { title: notificationResult.title, content: notificationResult.message };
+                            parsedNotification = { title: "Stay Hard", content: notificationResult.message };
                         }
 
-                        const notificationTitle = parsedNotification.title || "Fuck again!";
+                        const notificationTitle = parsedNotification.title || "Stay hard and keep pushing forward!";
                         const notificationBody = parsedNotification.content || notificationResult.message;
 
                         const agentType = notificationResult.agentType;
