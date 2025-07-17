@@ -127,7 +127,7 @@ class MyApp extends StatelessWidget {
 
         return MultiProvider(
           providers: [
-            ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme),
+            ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
             Provider<StreakRepository>(create: (_) => StreakRepository()),
             Provider<ChatService>(create: (_) => ChatService()),
             ChangeNotifierProvider(create: (_) => AuthViewModel()),

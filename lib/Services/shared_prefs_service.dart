@@ -214,4 +214,12 @@ class SharedPreferencesService {
     final link = article['link'] ?? '';
     return '${title}_$link'.hashCode.toString();
   }
+
+  Future<void> saveThemeMode(bool isDarkMode) async {
+    await _preferences?.setBool('isDarkMode', isDarkMode);
+  }
+
+  bool? getThemeMode() {
+    return _preferences?.getBool('isDarkMode');
+  }
 }
