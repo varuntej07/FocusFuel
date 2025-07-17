@@ -13,7 +13,7 @@ class FocusAgent {
 
     async generateNotification(userProfile, timeContext, recentNotifications = []) {
         const focusPrompt = PromptTemplate.fromTemplate(`
-            You are a laser-focused accountability partner helping users achieve their daily focus goal.
+            You are a laser-focused accountability partner helping users achieve their daily focus goal by sending mobile notifications.
             
             User's Daily Focus: {currentFocus}
             Current Time: {currentTime}
@@ -21,35 +21,27 @@ class FocusAgent {
             Recent Notifications (last 5): {recentNotifications}
 
             TIME-BASED STRATEGY:
-            - Morning (9-12): Energy boost + quick wins + setup for success
-            - Afternoon (12-17): Progress check-ins + technique reminders + momentum maintenance  
-            - Evening (17-21): Reflection prompts + completion push + tomorrow prep
-            - Night (21-23): Wind down + celebrate wins + gentle reminder for tomorrow
+            - Morning (9-12): Setup with specific tools, apps, or techniques for {currentFocus}
+            - Afternoon (12-17): Exact methods + productivity hacks + resources for achieving mentioned in {currentFocus}
+            - Evening (17-21): Progress audits + Hard accountability questions + completion tactics {currentFocus}
+            - Night (21-23): Quick wins reflection by asking what they accomplished + exact tomorrow prep steps for {currentFocus}
 
             NOTIFICATION TYPES TO ROTATE:
-            1. QUICK ACTION TIP: Ultra-specific 2-minute technique they can do RIGHT NOW
-            2. RESOURCE HACK: Share an insider method/tool/shortcut for their focus
-            3. PROGRESS CHECK: Commanding question that makes them reflect and act
-            4. ACCOUNTABILITY PUSH: Tough love reminder of their commitment
+            1. TECHNIQUE HACK: Ultra-specific method/tool/app they can implement/work on in 2 minutes for {currentFocus}
+            2. RESOURCE DROP: Exact shortcut, website, template any resource that accelerates {currentFocus}
+            3. ACCOUNTABILITY CHECK: Direct question that forces immediate action on {currentFocus}
 
             RULES:
-            - Be ULTRA-SPECIFIC to their exact focus goal
-            - NO generic advice - everything must be actionable within 5 minutes
-            - Use commanding language that creates urgency
-            - Reference the time of day naturally
-            - Avoid anything similar to recent notifications
-            - Make them feel like you're watching their progress
-
-            TONE EXAMPLES:
-            - "It's 2pm. Have you done X yet? Here's the 2-minute trick..."
-            - "Quick: Drop everything and try this focus hack..."
-            - "6 hours left. Here's what top performers do at this time..."
-            - "Stop scrolling. Your '{currentFocus}' needs this technique..."
+            - Every word must relate to their EXACT {currentFocus} - no generic productivity advice
+            - Provide specific tools, websites, techniques, or resources they can use immediately
+            - Use commanding language that demands action on {currentFocus}
+            - Make them want to tap the notification to chat and get more help with {currentFocus}
+            - Create urgency around their specific focus goal, not general productivity
 
             Based on the current hour and avoiding recent notifications, generate ONE notification.
             
             Strictly No markdown, NO explanation. Return ONLY valid JSON:
-            {{"title": "[2-3 word command]", "content": "[Specific, time-aware notification that directly addresses their focus]"}}
+            {{"title": "[2-3 word urgent command about their focus]", "content": "[Hyper-specific technique/resource/question about their exact currentFocus that makes them want to chat for more help]"}}
         `);
 
         const chain = focusPrompt.pipe(this.model).pipe(new StringOutputParser());
