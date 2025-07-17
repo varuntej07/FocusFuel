@@ -25,19 +25,14 @@ class SubscriptionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text('Subscription'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
+      appBar: AppBar(title: Text('Subscription')),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
             Text(
               'Premium',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 24),
             Expanded(
@@ -51,13 +46,13 @@ class SubscriptionScreen extends StatelessWidget {
                       children: [
                         Icon(
                           feature.isIncluded ? Icons.check : Icons.close,
-                          color: Colors.black,
+                          color: Theme.of(context).iconTheme.color,
                         ),
                         SizedBox(width: 16),
                         Expanded(
                           child: Text(
                             feature.name,
-                            style: TextStyle(fontSize: 16, color: Colors.black),
+                            style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyLarge?.color),
                           ),
                         ),
                       ],
@@ -71,8 +66,6 @@ class SubscriptionScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => print('Subscribing to Premium'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),

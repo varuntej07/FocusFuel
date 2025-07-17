@@ -20,7 +20,6 @@ class SubscriptionDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
@@ -51,7 +50,7 @@ class SubscriptionDialog extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.star, color: Colors.orange, size: 20),
+                Icon(Icons.star, color: Theme.of(context).textTheme.bodyMedium?.color, size: 20),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(

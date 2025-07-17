@@ -74,8 +74,8 @@ class _ChatScreenState extends State<ChatScreen>{
     final isUser = msg.isUser;
     final isError = msg.status == 'error';
 
-    final bgGradient = isUser ? const LinearGradient(
-      colors:  [Color(0xFF7F00FF), Color(0xFFE100FF)],
+    final bgGradient = isUser ? LinearGradient(
+      colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     )
@@ -86,7 +86,7 @@ class _ChatScreenState extends State<ChatScreen>{
       end: Alignment.bottomRight,
     ) :
     LinearGradient(
-      colors: [Colors.grey.shade300, Colors.grey.shade200],
+      colors: [Theme.of(context).colorScheme.surfaceContainerHighest, Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.7)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
@@ -99,7 +99,7 @@ class _ChatScreenState extends State<ChatScreen>{
         children: [
           if (!isUser) ...[
             // AI avatar on the left
-            const CircleAvatar(radius: 10, child: Icon(Icons.android, size: 6)),
+            CircleAvatar(radius: 10, backgroundColor: Theme.of(context).colorScheme.primary, child: Icon(Icons.android, size: 6, color: Theme.of(context).colorScheme.onPrimary)),
             const SizedBox(width: 4),
           ],
 
@@ -113,7 +113,7 @@ class _ChatScreenState extends State<ChatScreen>{
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   )
@@ -122,21 +122,20 @@ class _ChatScreenState extends State<ChatScreen>{
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(msg.text, style: TextStyle(color: isUser ? Colors.white : Colors.black87, fontSize: 15)),
+                  Text(msg.text, style: TextStyle(color: isUser ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface, fontSize: 15)),
 
                   if (isError) ...[
                     const SizedBox(height: 4),
                     TextButton(
                       onPressed: () => context.read<ChatViewModel>().retryMessage(msg.text),
-                      child: const Text('Retry', style: TextStyle(color: Colors.red, fontSize: 8)),
-                    ),
+                      child: Text('Retry', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 8)),                    ),
                   ],
 
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(time, style: TextStyle(color: Colors.black54, fontSize: 8)),
+                      Text(time, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 8)),
                     ],
                   ),
                 ],
@@ -173,7 +172,6 @@ class _ChatScreenState extends State<ChatScreen>{
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 2,
         leading: IconButton(
           icon: const Icon(Icons.history, size: 30),
@@ -187,18 +185,14 @@ class _ChatScreenState extends State<ChatScreen>{
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white54,
-              borderRadius: BorderRadius.circular(18),
-            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text("Get Plus", style: TextStyle(color: Colors.black87, fontSize: 24, fontWeight: FontWeight.bold)),
+              children: [
+                Text("Get Plus", style: TextStyle(color: Theme.of(context).textTheme.titleMedium?.color, fontSize: 24, fontWeight: FontWeight.bold)),
                 SizedBox(width: 4),
-                Icon(Icons.star, color: Colors.black87, size: 25),
-            ],
-          ),
+                Icon(Icons.star, color: Theme.of(context).colorScheme.primary, size: 25),
+              ],
+            ),
           )
         ),
         centerTitle: true,
@@ -252,23 +246,27 @@ class _ChatScreenState extends State<ChatScreen>{
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.add, color: Colors.black12),
+                  icon: Icon(Icons.add, color: Theme.of(context).iconTheme.color?.withValues(alpha: 0.7)),
                   onPressed: () {}, // future feature
                 ),
                 Expanded(
                   child: TextField(
+                    style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
                     controller: _controller,
                     enabled: !chatVM.isSending,           // to disable if sending query
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _sendMessage(),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Type ya response...',
                       border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,  // removes the background fill
+                      hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send, color: Colors.black87),
+                  icon: Icon(Icons.send, color: Theme.of(context).colorScheme.primary),
                   onPressed: chatVM.isSending ? null : _sendMessage,
                 ),
               ],

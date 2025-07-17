@@ -29,13 +29,13 @@ class NewsListItem extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                   blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  offset: const Offset(2, 4),
                 ),
               ],
             ),
@@ -91,10 +91,10 @@ class NewsListItem extends StatelessWidget {
       children: [
         Text(
           article['title'] ?? 'No Title Available',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             height: 1.3,
           ),
           maxLines: 4,
@@ -104,7 +104,7 @@ class NewsListItem extends StatelessWidget {
 
         Text(
           article['description'] ?? 'No description available...',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color),
           maxLines: 5,
         ),
 
@@ -160,7 +160,7 @@ class NewsListItem extends StatelessWidget {
 
         Text(
           source,
-          style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w500),
         ),
 
         const SizedBox(width: 6),

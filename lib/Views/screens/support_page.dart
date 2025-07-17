@@ -35,14 +35,14 @@ class _SupportScreenState extends State<SupportScreen> {
 
   // helper to avoid repeating decoration boiler-plate
   InputDecoration _decor(String label) => InputDecoration(
-    labelText: label,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-    filled: true,
-    fillColor:Colors.grey[100],
-    focusedBorder: OutlineInputBorder( // Border when focused
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.grey[600]!, width: 2.0),
-    )
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: Theme.of(context).cardColor,
+      focusedBorder: OutlineInputBorder( // Border when focused
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey[600]!, width: 2.0),
+      )
   );
 
   void _showSuccessMessage(String message) {
@@ -64,7 +64,7 @@ class _SupportScreenState extends State<SupportScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Support', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)), centerTitle: true),
       body: Container(
-        color: Colors.white,
+        color: Theme.of(context).scaffoldBackgroundColor,
         padding: const EdgeInsets.all(20),
         child: Consumer<AuthViewModel>(
           builder: (context, vm, _) {
@@ -74,17 +74,17 @@ class _SupportScreenState extends State<SupportScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
+                    Text(
                       'Facing a problem?',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text('Describe your issue and I\'ll get back to you soon.',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    Text('Describe your issue and I\'ll get back to you soon.',
+                      style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodyMedium?.color),
                     ),
                     const SizedBox(height: 30),
 
@@ -147,8 +147,6 @@ class _SupportScreenState extends State<SupportScreen> {
                         issueController.clear();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black87,
-                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                         elevation: 2,

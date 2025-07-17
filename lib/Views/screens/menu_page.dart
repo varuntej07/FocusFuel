@@ -4,6 +4,7 @@ import 'package:focus_fuel/Views/Auth/login_page.dart';
 import 'package:focus_fuel/Views/screens/subscription_page.dart';
 import 'package:focus_fuel/Views/screens/support_page.dart';
 import 'package:provider/provider.dart';
+import '../../Themes/theme_provider.dart';
 import '../../ViewModels/home_vm.dart';
 
 class MenuPage extends StatefulWidget {
@@ -35,13 +36,13 @@ class _MenuPageState extends State<MenuPage> {
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: background ?? Colors.white,
+          color: background ?? Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black12,
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
               blurRadius: 8,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -50,21 +51,20 @@ class _MenuPageState extends State<MenuPage> {
             Expanded(
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: isIconTrailing ? null : Icon(icon, size: 32, color: background != null ? Colors.white : Colors.black54),
-                trailing: isIconTrailing
-                    ? Icon(icon, size: 32, color: background != null ? Colors.white : Colors.black54)
+                leading: isIconTrailing ? null : Icon(icon, size: 32, color: background != null ? Colors.white : Theme.of(context).colorScheme.onSurface),                trailing: isIconTrailing
+                    ? Icon(icon, size: 32, color: background != null ? Colors.white : Theme.of(context).colorScheme.onSurface)
                     : trailing,
                 title: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: background != null ? Colors.white : Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: background != null ? Colors.white : Theme.of(context).textTheme.titleMedium?.color
                   ),
                 ),
                 subtitle: subtitle != null ? Text(
                     subtitle,
-                    style: TextStyle(fontSize: 14, color: background != null ? Colors.white70 : Colors.black54))
+                    style: TextStyle(fontSize: 14, color: background != null ? Colors.white70 : Theme.of(context).textTheme.bodyMedium?.color))
                     : null,
               ),
             ),
@@ -139,23 +139,25 @@ class _MenuPageState extends State<MenuPage> {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => SupportScreen()));
                     },
                   ),
-                  _buildMenuCard(
-                    context: context,
-                    title: 'Mode',
-                    icon: Icons.dark_mode,
-                    onTap: () {
-                      // TODO Perform dark mode
-                    }, // No action
-                    trailing: Switch(
-                      value: isDarkMode,
-                      onChanged: toggleTheme,
-                      activeColor: Colors.black87,
-                      activeTrackColor: Colors.black87,
-                      inactiveThumbColor: Colors.black87,
-                      inactiveTrackColor: Colors.white,
-                    ),
+
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, child) {
+                      return _buildMenuCard(
+                        context: context,
+                        title: 'Mode',
+                        icon: Icons.dark_mode,
+                        onTap: () {}, // No action needed
+                        trailing: Switch(
+                          value: themeProvider.isDarkMode,
+                          onChanged: (value) => themeProvider.toggleTheme(),
+                          activeColor: Theme.of(context).colorScheme.primary,
+                        ),
+                      );
+                    },
                   ),
+
                   const SizedBox(height: 30),
+
                   _buildMenuCard(
                     context: context,
                     title: isLoggedin ? 'Logout' : 'Login',

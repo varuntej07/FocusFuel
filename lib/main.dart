@@ -6,10 +6,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/ViewModels/chat_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'Services/shared_prefs_service.dart';
 import 'Services/streak_repo.dart';
+import 'Themes/app_themes.dart';
+import 'Themes/theme_provider.dart';
 import 'ViewModels/newsfeed_vm.dart';
 import 'ViewModels/onboarding_vm.dart';
 import 'Views/Auth/login_page.dart';
@@ -126,6 +127,7 @@ class MyApp extends StatelessWidget {
 
         return MultiProvider(
           providers: [
+            ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme),
             Provider<StreakRepository>(create: (_) => StreakRepository()),
             Provider<ChatService>(create: (_) => ChatService()),
             ChangeNotifierProvider(create: (_) => AuthViewModel()),
@@ -134,17 +136,16 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => OnboardingViewModel()),
             ChangeNotifierProvider(create: (_) => NewsFeedViewModel()),
           ],
-          child: MaterialApp(
-            navigatorKey: navigationKey,
-            home: user != null ? const MainScaffold() : const Login(),
-            theme: ThemeData(
-              textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-              scaffoldBackgroundColor: Colors.white, // Background color of the entire app
-              appBarTheme: const AppBarTheme(
-                backgroundColor: Colors.white,
-                surfaceTintColor: Colors.white, // prevents color change on scroll
-              ),
-            )
+          child: Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return MaterialApp(
+                navigatorKey: navigationKey,
+                home: user != null ? const MainScaffold() : const Login(),
+                theme: AppThemes.lightTheme,
+                darkTheme: AppThemes.darkTheme,
+                themeMode: themeProvider.themeMode, // DYNAMIC THEME
+              );
+            },
           ),
         );
       },

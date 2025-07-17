@@ -87,11 +87,10 @@ class _NewsFeedState extends State<NewsFeed> {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       actionsPadding: EdgeInsetsGeometry.fromLTRB(10, 10, 10, 10),
-      backgroundColor: Colors.white,
       elevation: 0,
       title: const Text(
         'Discover',
-        style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 28),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28),
       ),
 
       // personalize the feed button
@@ -103,7 +102,11 @@ class _NewsFeedState extends State<NewsFeed> {
                 featureName: 'Listen to news articles just by a click',
               );
             },
-            icon: Image.asset('lib/Assets/icons/dark_headphone.png', width: 30, height: 30), color: Colors.black87),
+            icon: ColorFiltered(
+              colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+              child: Image.asset('lib/Assets/icons/dark_headphone.png', width: 30, height: 30),
+            )
+        ),
         IconButton(
             onPressed: () {
               context.showSubscriptionDialog(
@@ -111,7 +114,11 @@ class _NewsFeedState extends State<NewsFeed> {
                 featureName: 'Get personalized news feed recommendations',
               );
             },
-            icon: Image.asset('lib/Assets/icons/add-to-favorites.png', width: 30, height: 34), color: Colors.black87),
+            icon: ColorFiltered(
+              colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+              child: Image.asset('lib/Assets/icons/add-to-favorites.png', width: 30, height: 34),
+            )
+        ),
       ],
     );
   }
@@ -134,10 +141,10 @@ class _NewsFeedState extends State<NewsFeed> {
               margin: const EdgeInsets.only(right: 12),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.black87 : Colors.transparent,
+                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? Colors.black87 : Colors.grey[300]!,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor,
                   width: 1,
                 ),
               ),
@@ -148,7 +155,7 @@ class _NewsFeedState extends State<NewsFeed> {
                     Text(
                       viewModel.tabs[index],
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[600],
+                        color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).textTheme.bodyMedium?.color,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                         fontSize: 14,
                       ),
@@ -161,7 +168,7 @@ class _NewsFeedState extends State<NewsFeed> {
                         height: 12,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
                         ),
                       ),
                   ],
@@ -198,13 +205,13 @@ class _NewsFeedState extends State<NewsFeed> {
   }
 
   Widget _buildLoadingState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Loading the best news for you...', style: TextStyle(color: Colors.grey)),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text('Loading the best news for you...', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
         ],
       ),
     );
@@ -217,24 +224,22 @@ class _NewsFeedState extends State<NewsFeed> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+            Icon(Icons.error_outline, size: 64, color: Theme.of(context).iconTheme.color),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Oops! Something went wrong',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).primaryColor),
             ),
             const SizedBox(height: 8),
             Text(
               viewModel.errorMessage ?? 'Unknown error occurred',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(color: Theme.of(context).iconTheme.color, fontSize: 14),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => viewModel.loadNewsFeed(forceRefresh: true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black87,
-                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               child: const Text('Try Again'),
@@ -254,21 +259,19 @@ class _NewsFeedState extends State<NewsFeed> {
           children: [
             Icon(Icons.newspaper_outlined, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No articles found',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color),
             ),
             const SizedBox(height: 8),
             Text(
               'No articles available for ${viewModel.selectedCategory}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 14),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => viewModel.refreshArticles(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black87,
-                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -283,7 +286,6 @@ class _NewsFeedState extends State<NewsFeed> {
   Widget _buildContentState(NewsFeedViewModel viewModel) {
     return RefreshIndicator(
       onRefresh: viewModel.refreshArticles,
-      color: Colors.black87,
       child: viewModel.articles.isNotEmpty ? ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: viewModel.articles.length,

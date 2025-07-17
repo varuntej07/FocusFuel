@@ -10,16 +10,10 @@ import '../../Services/chat_service.dart';
 class ChatHistoryScreen extends StatelessWidget {
   const ChatHistoryScreen({super.key});
 
-  static const Color _dividerLineColor = Color(0xFFE0E0E0);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Chat History"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text("Chat History")),
       body: StreamBuilder<List<ConversationModel>>(
         stream: context.read<ChatViewModel>().getConversationsStream(),
         builder: (context, snapshot) {
@@ -143,8 +137,8 @@ class _ChatHistoryCard extends StatelessWidget {
       builder: (context, messageCountSnapshot) {
         // Determine card color based on message count
         final hasMultipleMessages = (messageCountSnapshot.data ?? 0) > 1;
-        final cardColor = hasMultipleMessages ? Colors.blue.shade50 : Colors.white;
-        final borderColor = hasMultipleMessages ? Colors.blue.shade50 : Colors.grey.shade300;
+        final cardColor = hasMultipleMessages ?  Theme.of(context).cardColor: Theme.of(context).scaffoldBackgroundColor;
+        final borderColor = hasMultipleMessages ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Theme.of(context).dividerColor;
 
         return GestureDetector(
           onTap: () {
@@ -167,7 +161,7 @@ class _ChatHistoryCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color)),
 
                         const SizedBox(height: 2),
 
@@ -191,9 +185,7 @@ class _ChatHistoryCard extends StatelessWidget {
                             return Text(
                               displayText,
                               style: GoogleFonts.poppins(
-                                textStyle: const TextStyle(
-                                  color: Colors.black, fontSize: 13, fontWeight: FontWeight.w500,
-                                ),
+                                textStyle: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13, fontWeight: FontWeight.w500),
                               ),
                             );
                           },
@@ -202,14 +194,14 @@ class _ChatHistoryCard extends StatelessWidget {
                         Text(
                           'Focus was: ${chatVM.trimString(conversationFocus ?? 'Not set', 40)}',
                           style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                            textStyle: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color),
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    color: Colors.grey,
+                    color: Theme.of(context).iconTheme.color,
                     onPressed: () {
                       // TODO: archive/delete chat history
                     },
@@ -233,19 +225,19 @@ class DateDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: ChatHistoryScreen._dividerLineColor, thickness: 1)),
+        Expanded(child: Divider(color: Theme.of(context).dividerColor, thickness: 1)),
         const SizedBox(width: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
+          color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: ChatHistoryScreen._dividerLineColor),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
-          child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+          child: Text(text, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color)),
         ),
         const SizedBox(width: 6),
-        const Expanded(child: Divider(color: ChatHistoryScreen._dividerLineColor, thickness: 1)),
+        Expanded(child: Divider(color: Theme.of(context).dividerColor, thickness: 1)),
       ],
     );
   }

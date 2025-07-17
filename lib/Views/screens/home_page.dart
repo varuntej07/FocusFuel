@@ -59,7 +59,6 @@ class _HomeFeedState extends State<HomeFeed> {
       context: ctx,
       barrierDismissible: false,  // force a decision
       builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
         title: const Text("Set your focus goals"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -83,7 +82,7 @@ class _HomeFeedState extends State<HomeFeed> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Skip', style: TextStyle(color: Colors.black54)),
+            child: Text('Skip', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
           ),
           TextButton(
             onPressed: () {
@@ -95,7 +94,7 @@ class _HomeFeedState extends State<HomeFeed> {
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Save', style: TextStyle(color: Colors.black87)),
+            child: Text('Save', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
           ),
         ],
       ),
@@ -158,26 +157,26 @@ class _HomeFeedState extends State<HomeFeed> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text("$streak", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("$streak", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.headlineLarge?.color)),
                   const SizedBox(width: 4),
                   Icon(Icons.local_fire_department_rounded, color: Colors.redAccent)
                 ],
               ),
 
-              Text("Hey $userName!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.orange)),
+              Text("Hey $userName!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
 
               const SizedBox(height: 30),
 
-              const Text("Let's not let procrastination win today!!",
+              Text("Let's not let procrastination win today!!",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.headlineLarge?.color),
               ),
 
               const SizedBox(height: 50),
 
-              const Text("Set a focus goal and be productive!",
+              Text("Set a focus goal and be productive!",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, color: Colors.black87)),
+                  style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodyLarge?.color)),
 
               const SizedBox(height: 10),
 
@@ -193,17 +192,17 @@ class _HomeFeedState extends State<HomeFeed> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isSelected ? Colors.green.shade300.withAlpha(160) : Colors.white.withAlpha(40),
+                          color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(50),
-                          border: Border.all(color: isSelected ? Colors.deepOrange.withAlpha(100) : Colors.grey.withAlpha(40)),
+                          border: Border.all(color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4) : Theme.of(context).dividerColor.withValues(alpha: 0.4)),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 6, offset: const Offset(2, 4))
+                            BoxShadow(color: Theme.of(context).shadowColor.withValues(alpha: 0.1), blurRadius: 6, offset: const Offset(2, 4))
                           ],
                         ),
                         child: Text(
                           suggestion,
                           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
-                              color: isSelected ? Colors.white : Colors.black26),
+                              color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                         ),
                       ),
                     );
@@ -276,7 +275,7 @@ class _InfoTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             TextButton(
-              child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+              child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleMedium?.color)),
               onPressed: () {
                 editFocus();
               },
@@ -284,7 +283,7 @@ class _InfoTile extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black54),
+              style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Theme.of(context).textTheme.bodyMedium?.color),
             ),
           ],
         ),
@@ -315,11 +314,11 @@ class _SliderTile extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+          Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Theme.of(context).textTheme.titleMedium?.color)),
           Slider(
             min: min, max: max,
             divisions: divisions,
-            activeColor: Colors.lightGreen,
+            activeColor: Theme.of(context).colorScheme.primary,
             value: value,
             label: sliderLabel(value), // Dynamic label shown during slider interaction
             onChanged: onChanged,
@@ -343,11 +342,11 @@ class _GlassCard extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.6),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
                     blurRadius: 6,
                     offset: const Offset(0, 3))
               ]

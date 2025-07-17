@@ -92,7 +92,7 @@ class NewsFeedViewModel extends ChangeNotifier {
   bool _isCategoryMatch(String articleCategory, String selectedCategory) {
     switch (selectedCategory) {
       case 'ai':
-        return articleCategory.contains('tech') ||
+        return articleCategory.contains('technology') ||
             articleCategory.contains('artificial') ||
             articleCategory.contains('ai') ||
             articleCategory.contains('research');

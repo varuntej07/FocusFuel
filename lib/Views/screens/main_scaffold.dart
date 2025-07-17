@@ -65,23 +65,47 @@ class MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: IndexedStack(   // Only changes which one is painted, doesn’t dispose/rebuild others
           index: _selectedIndex,
           children: _pages,
         ),
         bottomNavigationBar: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.white,
-            selectedItemColor: Colors.black87,
-            unselectedItemColor: Colors.grey,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            selectedItemColor: Theme.of(context).primaryColor,
+            unselectedItemColor: Theme.of(context).textTheme.bodyMedium?.color,
             currentIndex: _selectedIndex,
             onTap: _onTap,
             items: [
-              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/home.png', width: 24, height: 24), label: 'Home'),
-              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/news.png', width: 24, height: 24), label: 'News'),
-              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/chat.png', width: 24, height: 24), label: 'Chat'),
-              BottomNavigationBarItem(icon: Image.asset('lib/Assets/icons/menu.png', width: 24, height: 24), label: 'Menu')
+              BottomNavigationBarItem(
+                  icon: ColorFiltered(
+                    colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+                    child: Image.asset('lib/Assets/icons/home.png', width: 24, height: 24),
+                  ),
+                  label: 'Home'
+              ),
+              BottomNavigationBarItem(
+                  icon: ColorFiltered(
+                    colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+                    child: Image.asset('lib/Assets/icons/news.png', width: 24, height: 24),
+                  ),
+                  label: 'News'
+              ),
+              BottomNavigationBarItem(
+                  icon: ColorFiltered(
+                    colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+                    child: Image.asset('lib/Assets/icons/chat.png', width: 24, height: 24),
+                  ),
+                  label: 'Chat'
+              ),
+              BottomNavigationBarItem(
+                  icon: ColorFiltered(
+                    colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+                    child: Image.asset('lib/Assets/icons/menu.png', width: 24, height: 24),
+                  ),
+                  label: 'Menu'
+              )
             ]
         )
     );
