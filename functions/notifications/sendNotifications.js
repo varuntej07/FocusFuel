@@ -4,9 +4,120 @@ const { getUserProfile } = require("../utils/getUserProfile");
 const { admin } = require("../utils/firebase");
 const { getTimeContext } = require("../utils/getTimeContext");
 const { DateTime } = require("luxon");
+const {sendFCMNotification} = require("./sendFCM");
 
 // Firestore DB instance for the active Firebase project (android/app/google-services.json)
 const db = admin.firestore();
+
+// entry point is here to send scheduled notifications
+module.exports = {
+    sendScheduledNotification: onSchedule(
+        {
+            schedule: "0 * * * *",      // running every hour as it's not possible to set onSchedule function with a dynamic user timezone.
+            secrets: ["OPENAI_API_KEY"],
+            timeZone: "America/Los_Angeles",
+            memory: "512MB",
+            timeout: 540
+        },
+        async () => {
+
+            const openaiApiKey = process.env.OPENAI_API_KEY;        // firebase secrets makes it available through this method
+
+            if (!openaiApiKey) {
+                console.log("Check ya OpenAI API key in firebase secrets as it seems to not configured");
+            }
+
+            // Fetch all active users from Firestore
+            const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();
+
+            // Iterating through each user document
+            for (const doc of usersSnapshot.docs) {
+                const uid = doc.id;                 // dynamic userId
+                const data = doc.data();
+
+                // Check if user should receive notification based on smart windows
+                const shouldSend = await shouldSendNotificationNow(data);
+
+                if (shouldSend.send) {
+                    try {
+                        await processUserNotification(uid, data, openaiApiKey, shouldSend.timeWindow);
+                    } catch (err) {
+                        console.error(`Error processing notification for user ${uid}:`, err.message);
+                    }
+                } else {
+                    console.log(`Skipping user ${uid}: outside optimal time windows`);
+                }
+            }
+        }
+    )
+};
+
+
+async function shouldSendNotificationNow(userData) {
+    const userTimezone = userData.timezone || "America/Los_Angeles";    // User's timezone, default to PST
+
+    const userTime = DateTime.now().setZone(userTimezone);
+    const localHour = userTime.hour;
+
+    // Only sending notifications during these hours
+    const morningWindow = localHour >= 8 && localHour <= 13;
+    const afternoonWindow = localHour >= 15 && localHour <= 17;
+    const eveningWindow = localHour >= 19 && localHour <= 23;
+
+    if (!morningWindow && !afternoonWindow && !eveningWindow) {
+        return { send: false };
+    }
+
+    // time window for context
+    let timeWindow = 'general';
+
+    if (morningWindow) timeWindow = 'morning';
+    else if (afternoonWindow) timeWindow = 'afternoon';
+    else if (eveningWindow) timeWindow = 'evening';
+
+    return { send: true, timeWindow };
+}
+
+async function processUserNotification(uid, userData, openaiApiKey, timeWindow) {
+    const userProfile = await getUserProfile(uid);
+    const timeContext = getTimeContext(userData);
+
+    console.log(`Processing ${timeWindow} notification for ${userProfile.username}`);
+
+    const recentNotifications = await getRecentNotifications(uid);
+
+    const orchestrator = new NotificationOrchestrator(openaiApiKey);
+    const notificationResult = await orchestrator.generateSmartNotification(userProfile, timeContext, recentNotifications);
+
+    // Parse and send notification
+    let parsedNotification;
+    try {
+        const jsonMatch = notificationResult.notification.match(/\{.*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : notificationResult.notification;
+        parsedNotification = JSON.parse(jsonString);
+    } catch (e) {
+        console.log(`JSON parse failed for user ${userProfile.username}: ${notificationResult}`);
+        parsedNotification = {
+            title: "Stay Hard",
+            content: notificationResult
+        };
+    }
+
+    // Save notification and create conversation in Firestore
+    const saveResult = await saveNotificationAndCreateConversation(parsedNotification, userProfile);
+
+    // send FCM notification with required params
+    await sendFCMNotification(userData.fcmToken, parsedNotification, uid, saveResult.notificationId);
+
+    // Update user's last notification info
+    await db.collection('Users').doc(uid).update({
+        lastNotificationTime: admin.firestore.FieldValue.serverTimestamp(),
+        lastNotificationWindow: timeWindow,
+        lastNotificationType: notificationResult.agentType,
+    });
+
+    console.log(`Sent ${notificationResult.agentType} notification to ${userProfile.username} during ${timeWindow} window`);
+}
 
 // Gets last x notifications for a user
 async function getRecentNotifications(userId, limit = 3) {
@@ -51,120 +162,6 @@ async function generateSmartNotification(userProfile, timeContext, openaiApiKey,
     }
 }
 
-// entry point is here to send scheduled notifications
-module.exports = {
-    sendScheduledNotification: onSchedule(
-        {
-            schedule: "0 * * * *",      // running every hour as t's not possible to schedule a onSchedule function with a dynamic user timezone.
-            secrets: ["OPENAI_API_KEY"],
-            timeZone: "America/Los_Angeles",
-            memory: "512MB",
-            timeout: 540
-        },
-        async () => {
-
-            const openaiApiKey = process.env.OPENAI_API_KEY;        // firebase secrets makes it available through this method
-
-            if (!openaiApiKey) {
-                console.log("Check ya OpenAI API key in firebase secrets as it seems to not configured");
-            }
-
-            // Fetch all active users from Firestore
-            const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();
-
-            // Iterating through each user document
-            for (const doc of usersSnapshot.docs) {
-                const uid = doc.id;                 // dynamic userId
-                const data = doc.data();
-                const token = data.fcmToken;        // FCM token here
-                const userTimezone = data.timezone || "America/Los_Angeles";    // User's timezone, default to PST
-
-                if (!token) {
-                    console.warn(`No FCM token for user ${uid}`);
-                    continue;
-                }
-
-                // Fetch time context based on user's timezone using Luxon which is a powerful JS date/time library
-                const userTime = DateTime.now().setZone(userTimezone);
-                const localHour = userTime.hour;
-                console.log(`Local hour for user ${data.username} in timezone ${userTimezone} is ${localHour}`);
-
-                if (localHour >= 9 && localHour <= 23){
-                    try {
-                        const userProfile = await getUserProfile(uid);      // User profile from utils/getUserProfile.js
-                        const timeContext = getTimeContext(data);
-
-                        console.log(`${userProfile.username}'s Profile with interests ${userProfile.primaryInterests?.join(", ")}`);
-                        console.log(`Current time context fetched : ${timeContext.currentTime}, Day: ${timeContext.dayOfWeek}, Hour: ${timeContext.currentHour}`);
-
-                        const recentNotifications = await getRecentNotifications(uid);
-                        console.log(`Fetched ${recentNotifications.length} recent notifications for duplicate prevention for ${data.username}`);
-                        
-                        const notificationResult = await generateSmartNotification(userProfile, timeContext, openaiApiKey, recentNotifications);
-
-                        if (!notificationResult || !notificationResult.message) {
-                            console.error(`Failed to generate notification for user ${userProfile.username} with ${uid}`);
-                            continue; // Skip this user
-                        }
-
-                        let parsedNotification;
-                        try {
-                            // Extract JSON from response if it contains extra text
-                            const jsonMatch = notificationResult.message.match(/\{.*\}/);
-                            const jsonString = jsonMatch ? jsonMatch[0] : notificationResult.message;
-
-                            parsedNotification = JSON.parse(jsonString);
-
-                        } catch (e) {
-                            console.log(`JSON parse failed for user ${userProfile.username}: ${notificationResult.message}`);
-                            parsedNotification = { title: "Stay Hard", content: notificationResult.message };
-                        }
-
-                        const notificationTitle = parsedNotification.title || "Stay hard and keep pushing forward!";
-                        const notificationBody = parsedNotification.content || notificationResult.message;
-
-                        const agentType = notificationResult.agentType;
-
-                        // Create notification and conversation
-                        await saveNotificationAndCreateConversation(parsedNotification, userProfile);
-
-                        // Update user's last notification info
-                        await db.collection('Users').doc(uid).update({
-                            lastNotificationTime: admin.firestore.FieldValue.serverTimestamp(),
-                            lastNotificationType: agentType // Track if we used an agent
-                        });
-
-                        const message = {
-                            token,
-                            android: {
-                                priority: 'high',
-                                notification: {
-                                    channel_id: 'focusfuel_channel',  // custom channel
-                                }
-                            },
-                            notification: {
-                                title: notificationTitle,
-                                body: notificationBody
-                            },
-                            data: {
-                                click_action: 'FLUTTER_NOTIFICATION_CLICK',
-                                screen: 'chat',  // for Flutter routing
-                            }
-                        };
-
-                        // sending the notification to FCM servers, remote message listeners are set up in the main.dart
-                        await admin.messaging().send(message);
-                    } catch (err) {
-                        console.error("FCM send error:", err.message);
-                    }
-                 } else {
-                     console.log(`Skipping notification for user ${uid} as local hour ${localHour} is outside 9-23 range`);
-                 }
-            }
-        }
-    )
-};
-
 // Helper function to save notification in Notifications collection and 
 // also save notification as initial conversation message in Conversations collection
 async function saveNotificationAndCreateConversation(message, userProfile) {
@@ -176,7 +173,7 @@ async function saveNotificationAndCreateConversation(message, userProfile) {
             message: message,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             clicked: false,
-            type: userProfile.currentFocus
+            forFocus: userProfile.currentFocus
         });
 
         // Create conversation linked to notification

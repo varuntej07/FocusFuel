@@ -73,6 +73,9 @@ void _setupNotificationHandlers() async {
   // Foreground FCM handler - the message in onMessage.listen comes from FlutterFire's FLTFireMsgReceiver,
   // which handles FCM messages and forwards them as broadcasts as Instance of RemoteMessage.
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+
+    _trackNotificationEvent('received', message);   // Track notification as received
+
     // This shows the native OS notification even in foreground
     FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true,
@@ -83,6 +86,9 @@ void _setupNotificationHandlers() async {
 
   // When app is in background and user taps notification
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+
+    _trackNotificationEvent('opened', message);   // Track notification as opened/clicked
+
     if (navigationKey.currentState != null) {
       navigationKey.currentState!.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainScaffold(initialIndex: 2)), // 2 = Chat tab
@@ -104,6 +110,23 @@ void _setupNotificationHandlers() async {
       });
     }
   });
+}
+
+void _trackNotificationEvent(String eventType, RemoteMessage message) {
+  final notificationId = message.data['notificationId'];
+  final userId = message.data['userId'];
+
+  if (notificationId != null && userId != null) {
+    // Update the existing Notifications document
+    FirebaseFirestore.instance.collection('Notifications').doc(notificationId).update({
+      if (eventType == 'received') 'received': true,
+      if (eventType == 'received') 'receivedAt': FieldValue.serverTimestamp(),
+      if (eventType == 'opened') 'clicked': true,
+      if (eventType == 'opened') 'clickedAt': FieldValue.serverTimestamp(),
+    }).catchError((error) {
+      print('Failed to track notification event: $error');
+    });
+  }
 }
 
 class MyApp extends StatelessWidget {
