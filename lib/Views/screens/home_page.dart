@@ -14,8 +14,6 @@ class _HomeFeedState extends State<HomeFeed> {
   final List<String> suggestions = ['Master DSA', 'Job hunt', 'UI/UX', 'Body building', 'Motivation', "Other"];
 
   String? selectedFocus;
-  double _intervalMinutes = 45;
-  int _mood = 3;
 
   @override
   void initState(){
@@ -210,150 +208,420 @@ class _HomeFeedState extends State<HomeFeed> {
                 ),
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 30),
 
               Padding(
-                padding: const EdgeInsets.only(bottom: 16.0), // Padding for bottom spacing
-                child: GridView(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,          // 2x2 grid layout
-                    mainAxisSpacing: 12,        // Vertical spacing between cards
-                    crossAxisSpacing: 12,       // Horizontal spacing between cards
-                    childAspectRatio: 1.4,      // Aspect ratio for card dimensions
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Column(
                   children: [
-                    _InfoTile(title: "Today’s Goal", subtitle: selectedFocus, editFocus: () {_promptForGoals(context);}),
-
-                    _InfoTile(title: "Weekly Goal", subtitle: weeklyGoal, editFocus: () { _promptForGoals(context); }),
-
-                    _SliderTile(
-                      label: "Interval",
-                      min: 15, max: 90,
-                      value: _intervalMinutes,
-                      divisions: 15,
-                      onChanged: (v) => setState(() => _intervalMinutes = v),
-                      sliderLabel: (v) => "Interval: ${v.round()} min", // Dynamic label
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _InfoTile(
+                            title: "Today's Focus",
+                            item: selectedFocus,
+                            onTap: () => _showWhiteBoard(context, "Today's Focus",),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _InfoTile(
+                            title: "Task To-Do",
+                            item: 'taskToDo',
+                            onTap: () => _showWhiteBoard(context, "Task To-Do",),
+                          ),
+                        ),
+                      ],
                     ),
 
-                    _SliderTile(
-                      label: "Mood",
-                      min: 1, max: 5,
-                      value: _mood.toDouble(),
-                      divisions: 4,              // discrete mood values
-                      onChanged: (v) => setState(() => _mood = v.round()),
-                      sliderLabel: (v) => _moodEmoji(v.round()), // Emoji based on value
-                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _InfoTile(
+                            title: "Weekly Goal",
+                            item: weeklyGoal,
+                            onTap: () => _showWhiteBoard(context, "Weekly Goal",),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _InfoTile(
+                            title: "My Small Wins",
+                            items: ["Nothing yet"],
+                            onTap: () => _showWhiteBoard(context, "My Small Wins",),
+                          ),
+                        ),
+                      ],
+                    )
                   ],
                 ),
-              ),
+              )
             ],
           ),
         ),
       ),
     );
   }
-
-  String _moodEmoji(int val) => const ['😣', '💡', '⏰', '⚡', '🤗'][val.clamp(1, 5) - 1];
 }
 
 
 // _InfoTile widget to include an emoji for top cards
 class _InfoTile extends StatelessWidget {
   final String title;
-  final String subtitle;
-  final VoidCallback editFocus;
+  final String? item;  // For single string items
+  final List<String>? items;  // For multiple string items
+  final VoidCallback onTap;
 
-  const _InfoTile({required this.title, required this.subtitle, required this.editFocus});
+  const _InfoTile({required this.title, this.items, required this.onTap, this.item});
 
   @override
   Widget build(BuildContext context) {
-    return _GlassCard(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            TextButton(
-              child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleMedium?.color)),
-              onPressed: () {
-                editFocus();
-              },
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 176,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 3)
             ),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Theme.of(context).textTheme.bodyMedium?.color),
-            ),
-          ],
+          ]
         ),
-      )
-    );
-  }
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleMedium?.color,
+                ),
+              ),
+              SizedBox(height: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      if (item != null)
+                        Text(
+                          item!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                          ),
+                        )
+                      else if (items != null)
+                        ...items!.map((item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            item,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        )),
+                    ],
+                  ),
+                ),
+              )
+            ],
+          ),
+        ),
+      );
+    }
 }
 
-class _SliderTile extends StatelessWidget {
-  final String label;
-  final double min, max, value;
-  final int divisions;
-  final ValueChanged<double> onChanged;
-  final String Function(double) sliderLabel;
+void _showWhiteBoard(BuildContext context, String title) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: Colors.black.withValues(alpha: 0.6),
+    builder: (BuildContext context) {
+      return Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          margin: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 60,
+            left: 20,
+            right: 20,
+          ),
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: _WhiteBoardContent(
+                title: title,
+                initialItems: const [],
+                onSave: (List<String> savedItems) {
+                  print('Saved items: $savedItems');
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
 
-  const _SliderTile({
-    required this.label,
-    required this.min, required this.max,
-    required this.value,
-    required this.divisions,
-    required this.onChanged,
-    required this.sliderLabel,
+class _WhiteBoardContent extends StatefulWidget {
+  final String title;
+  final Function(List<String>) onSave;
+  final List<String> initialItems;
+
+  const _WhiteBoardContent({
+    required this.title,
+    required this.onSave,
+    this.initialItems = const [],
   });
 
   @override
-  Widget build(BuildContext context) {
-    return _GlassCard(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Theme.of(context).textTheme.titleMedium?.color)),
-          Slider(
-            min: min, max: max,
-            divisions: divisions,
-            activeColor: Theme.of(context).colorScheme.primary,
-            value: value,
-            label: sliderLabel(value), // Dynamic label shown during slider interaction
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
+  State<_WhiteBoardContent> createState() => _WhiteBoardContentState();
 }
 
-/// Common blurred card wrapper for consistent look
-class _GlassCard extends StatelessWidget {
-  final Widget child;
-  const _GlassCard({required this.child});
+class _WhiteBoardContentState extends State<_WhiteBoardContent> {
+  late List<TextEditingController> controllers;
+  late List<String> items;
+
+  @override
+  void initState() {
+    super.initState();
+    items = List.from(widget.initialItems);
+    if (items.isEmpty) {
+      items.add(''); // Start with one empty item
+    }
+    controllers = items.map((item) => TextEditingController(text: item)).toList();
+  }
+
+  @override
+  void dispose() {
+    for (var controller in controllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addNewItem() {
+    setState(() {
+      items.add('');
+      controllers.add(TextEditingController());
+    });
+  }
+
+  void _removeItem(int index) {
+    if (controllers.length > 1) {
+      setState(() {
+        controllers[index].dispose();
+        controllers.removeAt(index);
+        items.removeAt(index);
+      });
+    }
+  }
+
+  void _save() {
+    List<String> savedItems = controllers
+        .map((controller) => controller.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    widget.onSave(savedItems);
+    Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
-              border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
-              boxShadow: [
-                BoxShadow(
-                    color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3))
-              ]
-          ),
-          padding: const EdgeInsets.all(12),
-          child: child,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20), // Match the outer container
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.2),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Minimal header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+                // Minimal close button
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close,
+                      size: 20,
+                      color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Whiteboard writing area
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ListView.builder(
+                itemCount: controllers.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Minimal bullet point
+                        Container(
+                          width: 4,
+                          height: 4,
+                          margin: const EdgeInsets.only(right: 16, top: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+
+                        // Clean text input that looks like handwriting
+                        Expanded(
+                          child: TextField(
+                            controller: controllers[index],
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                              height: 1.4,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: index == 0 ? 'Start writing...' : '',
+                              hintStyle: TextStyle(
+                                color: isDark ? Colors.white.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.3),
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                              isDense: true,
+                            ),
+                            maxLines: null,
+                            textInputAction: TextInputAction.next,
+                            onSubmitted: (_) => _addNewItem(),
+                          ),
+                        ),
+
+                        // Minimal remove option (only show on long press or when text is empty)
+                        if (controllers.length > 1 && controllers[index].text.isEmpty)
+                          GestureDetector(
+                            onTap: () => _removeItem(index),
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 8, top: 8),
+                              child: Icon(Icons.remove, size: 16, color: Colors.red),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          // Bottom actions
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+            child: Row(
+              children: [
+                // Minimal add line button
+                GestureDetector(
+                  onTap: _addNewItem,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add,
+                          size: 16,
+                          color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'line',
+                          style: TextStyle(fontSize: 14, color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Simple save button
+                GestureDetector(
+                  onTap: _save,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
