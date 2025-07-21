@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/home_vm.dart';
@@ -11,7 +10,6 @@ class HomeFeed extends StatefulWidget {
 }
 
 class _HomeFeedState extends State<HomeFeed> {
-  final List<String> suggestions = ['Master DSA', 'Job hunt', 'UI/UX', 'Body building', 'Motivation', "Other"];
 
   String? selectedFocus;
 
@@ -99,45 +97,6 @@ class _HomeFeedState extends State<HomeFeed> {
     );
   }
 
-  void _handleSuggestionTap(BuildContext context ,String suggestion) {
-    final homeVM = Provider.of<HomeViewModel>(context, listen: false);
-    if (homeVM.currentFocus == null) {
-      if (suggestion.contains("Other")) {
-        _showCustomFocusDialog(context);
-      } else {
-        homeVM.setFocusGoal(suggestion);
-      }
-    }
-    return;
-  }
-
-  void _showCustomFocusDialog(BuildContext context) {
-    String customFocus = '';
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Say whatchu wanna Focus'),
-        content: TextField(
-            autofocus: true,
-            decoration: const InputDecoration(hintText: 'wanna master GenAI'),
-            onChanged: (value) => customFocus = value
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-              onPressed: () {
-                if (customFocus.trim().isNotEmpty) {
-                  Provider.of<HomeViewModel>(context, listen: false).setFocusGoal(customFocus.trim());
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Save')
-          )
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final homeVM = Provider.of<HomeViewModel>(context);   // gets all the details required on this page from Firestore
@@ -172,45 +131,20 @@ class _HomeFeedState extends State<HomeFeed> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.headlineLarge?.color),
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 36),
 
-              Text("Set a focus goal and be productive!",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodyLarge?.color)),
-
-              const SizedBox(height: 10),
-
-              Center(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 14,
-                  alignment: WrapAlignment.center,
-                  children: suggestions.map((suggestion) {
-                    final isSelected = selectedFocus == suggestion;
-                    return GestureDetector(
-                      onTap: () => _handleSuggestionTap(context, suggestion),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(50),
-                          border: Border.all(color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4) : Theme.of(context).dividerColor.withValues(alpha: 0.4)),
-                          boxShadow: [
-                            BoxShadow(color: Theme.of(context).shadowColor.withValues(alpha: 0.1), blurRadius: 6, offset: const Offset(2, 4))
-                          ],
-                        ),
-                        child: Text(
-                          suggestion,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
-                              color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+              Text(
+                "Your Focus Dashboard",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                  letterSpacing: 0.5,
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -283,7 +217,7 @@ class _InfoTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 176,
+        height: 225,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
@@ -297,7 +231,6 @@ class _InfoTile extends StatelessWidget {
           ]
         ),
         child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
@@ -308,7 +241,7 @@ class _InfoTile extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 10),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -318,7 +251,7 @@ class _InfoTile extends StatelessWidget {
                           item!,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: (item == "Focus on something" ||
                                 item == "Set a weekly goal" ||
                                 item == "Task To-Do" ||
@@ -442,18 +375,65 @@ class _WhiteBoardContent extends StatefulWidget {
 
 class _WhiteBoardContentState extends State<_WhiteBoardContent> {
   late TextEditingController controller;
+  List<TextEditingController> bulletControllers = [];
+  late bool isBulletMode;
+
   late List<String> items;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with current value or empty string
-    controller = TextEditingController(text: widget.initialValue ?? '');
+    // Check if this is "My Small Wins" for bullet mode
+    isBulletMode = widget.title == "My Small Wins";
+
+    if (isBulletMode) {
+      // Initialize bullet points
+      _initializeBulletPoints();
+    } else {
+      // Initialize with current value or empty string
+      controller = TextEditingController(text: widget.initialValue ?? '');
+    }
+  }
+
+  void _initializeBulletPoints() {
+    // Parse existing wins if any
+    if (widget.initialValue != null && widget.initialValue!.isNotEmpty) {
+      // Split by newlines and create controllers for each
+      List<String> existingWins = widget.initialValue!.split('\n').where((win) => win.trim().isNotEmpty).toList();
+
+      for (String win in existingWins) {
+        bulletControllers.add(TextEditingController(text: win.trim()));
+      }
+    }
+
+    // Always have at least one empty controller
+    if (bulletControllers.isEmpty) {
+      bulletControllers.add(TextEditingController());
+    }
+  }
+
+  void _addNewBulletPoint() {
+    setState(() {
+      bulletControllers.add(TextEditingController());
+    });
+
+    // Focus the new text field after a brief delay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (bulletControllers.isNotEmpty) {
+        FocusScope.of(context).requestFocus(FocusNode());
+      }
+    });
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    if (isBulletMode) {
+      for (var controller in bulletControllers) {
+        controller.dispose();
+      }
+    } else {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -461,13 +441,24 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
   void _save() async {
     String text = controller.text.trim();
 
+    if (isBulletMode) {
+      // Combine all bullet points
+      List<String> wins = bulletControllers
+          .map((controller) => controller.text.trim())
+          .where((text) => text.isNotEmpty)
+          .toList();
+
+      text = wins.join('\n');
+    } else {
+      text = controller.text.trim();
+    }
+
     try {
       await widget.onSave(text);
       if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      // Handle error by showing a snack bar
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save: $e')),
@@ -535,26 +526,8 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
           // Whiteboard writing area
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                controller: controller,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
-                  height: 1.4,
-                ),
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: InputDecoration(
-                  hintText: _getHintText(), // Dynamic hint based on title
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.white.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.4),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(8),
-                ),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: isBulletMode ? _buildBulletPointView(isDark) : _buildSingleTextView(isDark),
             ),
           ),
 
@@ -567,18 +540,17 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
                 GestureDetector(
                   onTap: _save,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(28),
+                      color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       'Save',
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -588,6 +560,88 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSingleTextView(bool isDark) {
+    return TextField(
+      controller: controller,
+      style: TextStyle(
+        fontSize: 16,
+        color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+        height: 1.4,
+      ),
+      maxLines: null,
+      expands: true,
+      textAlignVertical: TextAlignVertical.top,
+      decoration: InputDecoration(
+        hintText: _getHintText(),
+        hintStyle: TextStyle(
+          color: isDark ? Colors.white.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.4),
+        ),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.all(8),
+        focusedBorder: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        fillColor: Colors.transparent, // Make background transparent
+        filled: false, // Disable background fill
+      ),
+    );
+  }
+
+  Widget _buildBulletPointView(bool isDark) {
+    return ListView.builder(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      itemCount: bulletControllers.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Bullet point
+              Container(
+                margin: const EdgeInsets.only(top: 12, right: 12),
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+              ),
+
+              // Text field
+              Expanded(
+                child: TextField(
+                  controller: bulletControllers[index],
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                    height: 1.4,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: index == 0 ? 'What is your small win that ya proud of...' : 'Another win...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.4),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    fillColor: Colors.transparent, // Make background transparent
+                    filled: false, // Disable background fill
+                  ),
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: (_) => _addNewBulletPoint(),
+                  maxLines: null,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

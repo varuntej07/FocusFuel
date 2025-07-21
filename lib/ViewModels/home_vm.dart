@@ -223,7 +223,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> setTasks(String task) async {
-    if (!_isAuthenticated || task.trim().isEmpty) return;
+    if (!_isAuthenticated) return;
 
     try {
       _updateState(HomeState.loading);
@@ -240,13 +240,15 @@ class HomeViewModel extends ChangeNotifier {
       });
 
       _updateState(HomeState.success);
+
+      if (!_disposed) notifyListeners();
     } catch (e) {
       _handleError('Failed to set Tasks: $e');
     }
   }
 
   Future<void> setWins(String win) async {
-    if (!_isAuthenticated || win.trim().isEmpty) return;
+    if (!_isAuthenticated) return;
 
     try {
       _updateState(HomeState.loading);
@@ -263,6 +265,8 @@ class HomeViewModel extends ChangeNotifier {
       });
 
       _updateState(HomeState.success);
+
+      if (!_disposed) notifyListeners();
     } catch (e) {
       _handleError('Failed to set wins: $e');
     }
