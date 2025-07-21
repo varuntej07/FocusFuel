@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'shared_prefs_service.dart';
 
 class NewsService {
@@ -35,8 +36,8 @@ class NewsService {
       }
 
       throw Exception(result.data['error'] ?? 'Failed to fetch articles');
-    } catch (e) {
-      print('Error in getNewsArticles: $e');
+    } catch (error, stackTrace) {
+      _handleError('Error in getNewsArticles', error, stackTrace);
       return _prefsService.getCachedNewsArticles() ?? [];
     }
   }
@@ -72,11 +73,8 @@ class NewsService {
       // Check cache first
       final cachedSummary = _prefsService.getCachedSummary(title);
       if (cachedSummary != null) {
-        print('Using cached summary for: $title');
         return cachedSummary;
       }
-
-      print('Calling getNewsSummary for: $title');
 
       final HttpsCallable callable = _functions.httpsCallable('getNewsSummary');
 
@@ -90,7 +88,6 @@ class NewsService {
       final data = result.data as Map<String, dynamic>;
 
       if (data['success'] == true) {
-        print('Summary generated successfully');
         final summaryResult = {
           'success': true,
           'summary': data['summary'],
@@ -108,18 +105,26 @@ class NewsService {
         throw Exception(data['error'] ?? 'Failed to generate summary');
       }
 
-    } on FirebaseFunctionsException catch (e) {
-      print('Firebase Functions Error: ${e.code} - ${e.message}');
+    } on FirebaseFunctionsException catch (error, stackTrace) {
+      _handleError('Firebase Functions Error in getNewsSummary', error, stackTrace);
       return {
         'success': false,
-        'error': 'Function error: ${e.message}',
+        'error': 'Function error: ${error.message}',
       };
-    } catch (e) {
-      print('Error calling getNewsSummary: $e');
+    } catch (error, stackTrace) {
+      _handleError('Error calling getNewsSummary', error, stackTrace);
       return {
         'success': false,
-        'error': e.toString(),
+        'error': error.toString(),
       };
     }
+  }
+
+  void _handleError(String context, dynamic error, [StackTrace? stackTrace]) {
+    FirebaseCrashlytics.instance.recordError(
+        error,
+        stackTrace ?? StackTrace.current,
+        information: ['NewsService: $context']
+    );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../Services/shared_prefs_service.dart';
@@ -70,13 +71,12 @@ class HomeViewModel extends ChangeNotifier {
         clearAllUserData(); // Clear all data if not authenticated
       }
       _isInitialized = true;
-    } catch (e) {
-      _handleError('Failed to initialize HomeViewModel: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to initialize HomeViewModel', error, stackTrace);
     }
   }
 
-  /// Set up listener for authentication state changes
-  /// This ensures the ViewModel stays in sync with auth state
+  // Set up listener for authentication state changes, this ensures the ViewModel stays in sync with auth state
   void _setupAuthenticationListener() {
     FirebaseAuth.instance.authStateChanges().listen((User? user) async {
       final wasAuthenticated = _isAuthenticated;
@@ -93,7 +93,7 @@ class HomeViewModel extends ChangeNotifier {
     });
   }
 
-  /// Update authentication state and notify listeners if needed
+  // Update authentication state and notify listeners if needed
   void _updateAuthenticationState(User? user) {
     final newAuthState = user != null;      // This determines if user is authenticated
     if (_isAuthenticated != newAuthState) {
@@ -103,8 +103,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Check if goals need to be prompted
-  /// Returns true if currentFocus is missing, indicating setup is incomplete
+  // Check if goals need to be prompted and returns true if currentFocus is missing, indicating setup is incomplete
   Future<bool> shouldPromptGoals() async {
     if (!_isAuthenticated) return false;
 
@@ -117,7 +116,6 @@ class HomeViewModel extends ChangeNotifier {
 
       final data = snap.data() ?? {};
       _currentFocus = data['currentFocus'];           // may be null
-      _weeklyGoal = data['weeklyGoal'];             // may be null
 
       // Check if prompt was already shown today
       final lastPromptDate = data['lastGoalPromptDate'];
@@ -133,13 +131,13 @@ class HomeViewModel extends ChangeNotifier {
       if (!_disposed) notifyListeners();
 
       return _currentFocus == null;
-    } catch (e) {
-      _handleError('Failed to check goal status: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to show alert dialog to ask for user focus/goal', error, stackTrace);
       return false;
     }
   }
 
-  /// Mark that goal prompt was shown today
+  // Mark that goal prompt was shown today
   Future<void> markGoalPromptShown() async {
     if (!_isAuthenticated) return;
 
@@ -153,8 +151,8 @@ class HomeViewModel extends ChangeNotifier {
       await FirebaseFirestore.instance.collection('Users').doc(uid).update({
         'lastGoalPromptDate': todayString,
       });
-    } catch (e) {
-      _handleError('Failed to mark prompt shown: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to mark goal prompt as shown today', error, stackTrace);
     }
   }
 
@@ -170,12 +168,12 @@ class HomeViewModel extends ChangeNotifier {
       _streak = newStreak;
       _updateState(HomeState.success);
       if (!_disposed) notifyListeners();
-    } catch (e) {
-      _handleError('Failed to update streak: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to bump streak ', error, stackTrace);
     }
   }
 
-  /// Set focus goal, updating both local preferences and Firestore
+  // Set focus goal, updating both local preferences and Firestore
   Future<void> setFocusGoal(String focus) async {
     if (!_isAuthenticated || focus.trim().isEmpty) return;  // Check auth state first
     
@@ -193,12 +191,12 @@ class HomeViewModel extends ChangeNotifier {
       });
 
       _updateState(HomeState.success);
-    } catch (e) {
-      _handleError('Failed to set focus goal: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to set focus goal:', error, stackTrace);
     }
   }
 
-  /// Set weekly goal updating both local preferences and Firestore
+  // Set weekly goal updating both local preferences and Firestore
   Future<void> setWeeklyGoal(String goal) async {
     if (!_isAuthenticated) return;  // Check auth state first
     
@@ -217,8 +215,8 @@ class HomeViewModel extends ChangeNotifier {
 
       _updateState(HomeState.success);
 
-    } catch (e) {
-      _handleError('Failed to set weekly goal: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to set weekly goal: ', error, stackTrace);
     }
   }
 
@@ -242,8 +240,8 @@ class HomeViewModel extends ChangeNotifier {
       _updateState(HomeState.success);
 
       if (!_disposed) notifyListeners();
-    } catch (e) {
-      _handleError('Failed to set Tasks: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to set Tasks: ', error, stackTrace);
     }
   }
 
@@ -267,12 +265,12 @@ class HomeViewModel extends ChangeNotifier {
       _updateState(HomeState.success);
 
       if (!_disposed) notifyListeners();
-    } catch (e) {
-      _handleError('Failed to set wins: $e');
+    } catch (e, stackTrace) {
+      _handleError('Failed to set wins: ', e, stackTrace);
     }
   }
 
-  /// Load data from local preferences - provides immediate data access without network calls
+  // Load data from local preferences - provides immediate data access without network calls
   Future<void> loadFromPrefs() async {
     if (!_isAuthenticated) {
       clearAllUserData();
@@ -291,8 +289,8 @@ class HomeViewModel extends ChangeNotifier {
 
       _updateState(HomeState.success);
 
-    } catch (e) {
-      _handleError('Failed to load user data from preferences: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to load user data from preferences: ', error, stackTrace);
     }
   }
 
@@ -301,7 +299,6 @@ class HomeViewModel extends ChangeNotifier {
 
     try {
       final currentTimezone = await FlutterTimezone.getLocalTimezone();
-      print('Current timezone detected: $currentTimezone');
 
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
@@ -311,8 +308,8 @@ class HomeViewModel extends ChangeNotifier {
           'timezoneUpdatedAt': FieldValue.serverTimestamp(),
         });
       }
-    } catch (e) {
-      print('Timezone update failed: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to check and update timezone:', error, stackTrace);
     }
   }
 
@@ -348,10 +345,13 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Handle errors consistently across the ViewModel
-  void _handleError(String errorMessage) {
-    // TODO: Should Add proper logging here
-    print('HomeViewModel Error: $errorMessage');
+  // Handle errors consistently across the ViewModel
+  void _handleError(String context, dynamic error, [StackTrace? stackTrace]) {
+    FirebaseCrashlytics.instance.recordError(
+        error,
+        stackTrace ?? StackTrace.current,
+        information: ['HomeViewModel: $context']
+    );
     _updateState(HomeState.error);
   }
 

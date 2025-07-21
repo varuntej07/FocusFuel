@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:focus_fuel/Models/user_model.dart';
 import '../Services/shared_prefs_service.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 // ViewModel for Authorization, responsible for business logic and Auth state
 class AuthViewModel extends ChangeNotifier {
@@ -60,9 +61,8 @@ class AuthViewModel extends ChangeNotifier {
       } else {
         _state = AuthState.unauthenticated;
       }
-    } catch (e) {
-      _errorMessage = 'Failed to load user data';
-      _state = AuthState.error;
+    } catch (error, stackTrace) {
+      _handleError('Failed to load user data', error, stackTrace);
     }
   }
 
@@ -180,12 +180,20 @@ class AuthViewModel extends ChangeNotifier {
       );
 
       await _cacheUser();
+
       _errorMessage = null;
       _state = AuthState.authenticated;
+
       return credential.user;
-    } catch (e) {
-      _errorMessage = "Registration failed. Try again.";
-      _state = AuthState.error;
+    } catch (error, stackTrace) {
+      if (error is FirebaseAuthException) {
+        _errorMessage = _mapFirebaseError(error);
+        _state = AuthState.error;
+
+        notifyListeners();
+      } else {
+        _handleError('Registration failed', error, stackTrace);
+      }
       return null;
     } finally {
       _stopLoading();
@@ -210,9 +218,9 @@ class AuthViewModel extends ChangeNotifier {
       
       _clearForm();
       _clearUserData();
-    } catch (e) {
-      _errorMessage = 'Failed to logout';
-      _state = AuthState.error;
+
+    } catch (error, stackTrace) {
+      _handleError('Failed to logout', error, stackTrace);
     } finally {
       _stopLoading();
     }
@@ -230,10 +238,10 @@ class AuthViewModel extends ChangeNotifier {
         'issueDescription': issueDescription.trim(),
         'timestamp': FieldValue.serverTimestamp(),
       });
+
       _errorMessage = null;
-    } catch (e) {
-      _errorMessage = 'Failed to send support message. Please try again.';
-      _state = AuthState.error;
+    } catch (error, stackTrace) {
+      _handleError('Failed to send support message', error, stackTrace);
     } finally {
       _stopLoading();
     }
@@ -256,6 +264,17 @@ class AuthViewModel extends ChangeNotifier {
       default:
         return e.message ?? 'Authentication error occurred. Please try again later';
     }
+  }
+
+  void _handleError(String context, dynamic error, [StackTrace? stackTrace]) {
+    FirebaseCrashlytics.instance.recordError(
+        error,
+        stackTrace ?? StackTrace.current,
+        information: ['AuthViewModel: $context']
+    );
+    _errorMessage = 'Something went wrong. Please try again.';
+    _state = AuthState.error;
+    notifyListeners();
   }
 }
 

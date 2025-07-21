@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../Models/chat_model.dart';
@@ -35,8 +36,8 @@ class ChatViewModel extends ChangeNotifier {
       if (!_disposed) {
         notifyListeners();
       }
-    } catch (e) {
-      print('Error initializing conversation: $e');
+    } catch (error, stackTrace) {
+      FirebaseCrashlytics.instance.recordError(error, stackTrace, information: ['Failed to initialize with latest conversation']);
     }
   }
 
@@ -68,8 +69,8 @@ class ChatViewModel extends ChangeNotifier {
 
     try {
       await _chatService.sendMessage(message, _currentConversationId!);
-    } catch (e) {
-      print('Error sending message: $e');
+    } catch (error, stackTrace) {
+      FirebaseCrashlytics.instance.recordError(error, stackTrace, information: ['Error sending message: $message']);
     } finally {
       _isSending = false;
       notifyListeners();
@@ -94,8 +95,8 @@ class ChatViewModel extends ChangeNotifier {
 
     try {
       await _chatService.retryMessage(originalMessage, _currentConversationId!);
-    } catch (e) {
-      print('Error retrying message: $e');
+    } catch (e, stackTrace) {
+      FirebaseCrashlytics.instance.recordError(e, stackTrace, information: ['Error retrying to send a message: $originalMessage']);
     } finally {
       _isSending = false;
       notifyListeners();

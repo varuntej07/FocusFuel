@@ -45,8 +45,7 @@ class _HomeFeedState extends State<HomeFeed> {
 
   void _promptForGoals(BuildContext ctx) {
     String todayGoal = '';
-    String weekGoal  = '';
-    final homeVM =  ctx.read<HomeViewModel>();
+    final homeVM = ctx.read<HomeViewModel>();
 
     // Mark that prompt was shown today
     homeVM.markGoalPromptShown();
@@ -68,11 +67,6 @@ class _HomeFeedState extends State<HomeFeed> {
               ),
               onChanged: (v) => todayGoal = v,
             ),
-            const SizedBox(height: 12),
-            TextField(
-              decoration: const InputDecoration(labelText: "Weekly goal (optional)"),
-              onChanged: (v) => weekGoal = v,
-            ),
           ],
         ),
         actions: [
@@ -84,9 +78,6 @@ class _HomeFeedState extends State<HomeFeed> {
             onPressed: () {
               if (todayGoal.trim().isNotEmpty) {
                 homeVM.setFocusGoal(todayGoal.trim());
-              }
-              if (weekGoal.trim().isNotEmpty || weekGoal.trim().isEmpty) {
-                homeVM.setWeeklyGoal(weekGoal.trim());
               }
               Navigator.pop(ctx);
             },

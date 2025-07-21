@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../Models/chat_model.dart';
 import '../Models/conversation_model.dart';
 import '../Models/notification_model.dart';
@@ -31,7 +32,8 @@ class ChatService {
         }
       }
       return null;
-    } catch (e) {
+    } catch (error, stackTrace) {
+      _handleError('Failed to get latest conversation ID', error, stackTrace);
       return null;
     }
   }
@@ -59,7 +61,9 @@ class ChatService {
     if (userId == null) throw Exception('User not authenticated');
 
     // Generate a unique request ID to prevent duplicates
-    final requestId = '${DateTime.now().millisecondsSinceEpoch}_$userId';
+    final requestId = '${DateTime
+        .now()
+        .millisecondsSinceEpoch}_$userId';
 
 
     // Create user message document in the Messages sub-collection
@@ -72,7 +76,7 @@ class ChatService {
       'timestamp': FieldValue.serverTimestamp(),
       'role': 'user',
       'isFirstMessage': false,
-      'requestId': requestId,  // request ID to track this message
+      'requestId': requestId, // request ID to track this message
     });
 
     // Update conversation's lastMessageAt
@@ -80,20 +84,20 @@ class ChatService {
       'lastMessageAt': FieldValue.serverTimestamp(),
     });
 
-   // Creating GPT request document in the /GptRequests sub-collection so that cloud function can process it
+    // Creating GPT request document in the /GptRequests sub-collection so that cloud function can process it
     try {
       await _firestore.collection('GptRequests')
           .add({
         'messageId': messageRef.id,
         'conversationId': conversationId,
         'content': message,
-        'userId': userId,  // Includes userId for Cloud Function
+        'userId': userId, // Includes userId for Cloud Function
         'createdAt': FieldValue.serverTimestamp(),
         'status': 'pending',
-        'requestId': requestId,  // Use same ID to link request and message
+        'requestId': requestId, // Use same ID to link request and message
       });
-    } catch (e) {
-      print('Error creating GPT request: $e');
+    } catch (error, stackTrace) {
+      _handleError('Error creating GPT request', error, stackTrace);
       // Update the message status to failed
       await messageRef.update({
         'status': 'failed',
@@ -152,8 +156,8 @@ class ChatService {
           .get();
 
       return snapshot.docs.length;
-    } catch (e) {
-      print('Error getting message count: $e');
+    } catch (error, stackTrace) {
+      _handleError('Error getting message count', error, stackTrace);
       return 0;
     }
   }
@@ -171,8 +175,18 @@ class ChatService {
         return NotificationModel.fromFirestore(doc);
       }
       return null;
-    } catch (e) {
+    } catch (error, stackTrace) {
+      _handleError('Failed to get notification', error, stackTrace);
       return null;
     }
+  }
+
+  // centralized error handler method to catch all errors in the app and send to crashlytics
+  void _handleError(String context, dynamic error, [StackTrace? stackTrace]) {
+    FirebaseCrashlytics.instance.recordError(
+        error,
+        stackTrace ?? StackTrace.current,
+        information: ['ChatService: $context']
+    );
   }
 }

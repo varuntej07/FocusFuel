@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../Services/news_service.dart';
 import '../Services/shared_prefs_service.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 enum NewsLoadingState { idle, loading, loaded, error, refreshing }
 
@@ -46,8 +47,8 @@ class NewsFeedViewModel extends ChangeNotifier {
         await loadNewsFeed();     // starts actual news loading
       }
 
-    } catch (e) {
-      _handleError('Failed to initialize: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to initialize NewsFeedViewModel: ', error, stackTrace);
     }
   }
 
@@ -131,8 +132,8 @@ class NewsFeedViewModel extends ChangeNotifier {
 
       _setLoadingState(NewsLoadingState.loaded);
 
-    } catch (e) {
-      _handleError('Failed to load articles: $e');
+    } catch (error, stackTrace) {
+      _handleError('Failed to load articles:', error, stackTrace);
     }
   }
 
@@ -175,9 +176,16 @@ class NewsFeedViewModel extends ChangeNotifier {
     _errorMessage = null;
   }
 
-  void _handleError(String error) {
+  void _handleError(String context, dynamic error, [StackTrace? stackTrace]) {
     if (_isDisposed) return;
-    _errorMessage = error;
+
+    FirebaseCrashlytics.instance.recordError(
+        error,
+        stackTrace ?? StackTrace.current,
+        information: ['NewsFeedViewModel: $context']
+    );
+
+    _errorMessage = 'Something went wrong. Please try again.';
     _setLoadingState(NewsLoadingState.error);
   }
 }

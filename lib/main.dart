@@ -18,6 +18,8 @@ import 'Views/screens/main_scaffold.dart';
 import 'firebase_options.dart';
 import 'Services/chat_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'dart:ui';
 
 final GlobalKey<NavigatorState> navigationKey = GlobalKey<NavigatorState>();
 
@@ -29,6 +31,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Crashlytics
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    return true;
+  };
 
   final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -124,7 +134,7 @@ void _trackNotificationEvent(String eventType, RemoteMessage message) {
       if (eventType == 'opened') 'clicked': true,
       if (eventType == 'opened') 'clickedAt': FieldValue.serverTimestamp(),
     }).catchError((error) {
-      print('Failed to track notification event: $error');
+      FirebaseCrashlytics.instance.recordError(error, StackTrace.current, information: ['Failed to track notification event']);
     });
   }
 }
