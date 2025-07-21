@@ -29,7 +29,7 @@ class ConversationModel {
       startedAt: (data['startedAt'] as Timestamp).toDate(),
       lastMessageAt: data['lastMessageAt']?.toDate(),
       notificationId: data['notificationId'],
-      userFocus: data['userFocus'],
+      userFocus: data['userFocus'] ?? "Not set",
       weeklyGoal: data['weeklyGoal'],
       status: data['status'] ?? 'active',
     );

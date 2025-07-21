@@ -145,6 +145,8 @@ class _HomeFeedState extends State<HomeFeed> {
     final streak = homeVM.streak;
     final selectedFocus = homeVM.currentFocus ?? "Focus on something";
     final weeklyGoal = homeVM.weeklyGoal ?? "Set a weekly goal";
+    final task = homeVM.usersTask;
+    final wins = homeVM.wins;
 
     return Scaffold(
       body: SafeArea(
@@ -227,7 +229,7 @@ class _HomeFeedState extends State<HomeFeed> {
                         Expanded(
                           child: _InfoTile(
                             title: "Task To-Do",
-                            item: 'taskToDo',
+                            item: task,
                             onTap: () => _showWhiteBoard(context, "Task To-Do",),
                           ),
                         ),
@@ -249,7 +251,7 @@ class _HomeFeedState extends State<HomeFeed> {
                         Expanded(
                           child: _InfoTile(
                             title: "My Small Wins",
-                            items: ["Nothing yet"],
+                            items: [wins ?? "No wins yet"],
                             onTap: () => _showWhiteBoard(context, "My Small Wins",),
                           ),
                         ),
@@ -304,6 +306,7 @@ class _InfoTile extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).textTheme.titleMedium?.color,
                 ),
+                textAlign: TextAlign.center,
               ),
               SizedBox(height: 8),
               Expanded(
@@ -316,7 +319,18 @@ class _InfoTile extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                            color: (item == "Focus on something" ||
+                                item == "Set a weekly goal" ||
+                                item == "Task To-Do" ||
+                                item == "My Small Wins")
+                                ? Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5)
+                                : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                            fontStyle: (item == "Focus on something" ||
+                                item == "Set a weekly goal" ||
+                                item == "Task To-Do" ||
+                                item == "My Small Wins")
+                                ? FontStyle.italic
+                                : FontStyle.normal,
                           ),
                         )
                       else if (items != null)
@@ -343,44 +357,69 @@ class _InfoTile extends StatelessWidget {
 }
 
 void _showWhiteBoard(BuildContext context, String title) {
-  showDialog(
+  final homeVM = Provider.of<HomeViewModel>(context, listen: false);
+
+  // Get current value based on title
+  String? currentValue;
+
+  if (title == "Today's Focus") {
+    currentValue = homeVM.currentFocus;
+  } else if (title == "Weekly Goal") {
+    currentValue = homeVM.weeklyGoal;
+  } else if (title == "Task To-Do") {
+    currentValue = homeVM.usersTask;
+  } else if (title == "My Small Wins") {
+    currentValue = homeVM.wins;
+  }
+
+  showGeneralDialog(
     context: context,
     barrierDismissible: true,
     barrierColor: Colors.black.withValues(alpha: 0.6),
-    builder: (BuildContext context) {
-      return Align(
-        alignment: Alignment.topCenter,
-        child: Container(
-          margin: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 60,
-            left: 20,
-            right: 20,
-          ),
-          height: MediaQuery.of(context).size.height * 0.6,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    transitionDuration: const Duration(milliseconds: 200),
+    pageBuilder: (context, animation, secondaryAnimation) {
+      return  Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 60,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20, // This handles keyboard
+        ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            height: 350,
+            child: Material(
+              color: Colors.transparent,
               child: _WhiteBoardContent(
                 title: title,
-                initialItems: const [],
-                onSave: (List<String> savedItems) {
-                  print('Saved items: $savedItems');
-                },
+                initialValue: currentValue, // Pass current value
+                onSave: (String savedText) async {
+                  // Save based on title
+                  if (title == "Today's Focus") {
+                    await homeVM.setFocusGoal(savedText);
+                  } else if (title == "Weekly Goal") {
+                    await homeVM.setWeeklyGoal(savedText);
+                  } else if (title == "Task To-Do") {
+                    await homeVM.setTasks(savedText);
+                  } else if (title == "My Small Wins") {
+                    await homeVM.setWins(savedText);
+                  }
+                }
               ),
             ),
           ),
         ),
+      );
+    },
+    transitionBuilder: (context, animation, secondaryAnimation, child) {
+      return ScaleTransition(
+        scale: CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        ),
+        child: child,
       );
     },
   );
@@ -388,13 +427,13 @@ void _showWhiteBoard(BuildContext context, String title) {
 
 class _WhiteBoardContent extends StatefulWidget {
   final String title;
-  final Function(List<String>) onSave;
-  final List<String> initialItems;
+  final Function(String) onSave;
+  final String? initialValue;
 
   const _WhiteBoardContent({
     required this.title,
     required this.onSave,
-    this.initialItems = const [],
+    this.initialValue,
   });
 
   @override
@@ -402,51 +441,39 @@ class _WhiteBoardContent extends StatefulWidget {
 }
 
 class _WhiteBoardContentState extends State<_WhiteBoardContent> {
-  late List<TextEditingController> controllers;
+  late TextEditingController controller;
   late List<String> items;
 
   @override
   void initState() {
     super.initState();
-    items = List.from(widget.initialItems);
-    if (items.isEmpty) {
-      items.add(''); // Start with one empty item
-    }
-    controllers = items.map((item) => TextEditingController(text: item)).toList();
+    // Initialize with current value or empty string
+    controller = TextEditingController(text: widget.initialValue ?? '');
   }
 
   @override
   void dispose() {
-    for (var controller in controllers) {
-      controller.dispose();
-    }
+    controller.dispose();
     super.dispose();
   }
 
-  void _addNewItem() {
-    setState(() {
-      items.add('');
-      controllers.add(TextEditingController());
-    });
-  }
 
-  void _removeItem(int index) {
-    if (controllers.length > 1) {
-      setState(() {
-        controllers[index].dispose();
-        controllers.removeAt(index);
-        items.removeAt(index);
-      });
+  void _save() async {
+    String text = controller.text.trim();
+
+    try {
+      await widget.onSave(text);
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      // Handle error by showing a snack bar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
+      }
     }
-  }
-
-  void _save() {
-    List<String> savedItems = controllers
-        .map((controller) => controller.text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-    widget.onSave(savedItems);
-    Navigator.of(context).pop();
   }
 
   @override
@@ -472,7 +499,6 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
       ),
       child: Column(
         children: [
-          // Minimal header
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
             child: Row(
@@ -481,14 +507,16 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
                   child: Text(
                     widget.title,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
                       letterSpacing: 0.3,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                // Minimal close button
+
+                // close button
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: Container(
@@ -507,113 +535,50 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
           // Whiteboard writing area
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: ListView.builder(
-                itemCount: controllers.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Minimal bullet point
-                        Container(
-                          width: 4,
-                          height: 4,
-                          margin: const EdgeInsets.only(right: 16, top: 12),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.3),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-
-                        // Clean text input that looks like handwriting
-                        Expanded(
-                          child: TextField(
-                            controller: controllers[index],
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
-                              height: 1.4,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: index == 0 ? 'Start writing...' : '',
-                              hintStyle: TextStyle(
-                                color: isDark ? Colors.white.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.3),
-                                fontSize: 16,
-                                fontStyle: FontStyle.italic,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                              isDense: true,
-                            ),
-                            maxLines: null,
-                            textInputAction: TextInputAction.next,
-                            onSubmitted: (_) => _addNewItem(),
-                          ),
-                        ),
-
-                        // Minimal remove option (only show on long press or when text is empty)
-                        if (controllers.length > 1 && controllers[index].text.isEmpty)
-                          GestureDetector(
-                            onTap: () => _removeItem(index),
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8, top: 8),
-                              child: Icon(Icons.remove, size: 16, color: Colors.red),
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                controller: controller,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                  height: 1.4,
+                ),
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: InputDecoration(
+                  hintText: _getHintText(), // Dynamic hint based on title
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white.withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.4),
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(8),
+                ),
               ),
             ),
           ),
 
           // Bottom actions
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.end, // Align to right
               children: [
-                // Minimal add line button
-                GestureDetector(
-                  onTap: _addNewItem,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add,
-                          size: 16,
-                          color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'line',
-                          style: TextStyle(fontSize: 14, color: isDark ? Colors.white.withValues(alpha: 0.6) : Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Simple save button
                 GestureDetector(
                   onTap: _save,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(28),
                     ),
                     child: Text(
                       'Save',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black.withValues(alpha: 0.8),
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -624,5 +589,20 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
         ],
       ),
     );
+  }
+
+  String _getHintText() {
+    switch (widget.title) {
+      case "Today's Focus":
+        return "What's your main focus today?";
+      case "Weekly Goal":
+        return "What do you want to achieve this week?";
+      case "Task To-Do":
+        return "What tasks need to be completed?";
+      case "My Small Wins":
+        return "What small victories have you achieved?";
+      default:
+        return "Start writing...";
+    }
   }
 }

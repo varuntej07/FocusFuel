@@ -75,6 +75,22 @@ class SharedPreferencesService {
     return _preferences?.getString('weeklyGoal');
   }
 
+  Future<void> saveUsersTask(String task) async {
+    await _preferences?.setString('usersTask', task);
+  }
+
+  String? getUsersTask() {
+    return _preferences?.getString('usersTask');
+  }
+
+  Future<void> saveWins(String win) async {
+    await _preferences?.setString('wins', win);
+  }
+
+  String? getWins() {
+    return _preferences?.getString('wins');
+  }
+
   Future<void> saveNotificationInterval(int interval) async {
     await _preferences?.setInt('notificationInterval', interval);
   }

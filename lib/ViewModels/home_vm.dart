@@ -22,6 +22,8 @@ class HomeViewModel extends ChangeNotifier {
   String? _currentFocus;
   String _mood = _defaultMood;
   String? _weeklyGoal;
+  String? _usersTask;
+  String? _wins;
 
   // Getters
   String get username => _isAuthenticated ? (_username ?? _defaultUsername) : _defaultUsername;
@@ -29,6 +31,8 @@ class HomeViewModel extends ChangeNotifier {
   String get mood => _mood;
   String? get currentFocus => _isAuthenticated ? _currentFocus : null;
   String? get weeklyGoal => _isAuthenticated ? _weeklyGoal : null;
+  String? get usersTask => _isAuthenticated ? _usersTask : null;
+  String? get wins => _isAuthenticated ? _wins : null;
 
   HomeState get state => _state;
   bool get isAuthenticated => _isAuthenticated;
@@ -171,8 +175,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Set focus goal
-  /// This updates both local preferences and Firestore
+  /// Set focus goal, updating both local preferences and Firestore
   Future<void> setFocusGoal(String focus) async {
     if (!_isAuthenticated || focus.trim().isEmpty) return;  // Check auth state first
     
@@ -195,8 +198,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Set weekly goal
-  /// This updates both local preferences and Firestore
+  /// Set weekly goal updating both local preferences and Firestore
   Future<void> setWeeklyGoal(String goal) async {
     if (!_isAuthenticated) return;  // Check auth state first
     
@@ -220,8 +222,53 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  /// Load data from local preferences
-  /// This provides immediate data access without network calls
+  Future<void> setTasks(String task) async {
+    if (!_isAuthenticated || task.trim().isEmpty) return;
+
+    try {
+      _updateState(HomeState.loading);
+
+      final usersTask = task.trim();
+
+      await _prefsService.saveUsersTask(usersTask);
+
+      _usersTask = usersTask.isEmpty ? null : usersTask;
+
+      await _mergeIntoUserDoc({
+        'usersTask': _usersTask,
+        'usersTaskUpdatedAt': FieldValue.serverTimestamp()
+      });
+
+      _updateState(HomeState.success);
+    } catch (e) {
+      _handleError('Failed to set Tasks: $e');
+    }
+  }
+
+  Future<void> setWins(String win) async {
+    if (!_isAuthenticated || win.trim().isEmpty) return;
+
+    try {
+      _updateState(HomeState.loading);
+
+      final wins = win.trim();
+
+      await _prefsService.saveWins(wins);
+
+      _wins = wins.isEmpty ? null : wins;
+
+      await _mergeIntoUserDoc({
+        'wins': _wins,
+        'winsUpdatedAt': FieldValue.serverTimestamp()
+      });
+
+      _updateState(HomeState.success);
+    } catch (e) {
+      _handleError('Failed to set wins: $e');
+    }
+  }
+
+  /// Load data from local preferences - provides immediate data access without network calls
   Future<void> loadFromPrefs() async {
     if (!_isAuthenticated) {
       clearAllUserData();
@@ -235,6 +282,8 @@ class HomeViewModel extends ChangeNotifier {
       _streak = _prefsService.getStreak() ?? _defaultStreak;
       _currentFocus = _prefsService.getCurrentFocus();
       _weeklyGoal = _prefsService.getWeeklyGoal();
+      _usersTask = _prefsService.getUsersTask();
+      _wins = _prefsService.getWins();
 
       _updateState(HomeState.success);
 
@@ -281,6 +330,8 @@ class HomeViewModel extends ChangeNotifier {
     _streak = _defaultStreak;
     _mood = _defaultMood;
     _weeklyGoal = null;
+    _usersTask = null;
+    _wins = null;
     _updateState(HomeState.initial);
   }
 
