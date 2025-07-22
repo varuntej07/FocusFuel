@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:focus_fuel/Views/screens/task_enhancement_dialogs.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/home_vm.dart';
 
@@ -20,6 +21,22 @@ class _HomeFeedState extends State<HomeFeed> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         final homeVM = context.read<HomeViewModel>();
+
+        homeVM.setShowDialogCallback((quote, task, questions, onSubmit) {
+          if (mounted) {          // This is the actual callback that shows the dialog
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return TaskEnhancementDialog(
+                  quote: quote,
+                  task: task,
+                  questions: questions, // Might be null initially
+                  onAnswersSubmitted: onSubmit, // Points to _saveTaskAnswers in ViewModel
+                );
+              },
+            );
+          }
+        });
 
         // Wait for initialization
         while (!homeVM.isInitialized) {
@@ -155,7 +172,7 @@ class _HomeFeedState extends State<HomeFeed> {
                           child: _InfoTile(
                             title: "Task To-Do",
                             item: task,
-                            onTap: () => _showWhiteBoard(context, "Task To-Do",),
+                            onTap: () => _showWhiteBoard(context, "Task To-Do",),   // Opens whiteboard dialog
                           ),
                         ),
                       ],
@@ -226,7 +243,7 @@ class _InfoTile extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).textTheme.titleMedium?.color,
                 ),
@@ -242,7 +259,7 @@ class _InfoTile extends StatelessWidget {
                           item!,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 14,
                             color: (item == "Focus on something" ||
                                 item == "Set a weekly goal" ||
                                 item == "Task To-Do" ||
@@ -281,7 +298,7 @@ class _InfoTile extends StatelessWidget {
 }
 
 void _showWhiteBoard(BuildContext context, String title) {
-  final homeVM = Provider.of<HomeViewModel>(context, listen: false);
+  final homeVM = Provider.of<HomeViewModel>(context, listen: false);      // Gets ViewModel instance
 
   // Get current value based on title
   String? currentValue;
@@ -430,7 +447,7 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
 
 
   void _save() async {
-    String text = controller.text.trim();
+    String text = controller.text.trim();       // Gets the task text from TextField
 
     if (isBulletMode) {
       // Combine all bullet points
@@ -445,8 +462,15 @@ class _WhiteBoardContentState extends State<_WhiteBoardContent> {
     }
 
     try {
+      if (widget.title == "Task To-Do" && text.isNotEmpty && mounted) {
+        Navigator.of(context).pop(); // Close whiteboard first only for Task To-Do, to show following dialogs with questions
+      }
+
+      // Calls the onSave callback passed from _showWhiteBoard and triggers homeVM.setTasks(text)
       await widget.onSave(text);
-      if (mounted) {
+
+      // For other types, close after saving
+      if (widget.title != "Task To-Do" && mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {

@@ -105,14 +105,6 @@ class OnboardingViewModel extends ChangeNotifier {
     'Resources'
   ];
 
-  final List<String> notificationTimeOptions = [
-    'Morning (8-11 AM)',
-    'Mid-day (12-4 PM)',
-    'Evening (6-9 PM)',
-    'Night (9-2 AM)',
-    'Random times'
-  ];
-
   // Selection methods
   void selectScreenTime(String screenTime) {
     _selectedScreenTime = screenTime;
@@ -131,7 +123,7 @@ class OnboardingViewModel extends ChangeNotifier {
       final subInterests = specificInterestsMap[interest] ?? [];
       _selectedSubInterests.removeWhere((sub) => subInterests.contains(sub));
     } else {
-      if (_selectedPrimaryInterests.length < 5) {
+      if (_selectedPrimaryInterests.length < 7) {
         _selectedPrimaryInterests.add(interest);
       }
     }
@@ -142,7 +134,7 @@ class OnboardingViewModel extends ChangeNotifier {
     if (_selectedSubInterests.contains(subInterest)) {
       _selectedSubInterests.remove(subInterest);
     } else {
-      if (_selectedSubInterests.length < 7) {
+      if (_selectedSubInterests.length < 10) {
         _selectedSubInterests.add(subInterest);
       }
     }

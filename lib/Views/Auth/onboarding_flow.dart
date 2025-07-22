@@ -345,14 +345,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
             const SizedBox(height: 32),
 
-            _buildQuestionSection(
-              title: 'When would you like to receive productivity nudges?',
-              options: vm.notificationTimeOptions,
-              selectedValue: vm.selectedNotificationTime,
-              onSelect: vm.selectNotificationTime,
-            ),
-
-            const SizedBox(height: 32),
             _buildActionButtons(vm, isLastStep: true),
           ],
         ),

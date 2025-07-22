@@ -5,6 +5,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../Services/shared_prefs_service.dart';
 import '../Services/streak_repo.dart';
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:math';
+import 'package:cloud_functions/cloud_functions.dart';
 
 /// HomeViewModel manages the home screen state and user data
 class HomeViewModel extends ChangeNotifier {
@@ -220,6 +224,37 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  bool _isGeneratingQuestions = false;      // Flag to track if questions are being generated
+  bool get isGeneratingQuestions => _isGeneratingQuestions;
+
+  final List<String> _taskQuotes = [
+    "The secret of getting ahead is getting started.",
+    "You are never too old to set another goal or to dream a new dream.",
+    "It always seems impossible until it's done.",
+    "The only way to do great work is to love what you do",
+    "Your limitation—it's only your imagination.",
+    "Great things never come from comfort zones.",
+    "Dream it. Wish it. Do it.",
+    "Success doesn't just find you. You have to go out and get it.",
+    "The harder you work for something, the greater you'll feel when you achieve it.",
+    "Don't stop when you're tired. Stop when you're done.",
+    "Wake up with determination. Go to bed with satisfaction.",
+    "Do something today that your future self will thank you for.",
+    "It's going to be hard, but hard does not mean impossible.",
+    "Sometimes we're tested not to show our weaknesses, but to discover our strengths.",
+    "The key to success is to focus on goals, not obstacles.",
+    "You don't need to see the whole staircase, just take the first step.",
+    "The distance between dreams and reality is called action.",
+    "Success is what happens after you've survived all your mistakes.",
+    "Discipline is the bridge between goals and accomplishment.",
+    "The only limit to our realization of tomorrow will be our doubts of today.",
+    "Start where you are. Use what you have. Do what you can.",
+    "If you want something you've never had, you must be willing to do something you've never done."
+  ];
+
+  Map<String, dynamic>? _taskQuestions;
+  Map<String, dynamic>? get taskQuestions => _taskQuestions;    // so the dialog can access questions
+
   Future<void> setTasks(String task) async {
     if (!_isAuthenticated) return;
 
@@ -228,10 +263,11 @@ class HomeViewModel extends ChangeNotifier {
 
       final usersTask = task.trim();
 
-      await _prefsService.saveUsersTask(usersTask);
+      await _prefsService.saveUsersTask(usersTask);     // Updating local preferences first
 
       _usersTask = usersTask.isEmpty ? null : usersTask;
 
+      // then updating Firestore with task and timestamp
       await _mergeIntoUserDoc({
         'usersTask': _usersTask,
         'usersTaskUpdatedAt': FieldValue.serverTimestamp()
@@ -239,11 +275,164 @@ class HomeViewModel extends ChangeNotifier {
 
       _updateState(HomeState.success);
 
+      // Show enhancement dialog only if task is not empty
+      if (_usersTask != null && _usersTask!.isNotEmpty) {
+        await _showTaskEnhancementDialog();       // Show the dialog first with quote only
+
+        // generating questions in the background to avoid blocking UI (no need to await)
+        _isGeneratingQuestions = true;
+        _generateTaskQuestions().then((_) {
+          _isGeneratingQuestions = false;
+          if (!_disposed) notifyListeners();      // Updates any listeners (like the dialog)
+        }).catchError((error, stackTrace) {
+          _handleError('Failed to generate task questions', error, stackTrace);
+          _isGeneratingQuestions = false;
+          _taskQuestions = null;
+          if (!_disposed) notifyListeners();
+        });
+      }
       if (!_disposed) notifyListeners();
     } catch (error, stackTrace) {
       _handleError('Failed to set Tasks: ', error, stackTrace);
     }
   }
+
+  // Show task enhancement dialog with a quote
+  Future<void> _showTaskEnhancementDialog() async {
+    final random = Random();
+    final quote = _taskQuotes[random.nextInt(_taskQuotes.length)];
+
+    _showTaskDialog(quote);     // using the callback to show the dialog with the quote
+  }
+
+  Function(String, String, Map<String, dynamic>?, Function(Map<String, String>))? _showDialogCallback;
+
+  // Show task enhancement dialog via callback
+  void _showTaskDialog(String quote) {
+    if (_showDialogCallback != null) {
+      // Calls the callback with current data (questions might be null at this point)
+      _showDialogCallback!(quote, _usersTask!, _taskQuestions, _saveTaskAnswers);
+    }
+  }
+
+  // Set the callback method for showing the task enhancement dialog
+  void setShowDialogCallback(Function(String, String, Map<String, dynamic>?, Function(Map<String, String>)) callback) {
+    _showDialogCallback = callback;
+  }
+
+  // Generate questions using OpenAI (runs in background)
+  Future<void> _generateTaskQuestions() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        _taskQuestions = null;
+        return;
+      }
+
+      // calls GPT defined in Firebase Functions with timeout and proper options
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'generateTaskQuestions',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+      );
+
+      final result = await callable.call({
+        'prompt': '''
+                  Task: $_usersTask
+                  Generate exactly 3 strategic questions with 4 multiple choice options each.
+                  Focus on: experience level, specific goals, and one contextual question.
+                  Make options cover 100% of possible answers.
+                  No markdown, No explanation, Strictly return only JSON format with questions and options arrays.
+                '''
+      });
+
+      // Parsing the response from GPT
+      if (result.data != null && result.data is Map<String, dynamic>) {
+        final data = result.data as Map<String, dynamic>;
+
+        if (data['success'] == true && data['response'] != null) {
+          _taskQuestions = jsonDecode(data['response']);        // Store questions in ViewModel
+          // notifyListeners() is called in the .then() block of setTasks
+        }
+      }
+    } on FirebaseFunctionsException catch (e) {
+      _handleError('Firebase Functions Error: ${e.code}', e);
+      _taskQuestions = null;
+    } catch (error, stackTrace) {
+      _handleError('Failed to call OpenAI for task questions', error, stackTrace);
+      _taskQuestions = null;
+    }
+  }
+
+  // Save task answers to Firestore
+  Future<void> _saveTaskAnswers(Map<String, String> answers) async {
+    if (!_isAuthenticated) return;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      // Generate summarized task profile from user' answers to his task
+      final taskProfile = await generateUserTaskProfile(answers);
+
+      await FirebaseFirestore.instance.collection('UserTasks').add({
+        'userId': uid,
+        'task': _usersTask,
+        'profile': taskProfile,         // AI-generated summary of users knowledge on the task he is about to work on
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      // Clear questions from memory
+      _taskQuestions = null;
+
+    } catch (error, stackTrace) {
+      _handleError('Failed to save task answers', error, stackTrace);
+    }
+  }
+
+  Future<String> generateUserTaskProfile(Map<String, String> answers) async {
+    try {
+      // Another Firebase Function call to GPT for generating task profile
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'generateTaskQuestions',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+      );
+
+      String formattedQA = '';
+      if (_taskQuestions != null && _taskQuestions!['questions'] != null) {
+        final questions = _taskQuestions!['questions'] as List;
+        questions.asMap().forEach((index, q) {
+          final answer = answers['question_$index'] ?? 'No answer';
+          formattedQA += 'Q${index + 1}: ${q['question']}\n';
+          formattedQA += 'A${index + 1}: $answer\n\n';
+        });
+      }
+
+      final result = await callable.call({
+        'prompt': '''
+          'task': $_usersTask,
+          'user responses': $formattedQA
+          Based on the task and user's answers, create a concise profile (max 100 words) that captures:
+          1. User's experience level
+          2. Specific goals
+          3. Context and constraints
+          4. Key preferences
+          
+          No markdown, No special characters, Just the summary.. Format as a small paragraph that can be used for generating personalized notifications later,
+        '''
+      });
+
+      if (result.data != null && result.data['success'] == true && result.data['response'] != null) {
+        return result.data['response'].toString();
+      }
+
+      throw Exception('Invalid response from generateTaskProfile');
+
+    } catch (error, stackTrace) {
+      _handleError('Failed to generate task profile', error, stackTrace);
+      rethrow;    // Re-throw to handle it in _saveTaskAnswers
+    }
+  }
+
 
   Future<void> setWins(String win) async {
     if (!_isAuthenticated) return;
