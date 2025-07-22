@@ -21,7 +21,7 @@ class HomeViewModel extends ChangeNotifier {
   bool _isAuthenticated = false;
   bool _disposed = false;
 
-  // User data
+  // private instance variables of this class that holds the current user's data
   String? _username;
   int _streak = _defaultStreak;
   String? _currentFocus;
@@ -30,7 +30,7 @@ class HomeViewModel extends ChangeNotifier {
   String? _usersTask;
   String? _wins;
 
-  // Getters
+  // Getters for the private variables
   String get username => _isAuthenticated ? (_username ?? _defaultUsername) : _defaultUsername;
   int get streak => _isAuthenticated ? _streak : 0;
   String get mood => _mood;
@@ -261,37 +261,41 @@ class HomeViewModel extends ChangeNotifier {
     try {
       _updateState(HomeState.loading);
 
-      final usersTask = task.trim();
+      final usersTask = task.trim();      // local variable to avoid unnecessary updates
 
-      await _prefsService.saveUsersTask(usersTask);     // Updating local preferences first
+      // Check if task has changed since last update and update Firestore if so
+      if (usersTask != _usersTask) {
+        await _prefsService.saveUsersTask(usersTask); // Updating local preferences first
 
-      _usersTask = usersTask.isEmpty ? null : usersTask;
+        _usersTask = usersTask.isEmpty ? null : usersTask;
 
-      // then updating Firestore with task and timestamp
-      await _mergeIntoUserDoc({
-        'usersTask': _usersTask,
-        'usersTaskUpdatedAt': FieldValue.serverTimestamp()
-      });
-
-      _updateState(HomeState.success);
-
-      // Show enhancement dialog only if task is not empty
-      if (_usersTask != null && _usersTask!.isNotEmpty) {
-        await _showTaskEnhancementDialog();       // Show the dialog first with quote only
-
-        // generating questions in the background to avoid blocking UI (no need to await)
-        _isGeneratingQuestions = true;
-        _generateTaskQuestions().then((_) {
-          _isGeneratingQuestions = false;
-          if (!_disposed) notifyListeners();      // Updates any listeners (like the dialog)
-        }).catchError((error, stackTrace) {
-          _handleError('Failed to generate task questions', error, stackTrace);
-          _isGeneratingQuestions = false;
-          _taskQuestions = null;
-          if (!_disposed) notifyListeners();
+        // then updating Firestore with task and timestamp
+        await _mergeIntoUserDoc({
+          'usersTask': _usersTask,
+          'usersTaskUpdatedAt': FieldValue.serverTimestamp()
         });
+
+        _updateState(HomeState.success);
+
+        // Show enhancement dialog only if task is not empty
+        if (_usersTask != null && _usersTask!.isNotEmpty) {
+          await _showTaskEnhancementDialog(); // Show the dialog first with quote only
+
+          // generating questions in the background to avoid blocking UI (no need to await)
+          _isGeneratingQuestions = true;
+          _generateTaskQuestions().then((_) {
+            _isGeneratingQuestions = false;
+            if (!_disposed) notifyListeners(); // Updates any listeners (like the dialog)
+          }).catchError((error, stackTrace) {
+            _handleError(
+                'Failed to generate task questions', error, stackTrace);
+            _isGeneratingQuestions = false;
+            _taskQuestions = null;
+            if (!_disposed) notifyListeners();
+          });
+        }
+        if (!_disposed) notifyListeners();
       }
-      if (!_disposed) notifyListeners();
     } catch (error, stackTrace) {
       _handleError('Failed to set Tasks: ', error, stackTrace);
     }
