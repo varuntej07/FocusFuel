@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
-import 'package:focus_fuel/Views/Auth/login_page.dart';
 import 'package:focus_fuel/Views/screens/subscription_page.dart';
 import 'package:focus_fuel/Views/screens/support_page.dart';
 import 'package:provider/provider.dart';
@@ -40,9 +39,9 @@ class _MenuPageState extends State<MenuPage> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: Theme.of(context).shadowColor.withValues(alpha: 0.2),
+              blurRadius: 14,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -51,13 +50,13 @@ class _MenuPageState extends State<MenuPage> {
             Expanded(
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: isIconTrailing ? null : Icon(icon, size: 32, color: background != null ? Colors.white : Theme.of(context).colorScheme.onSurface),                trailing: isIconTrailing
+                leading: isIconTrailing ? null : Icon(icon, size: 26, color: background != null ? Colors.white : Theme.of(context).colorScheme.onSurface),                trailing: isIconTrailing
                     ? Icon(icon, size: 32, color: background != null ? Colors.white : Theme.of(context).colorScheme.onSurface)
                     : trailing,
                 title: Text(
                   title,
                   style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: background != null ? Colors.white : Theme.of(context).textTheme.titleMedium?.color
                   ),
@@ -72,13 +71,6 @@ class _MenuPageState extends State<MenuPage> {
         ),
       ),
     );
-  }
-
-  void toggleTheme(bool value) {
-    setState(() {
-      isDarkMode = value;
-      // actual dark mode logic using a theme provider or state manager
-    });
   }
 
   @override
@@ -156,17 +148,13 @@ class _MenuPageState extends State<MenuPage> {
                     },
                   ),
 
-                  const SizedBox(height: 30),
-
                   _buildMenuCard(
                     context: context,
                     title: isLoggedin ? 'Logout' : 'Login',
                     icon: isLoggedin ? Icons.exit_to_app : Icons.login,
                     onTap: () async {
                       await context.read<AuthViewModel>().logout();
-                      Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => Login()), (Route<dynamic> route) => false
-                      );
+                      // Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => Login()), (Route<dynamic> route) => false);
                     },
                   ),
                 ],

@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:focus_fuel/Views/screens/subscription_dialog.dart';
 import 'package:provider/provider.dart';
@@ -45,8 +46,8 @@ class _NewsFeedState extends State<NewsFeed> {
           _isInitialized = true;    // Updates UI to show content
         });
       }
-    } catch (e) {
-      print('Error initializing ViewModel: $e');
+    } catch (error, stackTrace) {
+      FirebaseCrashlytics.instance.recordError(error, stackTrace, information: ['Error while Initializing ViewModel in news_feed: $context']);
     }
   }
 
@@ -308,7 +309,6 @@ class _NewsFeedState extends State<NewsFeed> {
 
   // Event handlers
   void _handleArticleTap(Map<String, dynamic> article) {
-    print('Article tapped: ${article['title']}');
     _showNewsSummaryDialog(context, article, _newsService);
   }
 

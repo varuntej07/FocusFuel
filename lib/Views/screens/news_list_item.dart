@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -114,21 +115,23 @@ class NewsListItem extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(child: _buildSourceInfo()),
+            Flexible(child: _buildSourceInfo(context)),
 
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildActionButton(
-                    icon: Image.asset(
-                        isBookmarked ? 'lib/Assets/icons/saved.png' : 'lib/Assets/icons/save.png',
-                        width: 20,
-                        height: 18
+                    icon: ColorFiltered(
+                        colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+                        child: Image.asset(isBookmarked ? 'lib/Assets/icons/saved.png' : 'lib/Assets/icons/save.png', width: 20, height: 18)
                     ),
-                    onPressed: onBookmark
+                    onPressed: onBookmark,
                 ),
                 _buildActionButton(
-                    icon: Image.asset('lib/Assets/icons/dark_headphone.png', width: 20, height: 18),
+                    icon: ColorFiltered(
+                        colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
+                        child: Image.asset('lib/Assets/icons/dark_headphone.png', width: 20, height: 18)
+                    ),
                     onPressed: onListen
                 )
               ],
@@ -139,7 +142,7 @@ class NewsListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildSourceInfo() {
+  Widget _buildSourceInfo(context) {
     final source = article['source_id'] ?? article['source'] ?? 'Unknown';
     final time = article['pubDate'] ?? 'Unknown';
     final publishedDate = formatPublishedDateWithIntl(time);
@@ -152,7 +155,7 @@ class NewsListItem extends StatelessWidget {
           backgroundColor: Colors.deepOrangeAccent,
           child: Text(
             source[0].toUpperCase(),
-            style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w600),
           ),
         ),
 
@@ -160,24 +163,22 @@ class NewsListItem extends StatelessWidget {
 
         Text(
           source,
-          style: TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color, fontWeight: FontWeight.w500),
         ),
 
         const SizedBox(width: 6),
 
-        Text(publishedDate, style: TextStyle(fontSize: 10, color: Colors.grey[600]))
+        Text(publishedDate, style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color))
       ],
     );
   }
 
+  // custom icon button widget that is responsible for displaying icons in the news card
   Widget _buildActionButton({required icon, VoidCallback? onPressed}) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: icon,
-      ),
+    return IconButton(
+      padding: const EdgeInsets.all(8),
+      onPressed: onPressed,
+      icon: icon,
     );
   }
 }
@@ -255,8 +256,8 @@ String formatPublishedDateWithIntl(String publishedDateString) {
       return DateFormat('d MMM yyyy').format(dateTime);
     }
 
-  } catch (e) {
-    print('Date parsing completely failed for: $publishedDateString, error: $e');
+  } catch (error, stackTrace) {
+    FirebaseCrashlytics.instance.recordError(error, stackTrace, information: ['Error while formatting published date of a news article in news_list_item.dart']);
     return 'Recent';
   }
 }

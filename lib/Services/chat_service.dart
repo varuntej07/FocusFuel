@@ -61,10 +61,7 @@ class ChatService {
     if (userId == null) throw Exception('User not authenticated');
 
     // Generate a unique request ID to prevent duplicates
-    final requestId = '${DateTime
-        .now()
-        .millisecondsSinceEpoch}_$userId';
-
+    final requestId = '${DateTime.now().millisecondsSinceEpoch}_$userId';
 
     // Create user message document in the Messages sub-collection
     final messageRef = await _firestore

@@ -78,7 +78,7 @@ class AppThemes {
       // Text theme
       textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme).copyWith(
         bodyLarge: const TextStyle(color: Colors.black87),
-        bodyMedium: TextStyle(color: Colors.grey[600]),
+        bodyMedium: TextStyle(color: Colors.black45),
         headlineLarge: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         titleMedium: const TextStyle(color: Colors.black87),
         labelLarge: const TextStyle(color: Colors.black87),

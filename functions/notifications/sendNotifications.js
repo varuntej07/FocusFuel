@@ -59,10 +59,17 @@ async function shouldSendNotificationNow(userData) {
     const userTime = DateTime.now().setZone(userTimezone);
     const localHour = userTime.hour;
 
-    // Only sending notifications during these hours
-    const morningWindow = localHour >= 8 && localHour <= 13;
-    const afternoonWindow = localHour >= 15 && localHour <= 17;
-    const eveningWindow = localHour >= 19 && localHour <= 23;
+   // allowed hours in alternating pattern
+   const allowedHours = {
+       morning: [9, 10, 12], // 10 AM, 12 PM
+       afternoon: [15, 17], // 3 PM, 5 PM
+       evening: [19, 21, 22, 23] // 7 PM, 9 PM, 11 PM
+   };
+
+   // Check if current hour is in any allowed time window
+   const morningWindow = allowedHours.morning.includes(localHour);
+   const afternoonWindow = allowedHours.afternoon.includes(localHour);
+   const eveningWindow = allowedHours.evening.includes(localHour);
 
     if (!morningWindow && !afternoonWindow && !eveningWindow) {
         return { send: false };

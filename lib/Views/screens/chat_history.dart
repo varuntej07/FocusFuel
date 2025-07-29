@@ -99,7 +99,7 @@ class ChatHistoryScreen extends StatelessWidget {
       if (currentIndex == index) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          child: DateDivider(text: date),
+          child: DateDivider(text: date),     // custom DateDivider class implemented below
         );
       }
       currentIndex++;
@@ -137,7 +137,7 @@ class _ChatHistoryCard extends StatelessWidget {
       builder: (context, messageCountSnapshot) {
         // Determine card color based on message count
         final hasMultipleMessages = (messageCountSnapshot.data ?? 0) > 1;
-        final cardColor = hasMultipleMessages ?  Theme.of(context).cardColor: Theme.of(context).scaffoldBackgroundColor;
+        final cardColor = hasMultipleMessages ? Theme.of(context).cardColor: Theme.of(context).scaffoldBackgroundColor;
         final borderColor = hasMultipleMessages ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Theme.of(context).dividerColor;
 
         return GestureDetector(
@@ -176,7 +176,7 @@ class _ChatHistoryCard extends StatelessWidget {
                               displayText = 'Fetching notification...';
                             } else if (snapshot.hasData && snapshot.data != null) {
                               final chatHistoryMessage = snapshot.data!.message;
-                              displayText = chatVM.trimString(chatHistoryMessage, 90);
+                              displayText = chatVM.trimString(chatHistoryMessage, 90);    // displays trimmed chatHistory message
                             } else {
                               // Fallback to userFocus or default text
                               displayText = chatVM.trimString(conversationFocus ?? 'Focus Session', 40);
