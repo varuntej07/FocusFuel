@@ -64,12 +64,15 @@ class NotificationOrchestrator {
             // Generate notification with selected agent 
             let notification;
 
-            if (selectedAgentType === 'focus') {
-                // FocusAgent needs recent notifications to avoid redundancy
-                notification = await agent.generateNotification(userProfile, timeContext, recentNotifications);
-            } else {
-                notification = await agent.generateNotification(userProfile, timeContext);  // For other agents, not passing recent notifications
-            }
+           if (selectedAgentType === 'todo') {
+               // ToDoAgent needs enhanced profile with task data
+               notification = await agent.generateNotification(enhancedUserProfile, timeContext);
+           } else if (selectedAgentType === 'focus') {
+               // FocusAgent needs recent notifications to avoid redundancy
+               notification = await agent.generateNotification(userProfile, timeContext, recentNotifications);
+           } else {
+               notification = await agent.generateNotification(userProfile, timeContext);
+           }
 
             console.log(`Generated ${selectedAgentType} notification: ${notification}...`);
 
@@ -95,7 +98,7 @@ class NotificationOrchestrator {
     async getActiveUserTask(userId) {
         try {
             const tasksRef = admin.firestore().collection('UserTasks');
-            const snapshot = await tasksRef
+            const snapshot = await tasksRef                     // requires a composite indexing in firebase
                 .where('userId', '==', userId)
                 .orderBy('timestamp', 'desc')
                 .limit(1)
@@ -135,7 +138,8 @@ class NotificationOrchestrator {
             taskProfile: activeTask.profile,
             daysSinceStarted: daysSinceStarted,
             learningStage: learningStage,
-            taskType: this.categorizeTask(activeTask.task)
+            taskType: this.categorizeTask(activeTask.task),
+            timeCommitment: activeTask.timeCommitment || "5 hours daily",
         };
     }
 
