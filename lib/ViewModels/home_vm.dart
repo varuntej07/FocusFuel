@@ -224,7 +224,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  bool _isGeneratingQuestions = false;      // Flag to track if questions are being generated
+  bool _isGeneratingQuestions = false;      // Flag to track if questions are being generated for user's Task To-Do
   bool get isGeneratingQuestions => _isGeneratingQuestions;
 
   final List<String> _taskQuotes = [

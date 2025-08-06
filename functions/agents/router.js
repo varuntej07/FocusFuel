@@ -21,12 +21,10 @@ class NotificationRouter {
 
             Agents:
                 - productivity: Goals, habits, focus
-                - news: Breaking news, trends  
-                - wellness: Health, mental breaks
                 - learning: Skills, facts, growth
 
             Match user's goal when possible.
-            Do not return any other text or explanation, Strictly return ONLY: productivity/news/wellness/learning
+            Do not return any other text or explanation, Strictly return ONLY: productivity/learning
         `);
 
         // just creating the chain with the prompt and model pipe to invoke later with user context
