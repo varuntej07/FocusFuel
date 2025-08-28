@@ -30,32 +30,18 @@ async function callPerplexity(options) {
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + PERPLEXITY_API_KEY,
                 },
-                timeout: 30000, // 30 second timeout
-                validateStatus: function (status) {
-                    return true;
-                }
+                timeout: 60000, // 60 second timeout
+                validateStatus: () => true,
             }
         );
 
-        // Check if request was successful
-        if (response.status === 200) {
-            console.log("Perplexity API call successful");
-            return response;
+        if (response.status === 200) return response;
+
+        if (res.status === 429 || res.status >= 500) {
+            throw new Error(`Transient OpenAI error: ${res.status}`);
         }
 
-        // Handle specific error cases
-        if (response.status === 400) {
-            console.error("Perplexity 400 Error Details:", response.data);
-            throw new Error(`Perplexity API Error: ${response.data?.error?.message || 'Invalid request format'}`);
-        } else if (response.status === 401) {
-            throw new Error("Perplexity API Key is invalid or expired");
-        } else if (response.status === 429) {
-            throw new Error("Perplexity API rate limit exceeded. Please try again later.");
-        } else if (response.status >= 500) {
-            throw new Error("Perplexity service is temporarily unavailable");
-        } else {
-            throw new Error(`Perplexity API Error: ${response.status} - ${response.statusText}`);
-        }
+        throw new Error(res.data?.error?.message || `OpenAI error ${res.status}`);
 
     } catch (error) {
         console.log("Perplexity API call failed, check callPerplexity:", error.message);

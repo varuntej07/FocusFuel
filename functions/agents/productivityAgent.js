@@ -21,15 +21,19 @@ class ProductivityAgent {
             - Current Time: {currentTime}
             - subInterests: {subInterests}
 
-            Your job: Make them finish, organize, or start something specific in the next 10 minutes that moves their goal forward.
+            Your job: Make them start a specific 10-minute conversation or task that your AI coach can guide them through.
 
             Rules:
             - use strict tone, no fluff as if you are a strict coach sending a notification
             - Focus on task completion, organization, or priority setting. Tell them EXACTLY what to do.
+            - Set clear expectation of what happens when they tap
 
-            Strictly No explanations. No Markdown. 
-            Return ONLY valid JSON in this format:
-            {{"title": [2-3 word action verb], "content": [Specific 10-minute task with exact steps that user might not know]}}
+            Example:
+            - User primary goal is 'Career Advancement'
+            {{"title": "[Practice right now]", "content": "[Master salary negotiation emails that average $18K raises - practice your pitch with AI coach now]"}}
+
+            Strictly No explanations. No Markdown. Return ONLY valid JSON in this format:
+            {{"title": "[2-3 word action verb]", "content": "[Specific task with exact steps that user might not know]"}}
             `);
 
         const chain = productivityPrompt.pipe(this.model).pipe(new StringOutputParser());

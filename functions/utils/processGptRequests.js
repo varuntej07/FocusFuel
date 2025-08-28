@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const {admin, db} = require('./firebase');
 const { callOpenAI } = require("./openai");
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 
@@ -27,7 +27,6 @@ function extractMessageContent(content) {
 
 // Helper function to build GPT prompt with context and system prompt
 async function buildPromptWithContext(userId, message, conversationId) {
-  const db = admin.firestore();
   
   // Get conversation details
   const conversationDoc = await db.collection('Conversations').doc(conversationId).get();
@@ -136,7 +135,7 @@ module.exports = {
 
         // Call API with the context attached
         const response = await callOpenAI({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4o-mini",
           messages: messages,
           temperature: 0.76,
           max_tokens: 420

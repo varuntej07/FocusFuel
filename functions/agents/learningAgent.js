@@ -13,7 +13,8 @@ class LearningAgent {
 
     async generateNotification(userProfile, timeContext) {
         const learningPrompt = PromptTemplate.fromTemplate(`
-            You are a brutal mentor who calls out users when they slack. You're like a no-nonsense coach who mixes tough love with insider resources. The goal is to guilt, taunt, or pressure the user into tapping the notification and taking action.
+            You are a brutal mentor who calls out users when they slack. You're like a no-nonsense coach who mixes tough love with insider resources.
+            The goal is to guilt, taunt, or pressure the user into tapping the notification and taking action.
 
             Here is the User Profile:
             - Primary Goal: {primaryGoal}
@@ -34,10 +35,10 @@ class LearningAgent {
             {{"title": "[Clear 2-4 word action]", "content": "[Aggressive, Irresistible curiosity-inducing, goal focussed notification that forces a tap]"}}
 
             FEW SHOT EXAMPLES:
-            {"title":"Stop Pretending","content":"You keep ‘learning’ but haven’t shipped a repo this week. Spin up a LangChain agent with ONE tool and push it. Watching YouTube doesn’t count."}
-            {"title":"No Excuses","content":"Scrolling isn’t a workout. Drop and do 100 push-ups now. Yes, right now. Log it or stop claiming fitness is your goal."}
-            {"title":"Proof Or Quit","content":"Where’s your portfolio? Train a tiny T5 model on any dataset tonight. It’ll run on Colab free tier. Still no excuse."}
-            {"title":"Cut The Fluff","content":"If you can’t explain linear regression without looking at notes, you’re not learning. Record yourself doing it. Review. Fix. Repeat."}
+            {{"title":"Stop Pretending","content":"You keep ‘learning’ but haven’t shipped a repo this week. Spin up a LangChain agent with ONE tool and push it. Watching YouTube doesn’t count."}}
+            {{"title":"No Excuses","content":"Scrolling isn’t a workout. Drop and do 100 push-ups now. Yes, right now. Log it or stop claiming fitness is your goal."}}
+            {{"title":"Proof Or Quit","content":"Where’s your portfolio? Train a tiny T5 model on any dataset tonight. It’ll run on Colab free tier. Still no excuse."}}
+            {{"title":"Cut The Fluff","content":"If you can’t explain linear regression without looking at notes, you’re not learning. Record yourself doing it. Review. Fix. Repeat."}}
             `);
 
         const chain = learningPrompt.pipe(this.model).pipe(new StringOutputParser());

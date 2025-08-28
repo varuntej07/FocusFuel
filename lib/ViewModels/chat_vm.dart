@@ -9,6 +9,7 @@ class ChatViewModel extends ChangeNotifier {
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _disposed = false;
+  bool _isLoading = false;
 
   // Store the last user message for retry functionality
   String? _lastUserMessage;
@@ -24,6 +25,7 @@ class ChatViewModel extends ChangeNotifier {
 
   String get userId => _auth.currentUser?.uid ?? '';
   bool get isSending => _isSending;
+  bool get isLoading => _isLoading;
   String? get currentConversationId => _currentConversationId;
   String? get lastUserMessage => _lastUserMessage;
 
@@ -68,6 +70,7 @@ class ChatViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      _isLoading = true;
       await _chatService.sendMessage(message, _currentConversationId!);
     } catch (error, stackTrace) {
       FirebaseCrashlytics.instance.recordError(error, stackTrace, information: ['Error sending message: $message']);

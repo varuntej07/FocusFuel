@@ -128,7 +128,7 @@ class _ChatScreenState extends State<ChatScreen>{
                     const SizedBox(height: 4),
                     TextButton(
                       onPressed: () => context.read<ChatViewModel>().retryMessage(msg.text),
-                      child: Text('Retry', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 8)),                    ),
+                      child: Text('Retry', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 8))),
                   ],
 
                   Row(
@@ -234,8 +234,13 @@ class _ChatScreenState extends State<ChatScreen>{
 
                 return ListView.builder(
                   controller: _scrollController,
-                  itemCount: messages.length,
-                  itemBuilder: (ctx, i) => _buildMessage(messages[i]),
+                  itemCount: messages.length + (chatVM.isLoading ? 1 : 0),
+                  itemBuilder: (ctx, index) {
+                    if (index == messages.length && chatVM.isLoading) {
+                      return _buildTypingIndicator();
+                    }
+                    return _buildMessage(messages[index]);
+                  },
                 );
               },
             ),
@@ -251,7 +256,7 @@ class _ChatScreenState extends State<ChatScreen>{
                 ),
                 Expanded(
                   child: TextField(
-                    style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+                    style: TextStyle(color: Theme.of(context).textTheme.titleMedium?.color),
                     controller: _controller,
                     enabled: !chatVM.isSending,           // to disable if sending query
                     textInputAction: TextInputAction.send,
@@ -273,6 +278,57 @@ class _ChatScreenState extends State<ChatScreen>{
             ),
           ),
         ],
+      ),
+    );
+  }
+  Widget _buildTypingIndicator() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.smart_toy,
+              size: 16,
+              color: Colors.deepPurpleAccent
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                _TypingDot(),
+                _TypingDot(),
+                _TypingDot(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypingDot extends StatelessWidget {
+  const _TypingDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      width: 8,
+      height: 8,
+      decoration: const BoxDecoration(
+        color: Colors.grey,
+        shape: BoxShape.circle,
       ),
     );
   }
