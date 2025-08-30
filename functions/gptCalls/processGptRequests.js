@@ -1,5 +1,5 @@
-const {admin, db} = require('./firebase');
-const { callOpenAI } = require("./openai");
+const {admin, db} = require('../utils/firebase');
+const { callOpenAI } = require("../utils/openai");
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 
 // Helper function to extract clean text content from messages

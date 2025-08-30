@@ -29,6 +29,7 @@ class HomeViewModel extends ChangeNotifier {
   String? _weeklyGoal;
   String? _usersTask;
   String? _wins;
+  String? _greeting;
 
   // Getters for the private variables
   String get username => _isAuthenticated ? (_username ?? _defaultUsername) : _defaultUsername;
@@ -38,6 +39,7 @@ class HomeViewModel extends ChangeNotifier {
   String? get weeklyGoal => _isAuthenticated ? _weeklyGoal : null;
   String? get usersTask => _isAuthenticated ? _usersTask : null;
   String? get wins => _isAuthenticated ? _wins : null;
+  String? get greeting => _isAuthenticated ? _greeting : null;
 
   HomeState get state => _state;
   bool get isAuthenticated => _isAuthenticated;
@@ -141,6 +143,76 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<String?> shouldGreet() async {
+    if (!_isAuthenticated) return null;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return null;
+
+      final snap = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+      if (!snap.exists) return null;
+
+      final data = snap.data() ?? {};
+      final lastGreetingDate = data['lastGreetingsShownAt'];
+      final today = DateTime.now();
+      final todayString = '${today.year}-${today.month}-${today.day}';
+
+      // Already greeted today
+      if (lastGreetingDate == todayString) return null;
+
+      // Otherwise return a motivational greeting
+      final greeting = await _generateMotivationalGreeting();
+
+      await markGreetingsShown();
+
+      return greeting;
+    } catch (error, stackTrace) {
+      _handleError('Failed to decide greeting', error, stackTrace);
+      return null;
+    }
+  }
+
+  Future<String> _generateMotivationalGreeting() async {
+    try {
+      final generateGreeting = FirebaseFunctions.instance.httpsCallable(
+          'generateGreeting',
+          options: HttpsCallableOptions(timeout: const Duration(seconds: 30))
+      );
+
+      final result = await generateGreeting.call({
+        'prompt': '''
+                  Generate one blunt, high-impact quote tailored for users who already exhibit passion, discipline, and adrenaline-fueled drive. 
+                  This quote will be displayed on a mobile screen immediately after the app is opened—assume the user is already awake, committed, and seeking reinforcement, not initiation.
+                  Avoid generic commands like "wake up" or "get to work." 
+                  Instead, deliver a raw, intense, David Goggins-style message that reinforces mental toughness, relentless pursuit, and staying locked in. NO markdown, NO hyphen, NO explanation—return only the quote.
+                '''
+      });
+
+      final rawText = (result.data['text'] as String?)?.trim();
+      String? text;
+
+      if (rawText != null && rawText.length >= 2) {
+        final firstChar = rawText[0];
+        final lastChar = rawText[rawText.length - 1];
+
+        if ((firstChar == '"' || firstChar == "'") && firstChar == lastChar) {
+          text = rawText.substring(1, rawText.length - 1);
+        } else {
+          text = rawText;
+        }
+      } else {
+        text = rawText;
+      }
+      if (text == null || text.isEmpty) throw 'Empty';
+      _greeting = text;
+      return text;
+    } catch (error, stackTrace) {
+      _handleError('Failed to call OpenAI for greeting message generation', error, stackTrace);
+      return 'Error (Testing for openai errors)';
+    }
+  }
+
   // Mark that goal prompt was shown today
   Future<void> markGoalPromptShown() async {
     if (!_isAuthenticated) return;
@@ -157,6 +229,25 @@ class HomeViewModel extends ChangeNotifier {
       });
     } catch (error, stackTrace) {
       _handleError('Failed to mark goal prompt as shown today', error, stackTrace);
+    }
+  }
+
+  Future<void> markGreetingsShown() async {
+    if (!_isAuthenticated) return;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final today = DateTime.now();
+      final todayString = '${today.year}-${today.month}-${today.day}';
+
+      await FirebaseFirestore.instance.collection('Users').doc(uid).update({
+        'lastGreetingWas': _greeting,
+        'lastGreetingsShownAt': todayString,
+      });
+    } catch (error, stackTrace) {
+      _handleError('Failed to mark welcome message as shown today', error, stackTrace);
     }
   }
 
@@ -342,9 +433,9 @@ class HomeViewModel extends ChangeNotifier {
       final result = await callable.call({
         'prompt': '''
                   Task: $_usersTask
-                  Generate exactly 3 strategic questions with 4 multiple choice options each.
-                  Focus on: experience level, specific goals, and one contextual question.
-                  Make options cover 100% of possible answers.
+                  Generate exactly 3 strategic questions with 3 multiple choice options each.
+                  Goal: Questions should try to extract as much info as possible from user' task and background to send notifications related that task.
+                  Make options cover 100% of possible answers that captures user' level.
                   No markdown, No explanation, Strictly return only JSON format with questions and options arrays.
                 '''
       });
@@ -436,7 +527,6 @@ class HomeViewModel extends ChangeNotifier {
       rethrow;    // Re-throw to handle it in _saveTaskAnswers
     }
   }
-
 
   Future<void> setWins(String win) async {
     if (!_isAuthenticated) return;

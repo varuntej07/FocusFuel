@@ -1,5 +1,5 @@
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
-const { callOpenAI } = require("./openai");
+const { callOpenAI } = require("../utils/openai");
 const { defineSecret } = require('firebase-functions/params');
 
 const openaiApiKey = defineSecret('OPENAI_API_KEY');
@@ -21,7 +21,7 @@ const generateTaskQuestions = onCall(
                 messages: [
                     {
                         role: "system",
-                        content: "You are an AI assistant specialized in task analysis and productivity. Always follow the user's instructions exactly. NEVER use markdown formatting."
+                        content: "You are an AI assistant specialized in task analysis. Always follow the user's instructions exactly. NEVER use markdown formatting."
                     },
                     {
                         role: "user",
