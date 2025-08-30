@@ -19,6 +19,8 @@ class AuthViewModel extends ChangeNotifier {
   final usernameController = TextEditingController();
 
   bool isLoading = false;     // Controls the spinner & button state
+  bool _isSubscribed = false;
+  bool get isSubscribed => _isSubscribed;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
@@ -56,6 +58,7 @@ class AuthViewModel extends ChangeNotifier {
       final doc = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
       if (doc.exists) {
         _userModel = UserModel.fromMap(doc.data()!);
+        // TODO: After loading userModel, check/update their subscription status here if needed
         await _cacheUser();
         _state = AuthState.authenticated;
       } else {
@@ -164,6 +167,7 @@ class AuthViewModel extends ChangeNotifier {
         'email': emailController.text.trim(),
         'username': usernameController.text.trim(),
         'createdAt': FieldValue.serverTimestamp(),    // server timestamp in UTC timezone
+        'accountCreatedOn': FieldValue.serverTimestamp(),
         'isActive': true,
         'timezone': await FlutterTimezone.getLocalTimezone(),
       };
@@ -177,6 +181,8 @@ class AuthViewModel extends ChangeNotifier {
         username: usernameController.text.trim(),
         createdAt: DateTime.now(),
         isActive: true,
+        accountCreatedOn: DateTime.now(),
+        isSubscribed: _isSubscribed,
       );
 
       await _cacheUser();
@@ -245,6 +251,20 @@ class AuthViewModel extends ChangeNotifier {
     } finally {
       _stopLoading();
     }
+  }
+
+  void updateUserSubscriptionStatus(bool newStatus) {
+    if (_userModel == null) return;
+    _isSubscribed = newStatus;
+    notifyListeners();
+  }
+
+  bool get canAccessPremiumFeatures {
+    if (_userModel == null) return false;
+    final now = DateTime.now();
+    final accountCreatedOn = _userModel!.accountCreatedOn ?? DateTime.now().subtract(const Duration(days: 9999));
+    final daysSinceSignup = now.difference(accountCreatedOn).inDays;
+    return _userModel!.isSubscribed || daysSinceSignup <= 14;
   }
 
   String _mapFirebaseError(FirebaseAuthException e) {

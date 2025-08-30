@@ -15,6 +15,7 @@ class UserModel {
   final int notificationInterval;
   final DateTime? lastNotificationTime;
   final bool notificationsEnabled;
+  final DateTime? accountCreatedOn;
 
   // Onboarding fields for personalized notifications
   final String? dailyScreenTime;
@@ -26,6 +27,9 @@ class UserModel {
   final String? motivationStyle;
   final String? preferredNotificationTime;
   final bool onboardingCompleted;
+
+  // subscription fields
+  final bool isSubscribed;
 
   UserModel({
     required this.uid,
@@ -44,6 +48,7 @@ class UserModel {
     this.notificationInterval = 30,   // Default notification interval is 30 minutes
     this.lastNotificationTime,
     this.notificationsEnabled = true,
+    this.accountCreatedOn,
 
     this.dailyScreenTime,
     this.mostUsedApp,
@@ -54,35 +59,39 @@ class UserModel {
     this.motivationStyle,
     this.preferredNotificationTime,
     this.onboardingCompleted = false,
+
+    required this.isSubscribed,
   });
 
-  factory UserModel.fromMap(Map<String, dynamic> map) {
+  factory UserModel.fromMap(Map<String, dynamic> data) {
     return UserModel(
-      uid: map['uid'],
-      email: map['email'],
-      username: map['username'],
-      isActive: map['isActive'] ?? true,
-      streak: (map['streak'] ?? 0) as int,
-      longestStreak: (map['longestStreak'] ?? 0) as int,
-      currentFocus: map['currentFocus'],
-      weeklyGoal: map['weeklyGoal'],
-      focusUpdatedAt: map['focusUpdatedAt']?.toDate(),
-      weeklyGoalUpdatedAt: map['weeklyGoalUpdatedAt']?.toDate(),
-      lastLogin: map['lastLogin']?.toDate(),
-      createdAt: map['createdAt']?.toDate(),
-      updatedAt: map['updatedAt']?.toDate(),
-      notificationInterval: map['notificationInterval'] ?? 30,
-      lastNotificationTime: map['lastNotificationTime']?.toDate(),
-      notificationsEnabled: map['notificationsEnabled'] ?? true,
-      dailyScreenTime: map['dailyScreenTime'],
-      mostUsedApp: map['mostUsedApp'],
-      primaryInterests: map['primaryInterests']?.cast<String>(),
-      specificInterests: map['specificInterests']?.cast<String>(),
-      ageRange: map['ageRange'],
-      primaryGoal: map['primaryGoal'],
-      motivationStyle: map['motivationStyle'],
-      preferredNotificationTime: map['preferredNotificationTime'],
-      onboardingCompleted: map['onboardingCompleted'] ?? false,
+      uid: data['uid'],
+      email: data['email'],
+      username: data['username'],
+      isActive: data['isActive'] ?? true,
+      streak: (data['streak'] ?? 0) as int,
+      longestStreak: (data['longestStreak'] ?? 0) as int,
+      currentFocus: data['currentFocus'],
+      weeklyGoal: data['weeklyGoal'],
+      focusUpdatedAt: data['focusUpdatedAt']?.toDate(),
+      weeklyGoalUpdatedAt: data['weeklyGoalUpdatedAt']?.toDate(),
+      lastLogin: data['lastLogin']?.toDate(),
+      createdAt: data['createdAt']?.toDate(),
+      updatedAt: data['updatedAt']?.toDate(),
+      accountCreatedOn: data['accountCreatedOn']?.toDate(),
+      notificationInterval: data['notificationInterval'] ?? 30,
+      lastNotificationTime: data['lastNotificationTime']?.toDate(),
+      notificationsEnabled: data['notificationsEnabled'] ?? true,
+      dailyScreenTime: data['dailyScreenTime'],
+      mostUsedApp: data['mostUsedApp'],
+      primaryInterests: data['primaryInterests']?.cast<String>(),
+      specificInterests: data['specificInterests']?.cast<String>(),
+      ageRange: data['ageRange'],
+      primaryGoal: data['primaryGoal'],
+      motivationStyle: data['motivationStyle'],
+      preferredNotificationTime: data['preferredNotificationTime'],
+      onboardingCompleted: data['onboardingCompleted'] ?? false,
+      isSubscribed: data['isSubscribed'] ?? false,
     );
   }
 
@@ -101,6 +110,7 @@ class UserModel {
       'lastLogin': lastLogin,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'accountCreatedOn': accountCreatedOn,
       'notificationInterval': notificationInterval,
       'lastNotificationTime': lastNotificationTime,
       'notificationsEnabled': notificationsEnabled,
@@ -113,6 +123,7 @@ class UserModel {
       'motivationStyle': motivationStyle,
       'preferredNotificationTime': preferredNotificationTime,
       'onboardingCompleted': onboardingCompleted,
+      'isSubscribed': isSubscribed,
     };
   }
 }
