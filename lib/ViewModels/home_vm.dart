@@ -198,18 +198,19 @@ class HomeViewModel extends ChangeNotifier {
 
         if ((firstChar == '"' || firstChar == "'") && firstChar == lastChar) {
           text = rawText.substring(1, rawText.length - 1);
-        } else {
-          text = rawText;
         }
       } else {
         text = rawText;
       }
+
       if (text == null || text.isEmpty) throw 'Empty';
+
       _greeting = text;
+      if (!_disposed) notifyListeners();
       return text;
     } catch (error, stackTrace) {
       _handleError('Failed to call OpenAI for greeting message generation', error, stackTrace);
-      return 'Error (Testing for openai errors)';
+      return "Don't let procrastination win today, stay hard!";
     }
   }
 
@@ -246,6 +247,9 @@ class HomeViewModel extends ChangeNotifier {
         'lastGreetingWas': _greeting,
         'lastGreetingsShownAt': todayString,
       });
+
+      await _prefsService.saveGreeting(_greeting ?? "Don't let procrastination win today");
+
     } catch (error, stackTrace) {
       _handleError('Failed to mark welcome message as shown today', error, stackTrace);
     }
@@ -569,6 +573,7 @@ class HomeViewModel extends ChangeNotifier {
       _weeklyGoal = _prefsService.getWeeklyGoal();
       _usersTask = _prefsService.getUsersTask();
       _wins = _prefsService.getWins();
+      _greeting = _prefsService.getGreeting();
 
       _updateState(HomeState.success);
 
@@ -616,6 +621,7 @@ class HomeViewModel extends ChangeNotifier {
     _weeklyGoal = null;
     _usersTask = null;
     _wins = null;
+    _greeting = null;
     _updateState(HomeState.initial);
   }
 

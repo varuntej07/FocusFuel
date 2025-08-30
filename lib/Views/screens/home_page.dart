@@ -13,7 +13,6 @@ class HomeFeed extends StatefulWidget {
 class _HomeFeedState extends State<HomeFeed> {
 
   String? selectedFocus;
-  String? _greeting;
 
   @override
   void initState(){
@@ -56,10 +55,7 @@ class _HomeFeedState extends State<HomeFeed> {
               }
             });
           }
-          final greeting = await homeVM.shouldGreet();
-          if (mounted && greeting != null && greeting.isNotEmpty) {
-            setState(() => _greeting = greeting);
-          }
+          await homeVM.shouldGreet();
         }
       }
     });
@@ -119,6 +115,7 @@ class _HomeFeedState extends State<HomeFeed> {
     final weeklyGoal = homeVM.weeklyGoal ?? "Set a weekly goal";
     final task = homeVM.usersTask;
     final wins = homeVM.wins;
+    final greeting = homeVM.greeting;
 
     return Scaffold(
       body: SafeArea(
@@ -140,7 +137,7 @@ class _HomeFeedState extends State<HomeFeed> {
               const SizedBox(height: 30),
 
               Text(
-                _greeting ?? "Welcome back!",
+                greeting ?? "Don't let procrastination win today",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.headlineLarge?.color),
               ),

@@ -238,4 +238,12 @@ class SharedPreferencesService {
   bool? getThemeMode() {
     return _preferences?.getBool('isDarkMode');
   }
+
+  Future<void> saveGreeting(String greeting) async {
+    await _preferences?.setString('greeting', greeting);
+  }
+
+  String? getGreeting() {
+    return _preferences?.getString('greeting');
+  }
 }

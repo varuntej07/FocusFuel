@@ -15,8 +15,7 @@ final premiumFeatures = [
   Feature(name: 'Productivity reports', isIncluded: true),
   Feature(name: 'Listen to articles', isIncluded: true),
   Feature(name: 'Personalized news feed', isIncluded: true),
-  Feature(name: 'News-related question suggestions', isIncluded: true),
-  Feature(name: 'Early access to new features', isIncluded: true),
+  Feature(name: 'More news article suggestions', isIncluded: true),
 ];
 
 class SubscriptionScreen extends StatelessWidget {
@@ -70,7 +69,7 @@ class SubscriptionScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
                 child: Text(
-                  'Subscribe for \$7.99',
+                  'Subscribe for \$3.49',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
