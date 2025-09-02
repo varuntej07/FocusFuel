@@ -11,18 +11,19 @@ class ToDoAgent {
         });
     }
 
-    async generateNotification(userProfile, timeContext) {
+    async generateNotification(userProfile, timeContext, recentNotifications = []) {
         const todoPrompt = PromptTemplate.fromTemplate(`
             You are a ruthless but helpful task finisher. Produce ONE crisp micro-nudge that moves the user forward NOW with a concrete action + an expert mid-task insight most people miss.
 
             User Current Task TODO: {userTask};
-            Task Type: {taskType},
-            User Background Context: {taskProfile},
-            Time Commitment: {timeCommitment},
-            Current Learning Stage: {learningStage},
-            Days Since Started: {daysSinceStarted},
-            Current Time: {currentTime},
-            Primary Goal: {primaryGoal},
+            Task Type: {taskType};
+            User Background Context: {taskProfile};
+            Time Commitment: {timeCommitment};
+            Current Learning Stage: {learningStage};
+            Days Since Started: {daysSinceStarted};
+            Current Time: {currentTime};
+            Primary Goal: {primaryGoal};
+            Recent Notifications user received: {recentNotifications};
 
             TIME-BASED COACHING:
             - Morning (9-15): Deep work research, strategic learning, new material
@@ -35,7 +36,7 @@ class ToDoAgent {
             - For project tasks: focus on specific technical progress
 
             RULES:
-            - Always give specific, actionable steps they can take right away
+            - Always give specific, actionable steps they can take right away, avoid recent notifications
             - Build excitement about their progress and potential
             Strictly No markdown, NO explanation. Return ONLY valid JSON:
             {{"title": "[2-4 words command]", "content": "[Specific learning todo action with expert insight]"}}
@@ -67,7 +68,10 @@ class ToDoAgent {
             learningStage: userProfile.learningStage,
             daysSinceStarted: userProfile.daysSinceStarted || 1,
             currentTime: timeContext.currentTime,
-            primaryGoal: userProfile.primaryGoal || "skill development"
+            primaryGoal: userProfile.primaryGoal || "skill development",
+            recentNotifications: recentNotifications.map((n, i) =>
+                `${i+1}. ${n.title}: ${n.content}`
+            ).join("\n") || "None yet today"
         });
 
         return response.trim();

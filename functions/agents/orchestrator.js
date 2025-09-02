@@ -25,12 +25,12 @@ class NotificationOrchestrator {
             let enhancedUserProfile = { ...userProfile };           // creates a new object with all same properties as userProfile, but they're independent.
 
             // Checking for active tasks in UserTasks collection
-            const activeTask = await this.getActiveUserTask(userProfile.uid);
+            // const activeTask = await this.getActiveUserTask(userProfile.uid);
 
             // Determine notification priority based on user state
             const hasFocus = userProfile.currentFocus && userProfile.currentFocus.trim() !== '';
             const hasWeeklyGoal = userProfile.weeklyGoal && userProfile.weeklyGoal.trim() !== '';
-            const hasActiveTask = activeTask !== null;
+            const hasActiveTask = userProfile.task !== null && userProfile.task.trim() !== "";
 
             if (hasActiveTask) {
                 // P1: Active task from UserTasks collection -> TodoAgent
@@ -66,7 +66,7 @@ class NotificationOrchestrator {
 
            if (selectedAgentType === 'todo') {
                // ToDoAgent needs enhanced profile with task data
-               notification = await agent.generateNotification(enhancedUserProfile, timeContext);
+               notification = await agent.generateNotification(enhancedUserProfile, timeContext, recentNotifications);
            } else if (selectedAgentType === 'focus') {
                // FocusAgent needs recent notifications to avoid redundancy
                notification = await agent.generateNotification(userProfile, timeContext, recentNotifications);
@@ -94,38 +94,38 @@ class NotificationOrchestrator {
         }
     }
 
-    // Get the most recent active task for the user
-    async getActiveUserTask(userId) {
-        try {
-            const tasksRef = admin.firestore().collection('UserTasks');
-            const snapshot = await tasksRef                     // requires a composite indexing in firebase
-                .where('userId', '==', userId)
-                .orderBy('timestamp', 'desc')
-                .limit(1)
-                .get();
-
-            if (snapshot.empty) {
-                console.log('No active tasks found for user');
-                return null;
-            }
-
-            const taskDoc = snapshot.docs[0];
-            const taskData = taskDoc.data();
-
-            // Return structured task object with all necessary fields
-            return {
-                id: taskDoc.id,
-                task: taskData.task,
-                profile: taskData.profile,
-                timestamp: taskData.timestamp,
-                ...taskData
-            };
-
-        } catch (error) {
-            console.error('Error fetching user task:', error);
-            return null;
-        }
-    }
+//    Get the most recent active task for the user
+//    async getActiveUserTask(userId) {
+//        try {
+//            const tasksRef = admin.firestore().collection('UserTasks');
+//            const snapshot = await tasksRef                     // requires a composite indexing in firebase
+//                .where('userId', '==', userId)
+//                .orderBy('timestamp', 'desc')
+//                .limit(1)
+//                .get();
+//
+//            if (snapshot.empty) {
+//                console.log('No active tasks found for user');
+//                return null;
+//            }
+//
+//            const taskDoc = snapshot.docs[0];
+//            const taskData = taskDoc.data();
+//
+//            // Return structured task object with all necessary fields
+//            return {
+//                id: taskDoc.id,
+//                task: taskData.task,
+//                profile: taskData.profile,
+//                timestamp: taskData.timestamp,
+//                ...taskData
+//            };
+//
+//        } catch (error) {
+//            console.error('Error fetching user task:', error);
+//            return null;
+//        }
+//    }
 
     // Enhance user profile with task-specific data for ToDoAgent
     async enhanceProfileWithTaskData(userProfile, activeTask) {
