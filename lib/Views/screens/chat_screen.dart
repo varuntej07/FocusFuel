@@ -15,17 +15,27 @@ class ChatScreen extends StatefulWidget{
   createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen>{
+class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _initialized = false;
 
+  // typing indicator animation (3 bouncing dots)
+  late final AnimationController _typingAnimationController;
+
   @override
   void initState() {
     super.initState();
+    _typingAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ChatViewModel>().addListener(_onVmChanged);
       _initializeChat();      // Initialize chat after build to get latest conversation
     });
+
     context.read<HomeViewModel>().bumpStreakIfNeeded();
   }
 
@@ -47,10 +57,21 @@ class _ChatScreenState extends State<ChatScreen>{
     }
   }
 
+  void _onVmChanged() {
+    final chatVM = context.read<ChatViewModel>();
+
+    if (chatVM.isSending && !_typingAnimationController.isAnimating) {
+      _typingAnimationController.repeat();
+    } else if (!chatVM.isSending && _typingAnimationController.isAnimating) {
+      _typingAnimationController.stop();
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _typingAnimationController.dispose();
     super.dispose();
   }
 
@@ -99,7 +120,7 @@ class _ChatScreenState extends State<ChatScreen>{
         children: [
           if (!isUser) ...[
             // AI avatar on the left
-            CircleAvatar(radius: 10, backgroundColor: Theme.of(context).colorScheme.primary, child: Icon(Icons.android, size: 6, color: Theme.of(context).colorScheme.onPrimary)),
+            CircleAvatar(radius: 12, backgroundColor: Theme.of(context).colorScheme.primary, child: Icon(Icons.android, size: 8, color: Theme.of(context).colorScheme.onPrimary)),
             const SizedBox(width: 4),
           ],
 
@@ -234,9 +255,9 @@ class _ChatScreenState extends State<ChatScreen>{
 
                 return ListView.builder(
                   controller: _scrollController,
-                  itemCount: messages.length + (chatVM.isLoading ? 1 : 0),
+                  itemCount: messages.length + (chatVM.isSending ? 1 : 0),
                   itemBuilder: (ctx, index) {
-                    if (index == messages.length && chatVM.isLoading) {
+                    if (index == messages.length && chatVM.isSending) {
                       return _buildTypingIndicator();
                     }
                     return _buildMessage(messages[index]);
@@ -281,55 +302,62 @@ class _ChatScreenState extends State<ChatScreen>{
       ),
     );
   }
+
+  // typing indicator three bouncing dots
   Widget _buildTypingIndicator() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Icons.smart_toy,
-              size: 16,
-              color: Colors.deepPurpleAccent
+          // tiny avatar bubble
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEE5FF),
+              borderRadius: BorderRadius.circular(18),
             ),
+            child: const Icon(Icons.android, color: Color(0xFF6B46C1), size: 12),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE0E0E0)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                _TypingDot(),
-                _TypingDot(),
-                _TypingDot(),
-              ],
+              children: [_buildDot(0), _buildDot(1), _buildDot(2)],
             ),
           ),
         ],
       ),
     );
   }
-}
 
-class _TypingDot extends StatelessWidget {
-  const _TypingDot();
+  Widget _buildDot(int index) {
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      width: 8,
-      height: 8,
-      decoration: const BoxDecoration(
-        color: Colors.grey,
-        shape: BoxShape.circle,
-      ),
+    return AnimatedBuilder(
+      animation: _typingAnimationController,
+      builder: (context, child) {
+        final t = (_typingAnimationController.value * 3 - index).clamp(0.0, 1.0);
+        final v = Curves.easeInOut.transform(t) - Curves.easeInOut.transform((t - 0.5).clamp(0.0, 1.0));
+        return Transform.translate(
+          offset: Offset(0, -4 * v),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: Color(0xFF6B46C1),
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      },
     );
   }
 }
