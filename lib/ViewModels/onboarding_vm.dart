@@ -194,7 +194,7 @@ class OnboardingViewModel extends ChangeNotifier {
       case 3: return _selectedMostUsedApp != null;
       case 4: return _selectedScreenTime != null; 
       case 5: return _selectedAgeRange != null;
-      case 6: return _selectedMotivationStyle != null && _selectedNotificationTime != null;
+      case 6: return _selectedMotivationStyle != null;
       default: return false;
     }
   }

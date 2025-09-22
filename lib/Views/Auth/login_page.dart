@@ -4,6 +4,8 @@ import '../../ViewModels/auth_vm.dart';
 import '../../ViewModels/home_vm.dart';
 import '../screens/main_scaffold.dart';
 import 'signup_page.dart';
+import 'package:flutter/gestures.dart';
+
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -57,6 +59,7 @@ class _LoginState extends State<Login> {
                 decoration: InputDecoration(
                   hintText: "Email",
                   prefixIcon: const Icon(Icons.email_outlined),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(26)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(26)),
                 ),
                 validator: (v) => (v?.isEmpty ?? true) ? "Enter your email" : null),
@@ -72,6 +75,7 @@ class _LoginState extends State<Login> {
                     icon: Icon(_viewPassword ? Icons.visibility_off : Icons.visibility),
                     onPressed: _togglePassword
                   ),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(26)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(26)),
                 ),
                 validator: (v) => (v?.isEmpty ?? true) ? "Enter your password" : null,
@@ -96,6 +100,7 @@ class _LoginState extends State<Login> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black87,
                   minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                 ),
                 child: auth.isLoading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -104,19 +109,22 @@ class _LoginState extends State<Login> {
 
               const SizedBox(height: 16),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Don't have an account?"),
-                  TextButton(
-                    onPressed: () {
-                      context.read<AuthViewModel>().clearError(); // Clear error before navigation
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const Signup()));
-                    },
-                    child: const Text("Sign Up", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
+              Text.rich(
+                TextSpan(
+                  text: "Don't have an account? ",
+                  children: [
+                    TextSpan(
+                      text:"Sign Up",
+                      style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 14),
+                      recognizer: TapGestureRecognizer()..onTap = () {
+                        context.read<AuthViewModel>().clearError();
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const Signup()));
+                        },
+                    )
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              )
             ],
           ),
         ),

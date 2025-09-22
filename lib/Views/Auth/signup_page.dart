@@ -6,6 +6,7 @@ import '../../ViewModels/home_vm.dart';
 import '../screens/main_scaffold.dart';
 import 'login_page.dart';
 import 'onboarding_flow.dart';
+import 'package:flutter/gestures.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -268,6 +269,7 @@ class _SignupState extends State<Signup> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black87,
                   minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                 ),
                 child: auth.isLoading
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -276,18 +278,21 @@ class _SignupState extends State<Signup> {
 
               const SizedBox(height: 30),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Already have an account?"),
-                  TextButton(
-                      onPressed: () {
-                        context.read<AuthViewModel>().clearError(); // Clear error before navigation
+              Text.rich(
+                TextSpan(
+                  text: "Already have an account? ",
+                  children: [
+                    TextSpan(
+                      text: "Login",
+                      style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 14),
+                      recognizer: TapGestureRecognizer()..onTap = () {
+                        context.read<AuthViewModel>().clearError();
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const Login()));
                       },
-                      child: const Text("Login", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold))
-                  ),
-                ],
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
