@@ -1,4 +1,5 @@
 const { admin } = require("./firebase");
+const { UserHistoryService } = require("./userHistoryService");
 
 const db = admin.firestore();
 
@@ -6,6 +7,10 @@ const db = admin.firestore();
 async function getUserProfile(uid) {
     const userDoc = await db.doc(`Users/${uid}`).get();
     const userData = userDoc.data();
+
+    // Generate AI summary of user's history using OpenAI
+    const historyService = new UserHistorySummaryService(uid, process.env.OPENAI_API_KEY);
+    const historySummary = await historyService.getUserHistorySummary();
 
     return {
         uid: userDoc.id,
@@ -22,6 +27,7 @@ async function getUserProfile(uid) {
         mostUsedApp: userData?.mostUsedApp || "",
         timezone: userData?.timezone || "America/Los_Angeles",
         task: userData?.usersTask || "",
+        historySummary: historySummary
     };
 }
 

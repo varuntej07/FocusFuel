@@ -19,11 +19,11 @@ const generateGreeting = onCall(
           messages: [
             {
                 role: "system",
-                content: "You are a motivational coach."
+                content: "You are a strict intelligent mentor"
             },
             {
                 role: "user",
-                content: "Give one blunt, powerful no-bullshit greeting for hardcore hustlers"
+                content: "Give one blunt, powerful no-bullshit slogan for hardcore hustlers"
             }
           ],
           max_tokens: 50,

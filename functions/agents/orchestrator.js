@@ -1,4 +1,3 @@
-const { NotificationRouter } = require('./router');
 const { ProductivityAgent } = require('./productivityAgent');
 const { LearningAgent } = require('./learningAgent');
 const { FocusAgent } = require('./focusAgent');
@@ -7,7 +6,6 @@ const admin = require('firebase-admin');
 
 class NotificationOrchestrator {
     constructor(openaiApiKey) {
-        this.router = new NotificationRouter(openaiApiKey);  // Instantiates NotificationRouter, as this is gonna decide which agent to use
         this.agents = {                                      // Initializing all agents with OpenAI API key
             productivity: new ProductivityAgent(openaiApiKey),
             learning: new LearningAgent(openaiApiKey),
@@ -25,12 +23,12 @@ class NotificationOrchestrator {
             let enhancedUserProfile = { ...userProfile };           // creates a new object with all same properties as userProfile, but they're independent.
 
             // Checking for active tasks in UserTasks collection
-            // const activeTask = await this.getActiveUserTask(userProfile.uid);
+            const activeTask = await this.getActiveUserTask(userProfile.uid);
 
             // Determine notification priority based on user state
             const hasFocus = userProfile.currentFocus && userProfile.currentFocus.trim() !== '';
             const hasWeeklyGoal = userProfile.weeklyGoal && userProfile.weeklyGoal.trim() !== '';
-            const hasActiveTask = userProfile.task !== null && userProfile.task.trim() !== "";
+            const hasActiveTask = userProfile.task && userProfile.task.trim() !== "";
 
             if (hasActiveTask) {
                 // P1: Active task from UserTasks collection -> TodoAgent
@@ -38,7 +36,7 @@ class NotificationOrchestrator {
                 agent = this.agents.todo;
 
                 // Enhance user profile with task data when using todo agent
-                enhancedUserProfile = await this.enhanceProfileWithTaskData(userProfile, activeTask);
+                enhancedUserProfile = await this.enhanceProfileForTodoAgent(userProfile);
                 console.log('Active task detected, using ToDoAgent with enhanced profile');
             } else if (hasFocus) {
                 //P2: User daily focus -> FocusAgent
@@ -46,19 +44,18 @@ class NotificationOrchestrator {
                 agent = this.agents.focus;
                 console.log('CurrentFocus detected, using FocusAgent');
             } else{
-                // Nothing Set: Router decides which agent to use as router.selectAgent returns the agent type
-                selectedAgentType = await this.router.selectAgent(userProfile, timeContext);
-                console.log(`Router selected: ${selectedAgentType}`);
-
-                // Get the appropriate agent from the agents map defined in our constructor above
+                const historyResult = this.selectAgentFromHistory(userProfile.historySummary);
+                selectedAgentType = historyResult.agentType;
+                enhancedUserProfile = { ...userProfile, ...historyResult.enhancedProfile };
                 agent = this.agents[selectedAgentType];
 
-                // If the router selected an agent that doesn't exist, fallback to productivity
-                if (!agent) {
-                    console.log(`Agent ${selectedAgentType} not found, falling back to productivity`);
-                    selectedAgentType = 'productivity';  // Update selectedAgentType for consistency
-                    agent = this.agents.productivity;
-                }
+                console.log(`No dashboard entries found, using history-based ${selectedAgentType} agent`);
+            }
+            // Ensure I have a valid agent, so falling back to productivity if somehow null
+            if (!agent) {
+                console.log(`Agent ${selectedAgentType} not found, falling back to productivity`);
+                selectedAgentType = 'productivity';
+                agent = this.agents.productivity;
             }
 
             // Generate notification with selected agent 
@@ -69,9 +66,9 @@ class NotificationOrchestrator {
                notification = await agent.generateNotification(enhancedUserProfile, timeContext, recentNotifications);
            } else if (selectedAgentType === 'focus') {
                // FocusAgent needs recent notifications to avoid redundancy
-               notification = await agent.generateNotification(userProfile, timeContext, recentNotifications);
+               notification = await agent.generateNotification(enhancedUserProfile, timeContext, recentNotifications);
            } else {
-               notification = await agent.generateNotification(userProfile, timeContext);
+               notification = await agent.generateNotification(enhancedUserProfile, timeContext);
            }
 
             console.log(`Generated ${selectedAgentType} notification: ${notification}...`);
@@ -86,7 +83,10 @@ class NotificationOrchestrator {
 
             // Fallback notification with better error handling
             return {
-                notification: "Stay focused on your goals today! Check back later for personalized suggestions.",
+                notification: JSON.stringify({
+                    "title": "Stay Focused",
+                    "content": "Check your goals and get your work done right now!"
+                }),
                 agentType: "fallback",
                 timestamp: new Date().toISOString(),
                 error: error.message
@@ -94,52 +94,52 @@ class NotificationOrchestrator {
         }
     }
 
-//    Get the most recent active task for the user
-//    async getActiveUserTask(userId) {
-//        try {
-//            const tasksRef = admin.firestore().collection('UserTasks');
-//            const snapshot = await tasksRef                     // requires a composite indexing in firebase
-//                .where('userId', '==', userId)
-//                .orderBy('timestamp', 'desc')
-//                .limit(1)
-//                .get();
-//
-//            if (snapshot.empty) {
-//                console.log('No active tasks found for user');
-//                return null;
-//            }
-//
-//            const taskDoc = snapshot.docs[0];
-//            const taskData = taskDoc.data();
-//
-//            // Return structured task object with all necessary fields
-//            return {
-//                id: taskDoc.id,
-//                task: taskData.task,
-//                profile: taskData.profile,
-//                timestamp: taskData.timestamp,
-//                ...taskData
-//            };
-//
-//        } catch (error) {
-//            console.error('Error fetching user task:', error);
-//            return null;
-//        }
-//    }
+    // Get the most recent active task for the user
+    async getActiveUserTask(userId) {
+        try {
+            const tasksRef = admin.firestore().collection('UserTasks');
+            const snapshot = await tasksRef                     // requires a composite indexing in firebase
+                .where('userId', '==', userId)
+                .orderBy('timestamp', 'desc')
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                console.log('No active tasks found for user');
+                return null;
+            }
+
+            const taskDoc = snapshot.docs[0];
+            const taskData = taskDoc.data();
+
+            // Return structured task object with all necessary fields
+            return {
+                id: taskDoc.id,
+                task: taskData.task,
+                profile: taskData.profile,
+                timestamp: taskData.timestamp,
+                ...taskData
+            };
+
+        } catch (error) {
+            console.error('Error fetching user task:', error);
+            return null;
+        }
+    }
 
     // Enhance user profile with task-specific data for ToDoAgent
-    async enhanceProfileWithTaskData(userProfile, activeTask) {
-        const daysSinceStarted = this.calculateDaysSinceStarted(activeTask.timestamp);
-        const learningStage = this.determineLearningStage(daysSinceStarted);
+    async enhanceProfileForTodoAgent(userProfile) {
+        const taskContent = userProfile.task;
+        const daysSinceStarted = this.calculateDaysSinceStarted(userProfile.task?.timestamp);
 
         return {
             ...userProfile,
-            currentTask: activeTask.task,
-            taskProfile: activeTask.profile,
-            daysSinceStarted: daysSinceStarted,
-            learningStage: learningStage,
-            taskType: this.categorizeTask(activeTask.task),
-            timeCommitment: activeTask.timeCommitment || "5 hours daily",
+            currentTask: taskContent,
+            taskProfile: userProfile.primaryGoal || "General productivity",
+            daysSinceStarted: daysSinceStarted,            // default
+            learningStage: this.determineLearningStage(daysSinceStarted),
+            taskType: this.categorizeTask(taskContent),
+            timeCommitment: userProfile.task?.timeCommitment || "5 hours daily",
         };
     }
 
@@ -158,8 +158,8 @@ class NotificationOrchestrator {
 
     // Determine learning stage based on days since task started
     determineLearningStage(daysSinceStarted) {
-        if (daysSinceStarted <= 7) return 'foundation';         // 1 week
-        else if (daysSinceStarted <= 14) return 'building';
+        if (daysSinceStarted <= 3) return 'foundation';
+        else if (daysSinceStarted <= 7) return 'building';
         else return 'application';              // applying and mastering
     }
 
@@ -177,6 +177,46 @@ class NotificationOrchestrator {
         } else {
             return 'learning'; // default to learning approach
         }
+    }
+
+    selectAgentFromHistory(historyContext) {
+        const historySummary = historyContext?.historySummary || historyContext;
+        if (!historySummary || historySummary.isEmpty) {
+            return {
+                agentType: 'productivity',
+                enhancedProfile: {}
+            };
+        }
+
+        // Use last focus/task to determine agent
+        if (historySummary.lastTask) {
+            return {
+                agentType: 'todo',
+                enhancedProfile: {
+                    currentTask: historySummary.lastTask,
+                    taskProfile: historySummary.summary,
+                    daysSinceStarted: 1,
+                    learningStage: 'building',
+                    taskType: 'project'
+                }
+            };
+        }
+
+        if (historySummary.lastFocus) {
+            return {
+                agentType: 'focus',
+                enhancedProfile: {
+                    currentFocus: historySummary.lastFocus
+                }
+            };
+        }
+
+        return {
+            agentType: 'productivity',
+            enhancedProfile: {
+                historyContext: historySummary.summary
+            }
+        };
     }
 }
 
