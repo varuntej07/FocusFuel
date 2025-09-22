@@ -278,6 +278,19 @@ class HomeViewModel extends ChangeNotifier {
     
     try {
       _updateState(HomeState.loading);
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+
+      if (_currentFocus != null && _currentFocus!.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(uid)
+            .collection('focusHistory')
+            .add({
+          'content': _currentFocus,
+          'enteredAt': FieldValue.serverTimestamp(),
+          'wasCompleted': false,              // should track this based on user action
+        });
+      }
 
       // Update local preferences first for immediate UI feedback
       await _prefsService.saveCurrentFocus(focus);
@@ -303,6 +316,23 @@ class HomeViewModel extends ChangeNotifier {
       _updateState(HomeState.loading);
 
       final weeklyGoal = goal.trim();
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+
+      try {
+        if (_weeklyGoal != null && _weeklyGoal!.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(uid)
+              .collection('goalHistory')
+              .add({
+            'content': _weeklyGoal,
+            'enteredAt': FieldValue.serverTimestamp(),
+            'wasAchieved': false,
+          });
+        }
+      } catch (error, stackTrace) {
+        _handleError('Failed to save goal to history', error, stackTrace);
+      }
 
       await _prefsService.saveWeeklyGoal(weeklyGoal);       // Updating local preferences first
       _weeklyGoal = weeklyGoal.isEmpty ? null : weeklyGoal;
@@ -356,10 +386,24 @@ class HomeViewModel extends ChangeNotifier {
     try {
       _updateState(HomeState.loading);
 
+      final uid = FirebaseAuth.instance.currentUser!.uid;
       final usersTask = task.trim();      // local variable to avoid unnecessary updates
 
       // Check if task has changed since last update and update Firestore if so
       if (usersTask != _usersTask) {
+        if (usersTask.isNotEmpty) {           // saving it to history first if not empty
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(uid)
+              .collection('taskHistory')
+              .add({
+            'content': usersTask,
+            'enteredAt': FieldValue.serverTimestamp(),
+            'completedAt': null,
+            'isActive': true,
+          });
+        }
+
         await _prefsService.saveUsersTask(usersTask); // Updating local preferences first
 
         _usersTask = usersTask.isEmpty ? null : usersTask;
@@ -539,6 +583,18 @@ class HomeViewModel extends ChangeNotifier {
       _updateState(HomeState.loading);
 
       final wins = win.trim();
+
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      if (wins.isNotEmpty) {          // saving it to history first if not empty
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(uid)
+            .collection('wins')
+            .add({
+          'content': wins,
+          'enteredAt': FieldValue.serverTimestamp(),
+        });
+      }
 
       await _prefsService.saveWins(wins);
 
