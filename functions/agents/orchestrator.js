@@ -16,8 +16,6 @@ class NotificationOrchestrator {
 
     async generateSmartNotification(userProfile, timeContext, recentNotifications) {
         try {
-            console.log('Starting notification generation using orchestrator...');
-
             let selectedAgentType;
             let agent;
             let enhancedUserProfile = { ...userProfile };           // creates a new object with all same properties as userProfile, but they're independent.
@@ -30,17 +28,16 @@ class NotificationOrchestrator {
             const hasWeeklyGoal = userProfile.weeklyGoal && userProfile.weeklyGoal.trim() !== '';
             const hasActiveTask = userProfile.task && userProfile.task.trim() !== "";
 
+            console.log(`Starting notification generation using orchestrator for ${userProfile.username}...`);
+
             if (hasActiveTask) {
-                // P1: Active task from UserTasks collection -> TodoAgent
-                selectedAgentType = 'todo';
+                selectedAgentType = 'todo';                 // P1: Active task from UserTasks collection -> TodoAgent
                 agent = this.agents.todo;
 
-                // Enhance user profile with task data when using todo agent
-                enhancedUserProfile = await this.enhanceProfileForTodoAgent(userProfile);
+                enhancedUserProfile = await this.enhanceProfileForTodoAgent(userProfile);     // Enhance user profile with task data when using todo agent
                 console.log('Active task detected, using ToDoAgent with enhanced profile');
             } else if (hasFocus) {
-                //P2: User daily focus -> FocusAgent
-                selectedAgentType = 'focus';
+                selectedAgentType = 'focus';                // P2: User daily focus -> FocusAgent
                 agent = this.agents.focus;
                 console.log('CurrentFocus detected, using FocusAgent');
             } else{
@@ -51,6 +48,7 @@ class NotificationOrchestrator {
 
                 console.log(`No dashboard entries found, using history-based ${selectedAgentType} agent`);
             }
+
             // Ensure I have a valid agent, so falling back to productivity if somehow null
             if (!agent) {
                 console.log(`Agent ${selectedAgentType} not found, falling back to productivity`);
@@ -200,6 +198,8 @@ class NotificationOrchestrator {
                     taskType: 'project'
                 }
             };
+        } else {
+            console.log("Error fetching last task from historySummary")
         }
 
         if (historySummary.lastFocus) {

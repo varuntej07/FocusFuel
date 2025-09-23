@@ -1,5 +1,6 @@
 const { admin } = require("./firebase");
 const { UserHistoryService } = require("./userHistoryService");
+const { UserHistorySummaryService } = require("./userHistorySummaryService");
 
 const db = admin.firestore();
 

@@ -30,7 +30,7 @@ module.exports = {
                 const activeUsers = users.filter(u => u.primaryInterests?.length > 0);
                 const creditsPerUser = Math.floor(MAX_CREDITS_PER_RUN / activeUsers.length);
 
-                console.log(`${activeUsers.length} active users, ${creditsPerUser} credits each`);
+                console.log(`Found ${activeUsers.length} active users, so using ${creditsPerUser} credits each`);
 
                 const results = [];
 
