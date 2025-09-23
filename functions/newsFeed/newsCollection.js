@@ -39,13 +39,13 @@ module.exports = {
                     try {
                         const userId = user.uid;
                         if (!user.primaryInterests || user.primaryInterests.length === 0) {
-                            console.log(`No primary interests for user ${userId}, skipping`);
+                            user.primaryInterests = ['technology', 'business', 'health'];           // fallback if no primary interests
                             results.push({
                                 success: false,
                                 userId: userId,
                                 error: "No primary interests found"
                             });
-                            continue;
+                            console.log(`No primary interests for user ${userId}, continuing with fallback terms..`);
                         }
 
                         // Get user profile 
@@ -209,6 +209,11 @@ async function collectArticlesForSearchTerms(searchTerms, userProfile, creditsPe
 
     try {
         return await newsAggregator.fetchNews(searchTerms, userProfile, {maxRequests: creditsPerUser});
+        if (articles.length === 0) {
+            console.log('No personalized articles found, fetching universal trending content');
+            const rssService = new (require('./rssService')).RSSService();
+            return await rssService.fetchTrendingNews({ size: creditsPerUser });
+        }
     } catch (error) {
         console.error('All news sources failed:', error);
         return []; // Return empty array instead of crashing
@@ -224,8 +229,8 @@ async function filterAndCleanArticles(articles) {
     const validArticles = articles.filter(article => {
         return article.title &&
             article.link &&
-            article.title.length > 10 &&
-            article.title.length < 200;
+            article.title.length > 7 &&
+            article.title.length < 270;
     });
 
     console.log(`After basic validation: ${validArticles.length} articles`);
