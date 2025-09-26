@@ -7,7 +7,7 @@ class FocusAgent {
         this.model = new ChatOpenAI({
             openAIApiKey: openaiApiKey,
             modelName: "gpt-4o",
-            temperature: 0.76
+            temperature: 0.5
         });
     }
 
@@ -28,6 +28,8 @@ class FocusAgent {
                 - Always reference their exact {currentFocus} and what user might be doing with the goal at the time of the day
                 - Avoid repeating these: {recentNotifications}
                 - Notifications must feel urgent, useful, and slightly witty so the user wants to tap in
+
+                REQUIRED: Concrete action verb + specific next step + expert insight
 
                 RULES:
                 - Always include one expert-level trick, pitfall, or shortcut about {currentFocus}

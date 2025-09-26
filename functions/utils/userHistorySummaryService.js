@@ -53,14 +53,16 @@ class UserHistorySummaryService {
 
     async generateSummary(focuses, tasks, goals) {
         const prompt = PromptTemplate.fromTemplate(`
-            Create a clear, precise summary of this user's productivity patterns:
+            Extract productivity patterns from user data. Output format: concise statement of facts only.
 
             RECENT FOCUSES: {focuses}
             RECENT TASKS: {tasks}
             RECENT GOALS: {goals}
 
+            Rules:
+            List most recent focus/task/goal verbatim if present.
             Focus on most recent activity and patterns, keep it concise and actionable
-            as this summary is going to be context for future notifications.
+            as this summary is going to be context for future mobile notifications.
         `);
 
         const chain = prompt.pipe(this.model).pipe(new StringOutputParser());

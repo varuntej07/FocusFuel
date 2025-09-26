@@ -1,19 +1,22 @@
 const { ProductivityAgent } = require('./productivityAgent');
-const { LearningAgent } = require('./learningAgent');
 const { FocusAgent } = require('./focusAgent');
 const { ToDoAgent } = require('./todoAgent');
 const admin = require('firebase-admin');
+const { CalendarAgent } = require('./calendarAgent');
+const { CriticAgent } = require('./criticAgent');
 
 class NotificationOrchestrator {
     constructor(openaiApiKey) {
+        this.openaiApiKey = openaiApiKey;
         this.agents = {                                      // Initializing all agents with OpenAI API key
             productivity: new ProductivityAgent(openaiApiKey),
-            learning: new LearningAgent(openaiApiKey),
             focus: new FocusAgent(openaiApiKey),
             todo: new ToDoAgent(openaiApiKey),
+            calendar: new CalendarAgent(openaiApiKey),
         };
     }
 
+    // userProfile is the whole data object from getUserProfile(uid)
     async generateSmartNotification(userProfile, timeContext, recentNotifications) {
         try {
             let selectedAgentType;
@@ -59,22 +62,53 @@ class NotificationOrchestrator {
             // Generate notification with selected agent 
             let notification;
 
-           if (selectedAgentType === 'todo') {
+            if (selectedAgentType === 'todo') {
                // ToDoAgent needs enhanced profile with task data
                notification = await agent.generateNotification(enhancedUserProfile, timeContext, recentNotifications);
-           } else if (selectedAgentType === 'focus') {
+            } else if (selectedAgentType === 'focus') {
                // FocusAgent needs recent notifications to avoid redundancy
                notification = await agent.generateNotification(enhancedUserProfile, timeContext, recentNotifications);
-           } else {
+            } else {
                notification = await agent.generateNotification(enhancedUserProfile, timeContext);
-           }
+            }
 
             console.log(`Generated ${selectedAgentType} notification: ${notification}...`);
 
+            // Parsing the JSON string from agent
+            let parsedNotification;
+            try {
+                const jsonMatch = notification.match(/\{.*\}/s);
+                parsedNotification = JSON.parse(jsonMatch ? jsonMatch[0] : notification);
+            } catch (e) {
+                console.error('Failed to parse agent notification:', e);
+                parsedNotification = { title: "Focus Now", content: notification };
+            }
+
+            console.log('Validating notification using a critic agent...');
+
+            const critic = new CriticAgent(this.openaiApiKey);
+            const critique = await critic.validateNotification(
+                parsedNotification,
+                {
+                     focus: userProfile.currentFocus || "User have no active focus set today",
+                     task: userProfile.currentTask || "User have no active task set today"
+                },
+                selectedAgentType
+            );
+
+            // Use critic's output (which always returns corrected version)
+            const finalNotification = {
+                title: critique.title,
+                content: critique.content
+            };
+
+            console.log(`Critic feedback: ${critique.reason}`);
+
             return {
-                notification: notification,
+                notification: JSON.stringify(finalNotification), // Return as JSON string (expected by sendNotifications.js)
                 agentType: selectedAgentType,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                criticReason: critique.reason
             };
         } catch (error) {
             console.error('Error in notification orchestrator:', error);

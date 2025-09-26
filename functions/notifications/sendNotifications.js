@@ -111,7 +111,7 @@ async function processUserNotification(uid, userData, openaiApiKey, timeWindow) 
     }
 
     // Save notification and create conversation in Firestore
-    const saveResult = await saveNotificationAndCreateConversation(parsedNotification, userProfile);
+    const saveResult = await saveNotificationAndCreateConversation(parsedNotification, userProfile, notificationResult.agentType, timeWindow);
 
     // send FCM notification with required params
     await sendFCMNotification(userData.fcmToken, parsedNotification, uid, saveResult.notificationId);
@@ -171,7 +171,7 @@ async function generateSmartNotification(userProfile, timeContext, openaiApiKey,
 
 // Helper function to save notification in Notifications collection and 
 // also save notification as initial conversation message in Conversations collection
-async function saveNotificationAndCreateConversation(message, userProfile) {
+async function saveNotificationAndCreateConversation(message, userProfile, agentType, timeWindow) {
   
     try {
         // first save the notification to the Notifications collection
@@ -180,7 +180,14 @@ async function saveNotificationAndCreateConversation(message, userProfile) {
             message: message,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             clicked: false,
-            forFocus: userProfile.currentFocus
+            forFocus: userProfile.currentFocus,
+            generationContext: {
+                agentType: agentType,           // which agent created it
+                userFocusAtSend: userProfile.currentFocus,
+                userTaskAtSend: userProfile.task,
+                userGoalAtSend: userProfile.weeklyGoal,
+                timeWindow: timeWindow,        // morning/afternoon/evening
+            }
         });
 
         // Create conversation linked to notification
