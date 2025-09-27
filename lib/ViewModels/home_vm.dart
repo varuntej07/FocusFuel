@@ -280,18 +280,6 @@ class HomeViewModel extends ChangeNotifier {
       _updateState(HomeState.loading);
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
-      if (_currentFocus != null && _currentFocus!.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(uid)
-            .collection('focusHistory')
-            .add({
-          'content': _currentFocus,
-          'enteredAt': FieldValue.serverTimestamp(),
-          'wasCompleted': false,              // should track this based on user action
-        });
-      }
-
       // Update local preferences first for immediate UI feedback
       await _prefsService.saveCurrentFocus(focus);
       _currentFocus = focus;
@@ -301,6 +289,19 @@ class HomeViewModel extends ChangeNotifier {
         'currentFocus': _currentFocus,
         'focusUpdatedAt': FieldValue.serverTimestamp()
       });
+
+      // Save the new focus to history
+      if (focus.trim().isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(uid)
+            .collection('focusHistory')
+            .add({
+          'content': focus.trim(),
+          'enteredAt': FieldValue.serverTimestamp(),
+          'wasCompleted': false,              // should track this based on user action
+        });
+      }
 
       _updateState(HomeState.success);
     } catch (error, stackTrace) {
@@ -319,7 +320,7 @@ class HomeViewModel extends ChangeNotifier {
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
       try {
-        if (_weeklyGoal != null && _weeklyGoal!.isNotEmpty) {
+        if (goal.trim().isNotEmpty) {
           await FirebaseFirestore.instance
               .collection('Users')
               .doc(uid)
@@ -646,9 +647,8 @@ class HomeViewModel extends ChangeNotifier {
 
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
-        // Only update if timezone detection succeeds
         await FirebaseFirestore.instance.collection('Users').doc(uid).update({
-          'timezone': currentTimezone,
+          'timezone': currentTimezone.toString(),
           'timezoneUpdatedAt': FieldValue.serverTimestamp(),
         });
       }

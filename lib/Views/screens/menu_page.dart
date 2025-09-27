@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
+import 'package:focus_fuel/Views/screens/profile_page.dart';
+import 'package:focus_fuel/Views/screens/goals_page.dart';
+import 'package:focus_fuel/Views/screens/settings_page.dart';
 import 'package:focus_fuel/Views/screens/subscription_page.dart';
 import 'package:focus_fuel/Views/screens/support_page.dart';
 import 'package:provider/provider.dart';
@@ -103,16 +106,29 @@ class _MenuPageState extends State<MenuPage> {
                     title: 'Profile',
                     icon: Icons.person_outline,
                     onTap: () {
-                      // TODO: navigate to profile
+                      Navigator.push(context, MaterialPageRoute(
+                          builder: (context) => ProfilePage()
+                      ));
                     },
                   ),
-                  _buildMenuCard(context: context, title: 'Goals', icon: Icons.flag_rounded, onTap: () {}),
+                  _buildMenuCard(
+                      context: context,
+                      title: 'Goals',
+                      icon: Icons.flag_rounded,
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => GoalsPage()
+                        ));
+                      }
+                  ),
                   _buildMenuCard(
                     context: context,
                     title: 'Settings',
                     icon: Icons.settings,
                     onTap: () {
-                      // TODO: navigate to settings
+                      Navigator.push(context, MaterialPageRoute(
+                          builder: (context) => SettingsPage()
+                      ));
                     },
                   ),
                   _buildMenuCard(
@@ -142,7 +158,7 @@ class _MenuPageState extends State<MenuPage> {
                         trailing: Switch(
                           value: themeProvider.isDarkMode,
                           onChanged: (value) => themeProvider.toggleTheme(),
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeThumbColor: Theme.of(context).colorScheme.primary,
                         ),
                       );
                     },

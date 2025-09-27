@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/ViewModels/chat_vm.dart';
+import 'package:focus_fuel/ViewModels/goals_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
 import 'Services/shared_prefs_service.dart';
@@ -165,6 +166,13 @@ class MyApp extends StatelessWidget {
             Provider<ChatService>(create: (_) => ChatService()),
             ChangeNotifierProvider(create: (_) => AuthViewModel()),
             ChangeNotifierProvider(create: (context) => HomeViewModel(context.read<StreakRepository>())),
+            ChangeNotifierProxyProvider<HomeViewModel, GoalsViewModel>(
+              create: (_) => GoalsViewModel(),
+              update: (_, homeViewModel, goalsViewModel) {
+                goalsViewModel?.setHomeViewModel(homeViewModel);
+                return goalsViewModel ?? GoalsViewModel();
+              },
+            ),
             ChangeNotifierProvider(create: (context) => ChatViewModel()),
             ChangeNotifierProvider(create: (_) => OnboardingViewModel()),
             ChangeNotifierProvider(create: (_) => NewsFeedViewModel()),
