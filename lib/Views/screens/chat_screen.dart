@@ -58,6 +58,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _onVmChanged() {
+    if (!mounted) return; // Check if widget is still mounted
+
     final chatVM = context.read<ChatViewModel>();
 
     if (chatVM.isSending && !_typingAnimationController.isAnimating) {
@@ -69,6 +71,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    context.read<ChatViewModel>().removeListener(_onVmChanged);
     _controller.dispose();
     _scrollController.dispose();
     _typingAnimationController.dispose();

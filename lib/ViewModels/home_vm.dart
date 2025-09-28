@@ -639,6 +639,14 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  // Update user data directly from UserModel (for immediate updates after login)
+  void updateFromUserModel(String username) {
+    if (!_isAuthenticated) return;
+
+    _username = username;
+    if (!_disposed) notifyListeners();
+  }
+
   Future<void> _checkAndUpdateTimezone() async {
     if (!_isAuthenticated) return;
 
@@ -647,8 +655,9 @@ class HomeViewModel extends ChangeNotifier {
 
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
+        final timezoneString = currentTimezone.toString();
         await FirebaseFirestore.instance.collection('Users').doc(uid).update({
-          'timezone': currentTimezone.toString(),
+          'timezone': timezoneString,
           'timezoneUpdatedAt': FieldValue.serverTimestamp(),
         });
       }

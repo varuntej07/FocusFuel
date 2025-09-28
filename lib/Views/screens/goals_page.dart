@@ -18,6 +18,13 @@ class _GoalsPageState extends State<GoalsPage> with SingleTickerProviderStateMix
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+
+    // Set up the connection between ViewModels after widget initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final goalsVM = context.read<GoalsViewModel>();
+      final homeVM = context.read<HomeViewModel>();
+      goalsVM.setHomeViewModel(homeVM);
+    });
   }
 
   @override

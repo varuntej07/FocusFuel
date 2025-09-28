@@ -11,7 +11,7 @@ class AuthViewModel extends ChangeNotifier {
   // State management values defined in the AuthState enum. It represents the initial state of the authentication process.
   AuthState _state = AuthState.initial;
   AuthState get state => _state;
-  
+
   // Controllers live here so the page can bind directly to them
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -21,6 +21,7 @@ class AuthViewModel extends ChangeNotifier {
   bool isLoading = false;     // Controls the spinner & button state
   bool _isSubscribed = false;
   bool get isSubscribed => _isSubscribed;
+  final bool _disposed = false;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
@@ -61,8 +62,10 @@ class AuthViewModel extends ChangeNotifier {
         // TODO: After loading userModel, check/update their subscription status here if needed
         await _cacheUser();
         _state = AuthState.authenticated;
+        if (!_disposed) notifyListeners();
       } else {
         _state = AuthState.unauthenticated;
+        if (!_disposed) notifyListeners();
       }
     } catch (error, stackTrace) {
       _handleError('Failed to load user data', error, stackTrace);
@@ -79,17 +82,17 @@ class AuthViewModel extends ChangeNotifier {
 
   void _startLoading() {
     isLoading = true;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   void _stopLoading() {
     isLoading = false;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   void clearError() {
     _errorMessage = null;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   // Clear user data
@@ -105,7 +108,7 @@ class AuthViewModel extends ChangeNotifier {
     confirmPasswordController.clear();
     usernameController.clear();
     _errorMessage = null;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   @override
@@ -126,10 +129,11 @@ class AuthViewModel extends ChangeNotifier {
         password: passwordController.text.trim(),
       );
 
+      final timezone = await FlutterTimezone.getLocalTimezone();
       await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).update({
         'isActive': true,
         'lastLogin': FieldValue.serverTimestamp(),
-        'timezone': await FlutterTimezone.getLocalTimezone(),
+        'timezone': timezone.toString(),
       });
 
       final snap = await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).get();
@@ -141,7 +145,7 @@ class AuthViewModel extends ChangeNotifier {
       await _prefsService.saveUserId(credential.user!.uid);
 
       _state = AuthState.authenticated;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
 
       return _userModel;
     } on FirebaseAuthException catch (e) {
@@ -169,7 +173,7 @@ class AuthViewModel extends ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),    // server timestamp in UTC timezone
         'accountCreatedOn': FieldValue.serverTimestamp(),
         'isActive': true,
-        'timezone': await FlutterTimezone.getLocalTimezone(),
+        'timezone': (await FlutterTimezone.getLocalTimezone()).toString(),
       };
 
       await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).set(userData);
@@ -196,7 +200,7 @@ class AuthViewModel extends ChangeNotifier {
         _errorMessage = _mapFirebaseError(error);
         _state = AuthState.error;
 
-        notifyListeners();
+        if (!_disposed) notifyListeners();
       } else {
         _handleError('Registration failed', error, stackTrace);
       }
