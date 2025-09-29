@@ -71,7 +71,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    context.read<ChatViewModel>().removeListener(_onVmChanged);
     _controller.dispose();
     _scrollController.dispose();
     _typingAnimationController.dispose();
