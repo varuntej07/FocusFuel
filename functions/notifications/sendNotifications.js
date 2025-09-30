@@ -54,14 +54,22 @@ module.exports = {
 
 
 async function shouldSendNotificationNow(userData) {
-    const userTimezone = userData.timezone || "America/Los_Angeles";    // User's timezone, default to PST
+    // Extract timezone ID from the complex format
+    let userTimezone = userData.timezone || "America/Los_Angeles";
+    console.log(`Timezone for {${userData.username}} is: ${userTimezone}`);
+
+    // Parse timezone if it's in the TimezoneInfo format
+    if (userTimezone.includes('TimezoneInfo(')) {
+        const match = userTimezone.match(/TimezoneInfo\(([^,]+)/);
+        userTimezone = match ? match[1] : "America/Los_Angeles";
+    }
 
     const userTime = DateTime.now().setZone(userTimezone);
     const localHour = userTime.hour;
 
    // allowed hours in alternating pattern
    const allowedHours = {
-       morning: [9, 10, 12], // 10 AM, 12 PM
+       morning: [9, 10, 12, 13], // 10 AM, 12 PM
        afternoon: [15, 17], // 3 PM, 5 PM
        evening: [19, 21, 22, 23] // 7 PM, 9 PM, 11 PM
    };
