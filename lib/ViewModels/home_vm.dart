@@ -624,7 +624,21 @@ class HomeViewModel extends ChangeNotifier {
     try {
       _updateState(HomeState.loading);
 
-      _username = _prefsService.getUsername();
+      // Fetch username from Firestore first for immediate display
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final snap = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+        if (snap.exists) {
+          final data = snap.data();
+          _username = data?['username'] as String?;
+          if (_username != null) {
+            await _prefsService.saveUsername(_username!);
+          }
+        }
+      }
+
+      // Fall back to prefs if Firestore fetch failed
+      _username ??= _prefsService.getUsername();
       _streak = _prefsService.getStreak() ?? _defaultStreak;
       _currentFocus = _prefsService.getCurrentFocus();
       _weeklyGoal = _prefsService.getWeeklyGoal();

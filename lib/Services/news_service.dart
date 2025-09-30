@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'shared_prefs_service.dart';
 
@@ -14,9 +15,20 @@ class NewsService {
     }
 
     try {
+      // Get user ID from prefs first, fallback to FirebaseAuth current user
+      String? userId = _prefsService.getUserId();
+      if (userId == null || userId.isEmpty) {
+        userId = FirebaseAuth.instance.currentUser?.uid;
+      }
+
+      // If still no user ID, return cached articles
+      if (userId == null || userId.isEmpty) {
+        return _prefsService.getCachedNewsArticles() ?? [];
+      }
+
       final callable = _functions.httpsCallable('getUserNewsFeed');     // Creates Firebase callable function to get user's news feed
       final result = await callable.call({
-        'userId': _prefsService.getUserId(),  // gets user id from prefs to get user's news feed
+        'userId': userId,  // gets user id from prefs to get user's news feed
       });
 
       if (result.data['success'] == true) {
