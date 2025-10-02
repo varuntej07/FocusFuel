@@ -17,10 +17,11 @@ class StreakRepository {
 
       int streak = (data?['streak'] as int?) ?? 0;
       int longest = (data?['longestStreak'] as int?) ?? 0;
-      DateTime today = _midnight(DateTime.now());
+      DateTime now = DateTime.now();
+      DateTime today = _midnight(now);
       DateTime? last = (data?['lastActive'] as Timestamp?)?.toDate();
 
-      final gap = last == null ? 1 : today.difference(last).inDays;
+      final gap = last == null ? 1 : today.difference(_midnight(last)).inDays;
 
       if (gap == 0) return streak;         // already counted today
       if (gap == 1) {
@@ -33,7 +34,7 @@ class StreakRepository {
 
       txn.set(ref, {
         'streak': streak,
-        'lastActive': Timestamp.fromDate(today),
+        'lastActive': Timestamp.fromDate(now),
         'longestStreak': longest,
       }, SetOptions(merge: true));         // adds fields if missing
 

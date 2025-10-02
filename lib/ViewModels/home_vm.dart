@@ -661,6 +661,14 @@ class HomeViewModel extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  String _extractTimezoneId(String timezoneString) {
+    if (timezoneString.contains('TimezoneInfo(')) {
+      final match = RegExp(r'TimezoneInfo\(([^,]+)').firstMatch(timezoneString);
+      return match?.group(1) ?? 'America/Los_Angeles';
+    }
+    return timezoneString;
+  }
+
   Future<void> _checkAndUpdateTimezone() async {
     if (!_isAuthenticated) return;
 
@@ -669,9 +677,8 @@ class HomeViewModel extends ChangeNotifier {
 
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
-        final timezoneString = currentTimezone.toString();
         await FirebaseFirestore.instance.collection('Users').doc(uid).update({
-          'timezone': timezoneString,
+          'timezone': _extractTimezoneId(currentTimezone.toString()),
           'timezoneUpdatedAt': FieldValue.serverTimestamp(),
         });
       }

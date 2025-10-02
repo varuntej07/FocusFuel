@@ -120,6 +120,14 @@ class AuthViewModel extends ChangeNotifier {
     super.dispose();
   }
 
+  String _extractTimezoneId(String timezoneString) {
+    if (timezoneString.contains('TimezoneInfo(')) {
+      final match = RegExp(r'TimezoneInfo\(([^,]+)').firstMatch(timezoneString);
+      return match?.group(1) ?? 'America/Los_Angeles';
+    }
+    return timezoneString;
+  }
+
   // Login user
   Future<UserModel?> login() async {
     _startLoading();
@@ -133,7 +141,7 @@ class AuthViewModel extends ChangeNotifier {
       await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).update({
         'isActive': true,
         'lastLogin': FieldValue.serverTimestamp(),
-        'timezone': timezone.toString(),
+        'timezone': _extractTimezoneId(timezone.toString())
       });
 
       final snap = await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).get();
@@ -166,6 +174,10 @@ class AuthViewModel extends ChangeNotifier {
         password: passwordController.text.trim(),
       );
 
+      final currentTimezone = await FlutterTimezone.getLocalTimezone();
+      final now = DateTime.now();
+      final trialEnd = now.add(const Duration(days: 14));
+
       final userData = {
         'uid': credential.user!.uid,
         'email': emailController.text.trim(),
@@ -173,7 +185,13 @@ class AuthViewModel extends ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),    // server timestamp in UTC timezone
         'accountCreatedOn': FieldValue.serverTimestamp(),
         'isActive': true,
-        'timezone': (await FlutterTimezone.getLocalTimezone()).toString(),
+        'timezone': _extractTimezoneId(currentTimezone.toString()),
+        'trialStartDate': FieldValue.serverTimestamp(),
+        'trialEndDate': Timestamp.fromDate(trialEnd),
+        'subscriptionStatus': 'trial',
+        'dailyNotificationCount': 0,
+        'lastNotificationCountReset': FieldValue.serverTimestamp(),
+        'isSubscribed': false,
       };
 
       await FirebaseFirestore.instance.collection('Users').doc(credential.user!.uid).set(userData);
@@ -186,7 +204,12 @@ class AuthViewModel extends ChangeNotifier {
         createdAt: DateTime.now(),
         isActive: true,
         accountCreatedOn: DateTime.now(),
-        isSubscribed: _isSubscribed,
+        isSubscribed: false,
+        trialStartDate: now,
+        trialEndDate: trialEnd,
+        subscriptionStatus: 'trial',
+        dailyNotificationCount: 0,
+        lastNotificationCountReset: now,
       );
 
       await _cacheUser();
@@ -265,10 +288,18 @@ class AuthViewModel extends ChangeNotifier {
 
   bool get canAccessPremiumFeatures {
     if (_userModel == null) return false;
-    final now = DateTime.now();
-    final accountCreatedOn = _userModel!.accountCreatedOn ?? DateTime.now().subtract(const Duration(days: 9999));
-    final daysSinceSignup = now.difference(accountCreatedOn).inDays;
-    return _userModel!.isSubscribed || daysSinceSignup <= 14;
+    // Check subscription status for premium access
+    return _userModel!.isPremiumUser || _userModel!.isTrialActive;
+  }
+
+  bool get shouldShowTrialWarning {
+    if (_userModel == null) return false;
+    return _userModel!.isTrialActive && _userModel!.remainingTrialDays <= 3;
+  }
+
+  int get remainingTrialDays {
+    if (_userModel == null) return 0;
+    return _userModel!.remainingTrialDays;
   }
 
   String _mapFirebaseError(FirebaseAuthException e) {
@@ -298,7 +329,7 @@ class AuthViewModel extends ChangeNotifier {
     );
     _errorMessage = 'Something went wrong. Please try again.';
     _state = AuthState.error;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 }
 

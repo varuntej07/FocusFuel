@@ -30,6 +30,11 @@ class UserModel {
 
   // subscription fields
   final bool isSubscribed;
+  final DateTime? trialStartDate;
+  final DateTime? trialEndDate;
+  final String? subscriptionStatus;  // "trial" | "free" | "premium"
+  final int dailyNotificationCount;
+  final DateTime? lastNotificationCountReset;
 
   UserModel({
     required this.uid,
@@ -61,6 +66,11 @@ class UserModel {
     this.onboardingCompleted = false,
 
     required this.isSubscribed,
+    this.trialStartDate,
+    this.trialEndDate,
+    this.subscriptionStatus,
+    this.dailyNotificationCount = 0,
+    this.lastNotificationCountReset,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data) {
@@ -92,6 +102,11 @@ class UserModel {
       preferredNotificationTime: data['preferredNotificationTime'],
       onboardingCompleted: data['onboardingCompleted'] ?? false,
       isSubscribed: data['isSubscribed'] ?? false,
+      trialStartDate: data['trialStartDate']?.toDate(),
+      trialEndDate: data['trialEndDate']?.toDate(),
+      subscriptionStatus: data['subscriptionStatus'],
+      dailyNotificationCount: data['dailyNotificationCount'] ?? 0,
+      lastNotificationCountReset: data['lastNotificationCountReset']?.toDate(),
     );
   }
 
@@ -124,6 +139,42 @@ class UserModel {
       'preferredNotificationTime': preferredNotificationTime,
       'onboardingCompleted': onboardingCompleted,
       'isSubscribed': isSubscribed,
+      'trialStartDate': trialStartDate,
+      'trialEndDate': trialEndDate,
+      'subscriptionStatus': subscriptionStatus,
+      'dailyNotificationCount': dailyNotificationCount,
+      'lastNotificationCountReset': lastNotificationCountReset,
     };
+  }
+
+  // Helper methods for trial management
+  int get remainingTrialDays {
+    if (trialEndDate == null) return 0;
+    final now = DateTime.now();
+    final difference = trialEndDate!.difference(now).inDays;
+    return difference > 0 ? difference : 0;
+  }
+
+  bool get isTrialExpired {
+    if (trialEndDate == null) return true;
+    return DateTime.now().isAfter(trialEndDate!);
+  }
+
+  bool get isTrialActive {
+    return subscriptionStatus == 'trial' && !isTrialExpired;
+  }
+
+  bool get isPremiumUser {
+    return subscriptionStatus == 'premium';
+  }
+
+  bool get isFreeUser {
+    return subscriptionStatus == 'free';
+  }
+
+  String get subscriptionStatusDisplay {
+    if (isPremiumUser) return 'Premium';
+    if (isTrialActive) return 'Trial ($remainingTrialDays days left)';
+    return 'Free';
   }
 }
