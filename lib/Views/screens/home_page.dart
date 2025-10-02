@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:focus_fuel/Views/screens/task_enhancement_dialogs.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/home_vm.dart';
+import '../../ViewModels/auth_vm.dart';
+import 'subscription_page.dart';
 
 class HomeFeed extends StatefulWidget {
   const HomeFeed({super.key});
@@ -109,6 +111,7 @@ class _HomeFeedState extends State<HomeFeed> {
   @override
   Widget build(BuildContext context) {
     final homeVM = Provider.of<HomeViewModel>(context);   // gets all the details required on this page from Firestore
+    final authVM = Provider.of<AuthViewModel>(context);
     final userName = homeVM.username;
     final streak = homeVM.streak;
     final selectedFocus = homeVM.currentFocus ?? "Focus on something";
@@ -123,6 +126,68 @@ class _HomeFeedState extends State<HomeFeed> {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
           child: Column(
             children: [
+              // Trial warning banner
+              if (authVM.shouldShowTrialWarning)
+                Container(
+                  padding: EdgeInsets.all(12),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: authVM.remainingTrialDays == 1
+                        ? Colors.red.withValues(alpha: 0.1)
+                        : Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: authVM.remainingTrialDays == 1 ? Colors.red : Colors.orange,
+                      width: 2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning,
+                        color: authVM.remainingTrialDays == 1 ? Colors.red : Colors.orange,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              authVM.remainingTrialDays == 1
+                                  ? 'Trial ends tomorrow!'
+                                  : 'Trial ending soon',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: authVM.remainingTrialDays == 1 ? Colors.red : Colors.orange,
+                              ),
+                            ),
+                            Text(
+                              '${authVM.remainingTrialDays} day${authVM.remainingTrialDays == 1 ? '' : 's'} of unlimited notifications left',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+                          );
+                        },
+                        child: Text(
+                          'Upgrade',
+                          style: TextStyle(
+                            color: authVM.remainingTrialDays == 1 ? Colors.red : Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

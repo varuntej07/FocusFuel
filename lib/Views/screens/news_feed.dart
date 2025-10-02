@@ -100,18 +100,6 @@ class _NewsFeedState extends State<NewsFeed> {
             onPressed: () {
               context.showSubscriptionDialog(
                 title: 'Premium Feature',
-                featureName: 'Listen to news articles just by a click',
-              );
-            },
-            icon: ColorFiltered(
-              colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
-              child: Image.asset('lib/Assets/icons/dark_headphone.png', width: 30, height: 30),
-            )
-        ),
-        IconButton(
-            onPressed: () {
-              context.showSubscriptionDialog(
-                title: 'Premium Feature',
                 featureName: 'Get personalized news feed recommendations',
               );
             },

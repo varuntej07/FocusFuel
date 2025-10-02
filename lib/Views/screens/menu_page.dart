@@ -133,14 +133,6 @@ class _MenuPageState extends State<MenuPage> {
                   ),
                   _buildMenuCard(
                     context: context,
-                    title: 'Forums',
-                    icon: Icons.forum,
-                    onTap: () {
-                      // TODO: navigate to forums
-                    },
-                  ),
-                  _buildMenuCard(
-                    context: context,
                     title: 'Support',
                     icon: Icons.contact_support_outlined,
                     onTap: () {
