@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:focus_fuel/Views/screens/subscription_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../ViewModels/newsfeed_vm.dart';
+import '../../ViewModels/auth_vm.dart';
 import 'news_list_item.dart';
 import '../../Services/news_service.dart';
 import '../../Services/shared_prefs_service.dart';
+import '../../Services/audio_service.dart';
 
 class NewsFeed extends StatefulWidget {
   const NewsFeed({super.key});
@@ -314,9 +316,73 @@ class _NewsFeedState extends State<NewsFeed> {
   }
 
   void _handleListen(Map<String, dynamic> article) {
-    context.showSubscriptionDialog(
-      title: 'Premium Feature',
-      featureName: 'Listen to news articles just by a click',
+    // Check subscription status
+    final authVM = context.read<AuthViewModel>();
+    final userModel = authVM.userModel;
+
+    // Only allow premium and trial users to use audio feature
+    if (userModel == null || userModel.isFreeUser) {
+      context.showSubscriptionDialog(
+        title: 'Premium Feature',
+        featureName: 'Listen to news articles just by a click',
+      );
+      return;
+    }
+
+    // Premium/trial users: Open summary dialog with audio playback
+    _showNewsSummaryWithAudio(context, article);
+  }
+
+  void _showNewsSummaryWithAudio(BuildContext context, Map<String, dynamic> article) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 350),
+      pageBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+        final screenSize = MediaQuery.of(context).size;
+        final dialogWidth = screenSize.width * 0.9;
+        final dialogHeight = screenSize.height * 0.9;
+
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+          reverseCurve: Curves.easeInBack,
+        );
+
+        return Center(
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
+            child: FadeTransition(
+              opacity: Tween<double>(begin: 0.0, end: 1.0).animate(animation),
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: dialogWidth,
+                  height: dialogHeight,
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: _NewsSummaryDialogWithAudio(article: article, newsService: _newsService),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -590,6 +656,361 @@ class _NewsSummaryDialogState extends State<_NewsSummaryDialog> {
           )
         ],
       ),
+    );
+  }
+}
+
+/// News summary dialog with audio playback
+class _NewsSummaryDialogWithAudio extends StatefulWidget {
+  final Map<String, dynamic> article;
+  final NewsService newsService;
+
+  const _NewsSummaryDialogWithAudio({required this.article, required this.newsService});
+
+  @override
+  State<_NewsSummaryDialogWithAudio> createState() => _NewsSummaryDialogWithAudioState();
+}
+
+class _NewsSummaryDialogWithAudioState extends State<_NewsSummaryDialogWithAudio> {
+  String? _summary;
+  bool _isLoadingSummary = false;
+  String? _summaryError;
+  AudioService? _audioService;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSummary();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _audioService = context.read<AudioService>();
+  }
+
+  @override
+  void dispose() {
+    // Stop audio when dialog closes
+    _audioService?.stop();
+    super.dispose();
+  }
+
+  Future<void> _loadSummary() async {
+    final title = widget.article['title'] ?? '';
+    if (title.isEmpty) return;
+
+    setState(() => _isLoadingSummary = true);
+
+    try {
+      final result = await widget.newsService.getNewsSummary(
+        title: title,
+        description: widget.article['description'],
+        link: widget.article['link'],
+        category: widget.article['category'],
+      );
+
+      if (result['success'] == true) {
+        setState(() {
+          _summary = result['summary'];
+          _isLoadingSummary = false;
+        });
+
+        // Start playing audio once summary is loaded
+        if (_summary != null && _audioService != null) {
+          _audioService!.playArticle({
+            'title': title,
+            'description': _summary!,
+          });
+        }
+      } else {
+        setState(() {
+          _summaryError = result['error'] ?? 'Failed to generate summary';
+          _isLoadingSummary = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _summaryError = 'Failed to load summary';
+        _isLoadingSummary = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        children: [
+          // Header with close button and audio controls
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'News Summary',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                ),
+                // Audio controls
+                if (_summary != null && _audioService != null)
+                  _buildAudioControls(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  color: Colors.grey[600],
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
+            ),
+          ),
+
+          // Scrollable content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Article title
+                  Text(
+                    widget.article['title'] ?? 'No Title Available',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      height: 1.4,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Article image if available
+                  if (widget.article['image_url'] != null && widget.article['image_url'].toString().isNotEmpty)
+                    Container(
+                      height: 200,
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: NetworkImage(widget.article['image_url']),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+
+                  // AI Summary or loading state
+                  if (_isLoadingSummary)
+                    const Center(
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 8),
+                          Text('Generating AI summary...', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    )
+                  else if (_summaryError != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Summary unavailable', style: TextStyle(color: Colors.red[700], fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text(widget.article['description'] ?? 'No content available...', style: TextStyle(fontSize: 16, color: Colors.grey[700], height: 1.6)),
+                        ],
+                      ),
+                    )
+                  else if (_summary != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.auto_awesome, size: 16, color: Colors.blue[700]),
+                                const SizedBox(width: 4),
+                                Text('AI Summary', style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.w600, fontSize: 14)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(_summary!, style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.6)),
+                          ],
+                        ),
+                      )
+                    else
+                      Text(
+                        widget.article['description'] ?? 'No content available...',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700], height: 1.6),
+                      ),
+
+                  const SizedBox(height: 20),
+
+                  // Source and date info
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.deepOrangeAccent,
+                        child: Text(
+                          (widget.article['source_id'] ?? widget.article['source'] ?? 'U')[0].toUpperCase(),
+                          style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.article['source_id'] ?? widget.article['source'] ?? 'Unknown Source',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                            ),
+                            Text(
+                              formatPublishedDateWithIntl(widget.article['pubDate'] ?? 'Unknown'),
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Progress bar at bottom
+                  if (_summary != null && _audioService != null)
+                    _buildProgressBar(),
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAudioControls() {
+    return AnimatedBuilder(
+      animation: _audioService!,
+      builder: (context, child) {
+        final isPlaying = _audioService!.isPlaying;
+        final isPaused = _audioService!.isPaused;
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Play/Pause button
+            IconButton(
+              onPressed: () {
+                if (isPlaying) {
+                  _audioService!.pause();
+                } else if (isPaused) {
+                  // Resume from where we paused
+                  _audioService!.resume();
+                } else {
+                  // Start fresh
+                  _audioService!.playArticle({
+                    'title': widget.article['title'] ?? '',
+                    'description': _summary!,
+                  });
+                }
+              },
+              icon: Icon(
+                isPlaying ? Icons.pause_circle : Icons.play_circle,
+                color: Colors.blue[700],
+              ),
+              iconSize: 32,
+            ),
+            // Speed button
+            IconButton(
+              onPressed: () => _showSpeedDialog(context),
+              icon: Icon(Icons.speed, color: Colors.grey[600]),
+              iconSize: 24,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressBar() {
+    return AnimatedBuilder(
+      animation: _audioService!,
+      builder: (context, child) {
+        final progress = _audioService!.progress;
+
+        return Container(
+          margin: const EdgeInsets.only(top: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Audio Playback',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSpeedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Playback Speed'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSpeedOption(context, '0.5x', 0.5),
+            _buildSpeedOption(context, '0.75x', 0.75),
+            _buildSpeedOption(context, '1.0x (Normal)', 1.0),
+            _buildSpeedOption(context, '1.25x', 1.25),
+            _buildSpeedOption(context, '1.5x', 1.5),
+            _buildSpeedOption(context, '2.0x', 2.0),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpeedOption(BuildContext context, String label, double speed) {
+    return ListTile(
+      title: Text(label),
+      onTap: () {
+        _audioService!.setSpeechRate(speed);
+        Navigator.of(context).pop();
+      },
     );
   }
 }
