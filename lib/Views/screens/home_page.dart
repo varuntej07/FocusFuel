@@ -48,6 +48,12 @@ class _HomeFeedState extends State<HomeFeed> {
         if (homeVM.isAuthenticated) {
           await homeVM.bumpStreakIfNeeded();
 
+          // Check and show trial dialog first
+          final shouldShowTrial = await homeVM.shouldShowTrialDialog();
+          if (shouldShowTrial && mounted) {
+            _showTrialDialog(context);
+          }
+
           final shouldPrompt = await homeVM.shouldPromptGoals();
           if (shouldPrompt) {
             // executed after the X-second delay, but check if widget is still mounted
@@ -61,6 +67,93 @@ class _HomeFeedState extends State<HomeFeed> {
         }
       }
     });
+  }
+
+  void _showTrialDialog(BuildContext ctx) {
+    final homeVM = ctx.read<HomeViewModel>();
+
+    // Mark that trial dialog was shown
+    homeVM.markTrialDialogShown();
+
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.celebration, color: Colors.purple, size: 28),
+            SizedBox(width: 12),
+            Text("Welcome to FocusFuel!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "You're on a 14-day free trial with unlimited notifications!",
+              style: TextStyle(fontSize: 16, height: 1.4),
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.purple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.purple, size: 20),
+                      SizedBox(width: 8),
+                      Text("Unlimited AI notifications", style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.purple, size: 20),
+                      SizedBox(width: 8),
+                      Text("Personalized motivation", style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.purple, size: 20),
+                      SizedBox(width: 8),
+                      Text("All premium features", style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              "After your trial, upgrade to continue enjoying unlimited notifications!",
+              style: TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Got it!',
+              style: TextStyle(
+                color: Colors.purple,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _promptForGoals(BuildContext ctx) {

@@ -123,6 +123,13 @@ class HomeViewModel extends ChangeNotifier {
       final data = snap.data() ?? {};
       _currentFocus = data['currentFocus'];           // may be null
 
+      // Check if onboarding is completed
+      final onboardingCompleted = data['onboardingCompleted'] ?? false;
+      if (!onboardingCompleted) {
+        if (!_disposed) notifyListeners();
+        return false;
+      }
+
       // Check if prompt was already shown today
       final lastPromptDate = data['lastGoalPromptDate'];
       final today = DateTime.now();
@@ -140,6 +147,44 @@ class HomeViewModel extends ChangeNotifier {
     } catch (error, stackTrace) {
       _handleError('Failed to show alert dialog to ask for user focus/goal', error, stackTrace);
       return false;
+    }
+  }
+
+  Future<bool> shouldShowTrialDialog() async {
+    if (!_isAuthenticated) return false;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return false;
+
+      final snap = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
+      if (!snap.exists) return false;
+
+      final data = snap.data() ?? {};
+      final trialDialogShown = data['trialDialogShown'] ?? false;
+      final onboardingCompleted = data['onboardingCompleted'] ?? false;
+      final subscriptionStatus = data['subscriptionStatus'] ?? 'free';
+
+      // Show only if onboarding is completed, trial dialog hasn't been shown, and user is on trial
+      return onboardingCompleted && !trialDialogShown && subscriptionStatus == 'trial';
+    } catch (error, stackTrace) {
+      _handleError('Failed to check trial dialog status', error, stackTrace);
+      return false;
+    }
+  }
+
+  Future<void> markTrialDialogShown() async {
+    if (!_isAuthenticated) return;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      await FirebaseFirestore.instance.collection('Users').doc(uid).update({
+        'trialDialogShown': true,
+      });
+    } catch (error, stackTrace) {
+      _handleError('Failed to mark trial dialog as shown', error, stackTrace);
     }
   }
 
