@@ -28,14 +28,31 @@ module.exports = {
 
           // Check if it's between 00:00 and 00:59 in user's timezone
           if (userTime.hour === 0) {
+            const updateData = {};
+            let shouldUpdate = false;
+
             // Only clear if currentFocus exists
             if (userData.currentFocus && userData.currentFocus.trim() !== '') {
-              batch.update(doc.ref, {
-                currentFocus: admin.firestore.FieldValue.delete(),
-                lastFocusClearedAt: admin.firestore.FieldValue.serverTimestamp()
-              });
+              updateData.currentFocus = admin.firestore.FieldValue.delete();
+              updateData.lastFocusClearedAt = admin.firestore.FieldValue.serverTimestamp();
+              shouldUpdate = true;
+            }
+
+            // Reset notification counter at midnight for ALL users
+            updateData.dailyNotificationCount = 0;
+            updateData.lastNotificationCountReset = admin.firestore.FieldValue.serverTimestamp();
+
+            // Reset chat query counter at midnight for ALL users
+            updateData.dailyChatQueryCount = 0;
+            updateData.lastChatQueryReset = admin.firestore.FieldValue.serverTimestamp();
+
+            shouldUpdate = true;
+            console.log(`Resetting notification and chat query counters for user ${userData.username || doc.id}`);
+
+            if (shouldUpdate) {
+              batch.update(doc.ref, updateData);
               clearedCount++;
-              console.log(`Clearing focus for user ${userData.username || doc.id} in ${userTimezone}`);
+              console.log(`Updated midnight data for user ${userData.username || doc.id} in ${userTimezone}`);
             }
           }
         }

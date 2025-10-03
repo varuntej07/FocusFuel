@@ -7,6 +7,8 @@ const openaiApiKey = defineSecret('OPENAI_API_KEY');
 const generateGreeting = onCall(
     {
         secrets: [openaiApiKey],
+        timeoutSeconds: 60,
+        memory: "256MiB",
     },
     async () => {
         const apiKey = process.env.OPENAI_API_KEY;

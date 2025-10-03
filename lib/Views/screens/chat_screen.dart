@@ -4,6 +4,7 @@ import '../../Models/chat_model.dart';
 import 'package:intl/intl.dart';
 import '../../ViewModels/chat_vm.dart';
 import '../../ViewModels/home_vm.dart';
+import '../../ViewModels/auth_vm.dart';
 import '../Auth/login_page.dart';
 import 'chat_history.dart';
 import 'package:focus_fuel/Views/screens/subscription_page.dart';
@@ -175,6 +176,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final chatVM = context.watch<ChatViewModel>();
+    final authVM = context.watch<AuthViewModel>();
 
     // Check if user is logged in before rendering chat screen
     if(chatVM.userId.isEmpty){
@@ -192,6 +194,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         ),
       );
     }
+
+    // Calculate remaining queries for free users
+    final userModel = authVM.userModel;
+    final isFreeUser = userModel?.subscriptionStatus == 'free';
+    final dailyChatQueryCount = userModel?.dailyChatQueryCount ?? 0;
+    final remainingQueries = isFreeUser ? (5 - dailyChatQueryCount).clamp(0, 5) : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -219,14 +227,44 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           )
         ),
         centerTitle: true,
-        // actions: [
-        //   IconButton(
-        //     icon: Image.asset('lib/Assets/icons/new-chat.png', width: 24, height: 24),
-        //     onPressed: () {
-        //       // TODO: Implement new chat functionality
-        //     },
-        //   ),
-        // ],
+        actions: [
+          if (isFreeUser && remainingQueries != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 16,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$remainingQueries/5',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [

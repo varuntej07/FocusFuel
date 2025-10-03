@@ -35,6 +35,8 @@ class UserModel {
   final String? subscriptionStatus;  // "trial" | "free" | "premium"
   final int dailyNotificationCount;
   final DateTime? lastNotificationCountReset;
+  final int dailyChatQueryCount;
+  final DateTime? lastChatQueryReset;
 
   UserModel({
     required this.uid,
@@ -71,6 +73,8 @@ class UserModel {
     this.subscriptionStatus,
     this.dailyNotificationCount = 0,
     this.lastNotificationCountReset,
+    this.dailyChatQueryCount = 0,
+    this.lastChatQueryReset,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data) {
@@ -107,6 +111,8 @@ class UserModel {
       subscriptionStatus: data['subscriptionStatus'],
       dailyNotificationCount: data['dailyNotificationCount'] ?? 0,
       lastNotificationCountReset: data['lastNotificationCountReset']?.toDate(),
+      dailyChatQueryCount: data['dailyChatQueryCount'] ?? 0,
+      lastChatQueryReset: data['lastChatQueryReset']?.toDate(),
     );
   }
 

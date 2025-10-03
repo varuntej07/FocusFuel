@@ -2,6 +2,39 @@ const {admin, db} = require('../utils/firebase');
 const { callOpenAI } = require("../utils/openai");
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 
+// Check if user can make a chat query based on subscription and daily limits
+async function checkChatQueryLimit(userId) {
+    const userDoc = await db.collection('Users').doc(userId).get();
+    const userData = userDoc.data();
+
+    if (!userData) return false;
+
+    const subscriptionStatus = userData.subscriptionStatus || 'free';
+
+    // Premium and trial users get unlimited queries
+    if (subscriptionStatus === 'premium' || subscriptionStatus === 'trial') {
+        return true;
+    }
+
+    // Free users: check daily limit (max 5 per day)
+    const dailyChatQueryCount = userData.dailyChatQueryCount || 0;
+
+    // Check if limit reached
+    if (dailyChatQueryCount >= 5) {
+        return false; // Limit reached
+    }
+
+    return true; // Allow query
+}
+
+// Increment chat query counter after successful request
+async function incrementChatQueryCounter(userId) {
+    await db.collection('Users').doc(userId).update({
+        dailyChatQueryCount: admin.firestore.FieldValue.increment(1)
+    });
+    console.log(`Incremented chat query counter for user ${userId}`);
+}
+
 // Helper function to extract clean text content from messages
 function extractMessageContent(content) {
     // If content is already a string, return it
@@ -97,7 +130,9 @@ module.exports = {
   processGptRequest: onDocumentCreated(
     {
       document: 'GptRequests/{requestId}',
-      secrets: ['OPENAI_API_KEY']
+      secrets: ['OPENAI_API_KEY'],
+      timeoutSeconds: 60,
+      memory: "512MiB",
     },
     async (event) => {
       const snap = event.data;
@@ -125,6 +160,31 @@ module.exports = {
       if (!existingResponse.empty) {
           console.log(`Request ${requestId} already processed, skipping`);
           await snap.ref.update({ status: 'duplicate' });
+          return;
+      }
+
+      // Check chat query limits before processing
+      const canProcessQuery = await checkChatQueryLimit(userId);
+
+      if (!canProcessQuery) {
+          console.log(`User ${userId} has reached daily chat query limit`);
+
+          // Create error message in conversation
+          await messagesRef.add({
+              content: "You've reached your daily limit of 5 chat queries. Upgrade to Premium for unlimited queries!",
+              timestamp: admin.firestore.FieldValue.serverTimestamp(),
+              role: 'assistant',
+              isFirstMessage: false,
+              status: 'limit_reached',
+              requestId: requestId
+          });
+
+          // Update request status
+          await snap.ref.update({
+              status: 'limit_reached',
+              error: 'Daily chat query limit exceeded'
+          });
+
           return;
       }
         // return the conversation history for context + system prompt using the helper function: buildPromptWithContext
@@ -157,6 +217,9 @@ module.exports = {
         await db.collection('Conversations').doc(conversationId).update({
           lastMessageAt: admin.firestore.FieldValue.serverTimestamp()
         });
+
+        // Increment chat query counter for ALL users (tracking purposes)
+        await incrementChatQueryCounter(userId);
 
         // Update request status in /GptRequests collection
         await snap.ref.update({ status: 'completed' });
