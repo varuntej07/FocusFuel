@@ -23,6 +23,8 @@ class NotificationOrchestrator {
             let agent;
             let enhancedUserProfile = { ...userProfile };           // creates a new object with all same properties as userProfile, but they're independent.
 
+            const username = userProfile.username;
+
             // Checking for active tasks in UserTasks collection
             const activeTask = await this.getActiveUserTask(userProfile.uid);
 
@@ -49,7 +51,7 @@ class NotificationOrchestrator {
                 enhancedUserProfile = { ...userProfile, ...historyResult.enhancedProfile };
                 agent = this.agents[selectedAgentType];
 
-                console.log(`No dashboard entries found, using history-based ${selectedAgentType} agent`);
+                console.log(`No dashboard entries found for ${username}, using history-based ${selectedAgentType} agent`);
             }
 
             // Ensure I have a valid agent, so falling back to productivity if somehow null
@@ -69,7 +71,7 @@ class NotificationOrchestrator {
                // FocusAgent needs recent notifications to avoid redundancy
                notification = await agent.generateNotification(enhancedUserProfile, timeContext, recentNotifications);
             } else {
-               notification = await agent.generateNotification(enhancedUserProfile, timeContext);
+               notification = await agent.generateNotification(enhancedUserProfile, timeContext, recentNotifications);
             }
 
             console.log(`Generated ${selectedAgentType} notification: ${notification}...`);
@@ -102,7 +104,8 @@ class NotificationOrchestrator {
                 content: critique.content
             };
 
-            console.log(`Critic feedback: ${critique.reason}`);
+            console.log(`Critic returned with feedback: ${critique.reason}`);
+            console.log('Final notification to ', username, ':', finalNotification);
 
             return {
                 notification: JSON.stringify(finalNotification), // Return as JSON string (expected by sendNotifications.js)

@@ -29,6 +29,7 @@ module.exports = {
 
             // Fetch all active users from Firestore
             const usersSnapshot = await db.collection("Users").where("isActive", "==", true).get();
+            console.log(`Found ${usersSnapshot.size} active users`);
 
             // Iterating through each user document
             for (const doc of usersSnapshot.docs) {
@@ -39,10 +40,17 @@ module.exports = {
                 const shouldSend = await shouldSendNotificationNow(data);
 
                 if (shouldSend.send) {
-                    try {
-                        await processUserNotification(uid, data, openaiApiKey, shouldSend.timeWindow);
-                    } catch (err) {
-                        console.error(`Error processing notification for user ${uid}:`, err.message);
+                    // Check subscription status and notification limits
+                    const canSendNotification = await checkNotificationLimit(uid, data);
+
+                    if (canSendNotification) {
+                        try {
+                            await processUserNotification(uid, data, openaiApiKey, shouldSend.timeWindow);
+                        } catch (err) {
+                            console.error(`Error processing notification for user ${uid}:`, err.message);
+                        }
+                    } else {
+                        console.log(`Skipping user ${uid}: daily notification limit reached (free tier)`);
                     }
                 } else {
                     console.log(`Skipping user ${uid}: outside optimal time windows`);
@@ -63,6 +71,7 @@ async function shouldSendNotificationNow(userData) {
         const match = userTimezone.match(/TimezoneInfo\(([^,]+)/);
         userTimezone = match ? match[1] : "America/Los_Angeles";
     }
+    console.log(`Parsed timezone for {${userData.username}} is: ${userTimezone}`);
 
     const userTime = DateTime.now().setZone(userTimezone);
     const localHour = userTime.hour;
@@ -91,6 +100,47 @@ async function shouldSendNotificationNow(userData) {
     else if (eveningWindow) timeWindow = 'evening';
 
     return { send: true, timeWindow };
+}
+
+// Check if user can receive notification based on subscription status and daily limits
+async function checkNotificationLimit(userId, userData) {
+    const subscriptionStatus = userData.subscriptionStatus || 'free';
+
+    // Premium and trial users get unlimited notifications
+    if (subscriptionStatus === 'premium' || subscriptionStatus === 'trial') {
+        return true;
+    }
+
+    // Free users: check daily limit (max 3 per day)
+    const dailyNotificationCount = userData.dailyNotificationCount || 0;
+    const lastReset = userData.lastNotificationCountReset;
+
+    // Check if we need to reset the counter (new day)
+    const now = new Date();
+    const needsReset = !lastReset || !isSameDay(lastReset.toDate(), now);
+
+    if (needsReset) {
+        // Reset counter for new day
+        await db.collection('Users').doc(userId).update({
+            dailyNotificationCount: 0,
+            lastNotificationCountReset: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return true; // Allow notification after reset
+    }
+
+    // Check if limit reached
+    if (dailyNotificationCount >= 3) {
+        return false; // Limit reached
+    }
+
+    return true; // Allow notification
+}
+
+// Helper to check if two dates are on the same day
+function isSameDay(date1, date2) {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
 }
 
 async function processUserNotification(uid, userData, openaiApiKey, timeWindow) {
@@ -124,12 +174,15 @@ async function processUserNotification(uid, userData, openaiApiKey, timeWindow) 
     // send FCM notification with required params
     await sendFCMNotification(userData.fcmToken, parsedNotification, uid, saveResult.notificationId);
 
-    // Update user's last notification info
-    await db.collection('Users').doc(uid).update({
+    // Update user's last notification info and increment counter for ALL users
+    const updateData = {
         lastNotificationTime: admin.firestore.FieldValue.serverTimestamp(),
         lastNotificationWindow: timeWindow,
         lastNotificationType: notificationResult.agentType,
-    });
+        dailyNotificationCount: admin.firestore.FieldValue.increment(1), // Increment counter for ALL users
+    };
+
+    await db.collection('Users').doc(uid).update(updateData);
 
     console.log(`Sent ${notificationResult.agentType} notification to ${userProfile.username} during ${timeWindow} window`);
 }
