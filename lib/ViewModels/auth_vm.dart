@@ -191,6 +191,8 @@ class AuthViewModel extends ChangeNotifier {
         'subscriptionStatus': 'trial',
         'dailyNotificationCount': 0,
         'lastNotificationCountReset': FieldValue.serverTimestamp(),
+        'dailyChatQueryCount': 0,
+        'lastChatQueryReset': FieldValue.serverTimestamp(),
         'isSubscribed': false,
       };
 
