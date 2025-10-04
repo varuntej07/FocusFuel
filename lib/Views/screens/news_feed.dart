@@ -8,6 +8,7 @@ import 'news_list_item.dart';
 import '../../Services/news_service.dart';
 import '../../Services/shared_prefs_service.dart';
 import '../../Services/audio_service.dart';
+import 'interests_selection_page.dart';
 
 class NewsFeed extends StatefulWidget {
   const NewsFeed({super.key});
@@ -99,12 +100,7 @@ class _NewsFeedState extends State<NewsFeed> {
       // personalize the feed button
       actions: [
         IconButton(
-            onPressed: () {
-              context.showSubscriptionDialog(
-                title: 'Premium Feature',
-                featureName: 'Get personalized news feed recommendations',
-              );
-            },
+            onPressed: () => _handlePersonalizeFeed(context),
             icon: ColorFiltered(
               colorFilter: ColorFilter.mode(Theme.of(context).iconTheme.color!, BlendMode.srcIn),
               child: Image.asset('lib/Assets/icons/add-to-favorites.png', width: 30, height: 34),
@@ -311,6 +307,29 @@ class _NewsFeedState extends State<NewsFeed> {
       SnackBar(
         content: Text(isBookmarked ? 'Article bookmarked' : 'Bookmark removed'),
         duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _handlePersonalizeFeed(BuildContext context) {
+    // Check subscription status
+    final authVM = context.read<AuthViewModel>();
+    final userModel = authVM.userModel;
+
+    // Only allow premium and trial users to personalize feed
+    if (userModel == null || userModel.isFreeUser) {
+      context.showSubscriptionDialog(
+        title: 'Premium Feature',
+        featureName: 'Get personalized news feed recommendations',
+      );
+      return;
+    }
+
+    // Premium/trial users: Open interests selection page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InterestsSelectionPage(),
       ),
     );
   }

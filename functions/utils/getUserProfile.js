@@ -13,6 +13,12 @@ async function getUserProfile(uid) {
     const historyService = new UserHistorySummaryService(uid, process.env.OPENAI_API_KEY);
     const historySummary = await historyService.getUserHistorySummary();
 
+    // Save the history summary to the user document for easy access
+    await db.doc(`Users/${uid}`).set({
+        historySummary: historySummary,
+        historySummaryUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
     return {
         uid: userDoc.id,
         username: userData?.username || "Anonymous",

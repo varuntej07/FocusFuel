@@ -84,7 +84,12 @@ class _HomeFeedState extends State<HomeFeed> {
           children: [
             Icon(Icons.celebration, color: Colors.purple, size: 28),
             SizedBox(width: 12),
-            Text("Welcome to FocusFuel!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text(
+                "Welcome to FocusFuel!",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -92,8 +97,8 @@ class _HomeFeedState extends State<HomeFeed> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "You're on a 14-day free trial with unlimited notifications!",
-              style: TextStyle(fontSize: 16, height: 1.4),
+              "You're on a 14-day free trial with full premium access!",
+              style: TextStyle(fontSize: 16, height: 1.4, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 16),
             Container(
@@ -106,35 +111,21 @@ class _HomeFeedState extends State<HomeFeed> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.purple, size: 20),
-                      SizedBox(width: 8),
-                      Text("Unlimited AI notifications", style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
+                  _buildFeatureRow(Icons.notifications_active, "Unlimited AI notifications"),
                   SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.purple, size: 20),
-                      SizedBox(width: 8),
-                      Text("Personalized motivation", style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
+                  _buildFeatureRow(Icons.chat_bubble, "Unlimited AI chat queries"),
                   SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.purple, size: 20),
-                      SizedBox(width: 8),
-                      Text("All premium features", style: TextStyle(fontSize: 14)),
-                    ],
-                  ),
+                  _buildFeatureRow(Icons.volume_up, "Listen to articles"),
+                  SizedBox(height: 8),
+                  _buildFeatureRow(Icons.newspaper, "Personalized news feed"),
+                  SizedBox(height: 8),
+                  _buildFeatureRow(Icons.star, "And much more..."),
                 ],
               ),
             ),
             SizedBox(height: 12),
             Text(
-              "After your trial, upgrade to continue enjoying unlimited notifications!",
+              "After your trial, subscribe for just \$4.49/month to keep all features!",
               style: TextStyle(fontSize: 13, color: Colors.black54),
             ),
           ],
@@ -153,6 +144,21 @@ class _HomeFeedState extends State<HomeFeed> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFeatureRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.purple, size: 20),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 14),
+          ),
+        ),
+      ],
     );
   }
 

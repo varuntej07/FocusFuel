@@ -304,6 +304,31 @@ class AuthViewModel extends ChangeNotifier {
     return _userModel!.remainingTrialDays;
   }
 
+  // Update user interests for personalized news feed
+  Future<void> updateUserInterests(List<String> interests) async {
+    if (_userModel == null) {
+      throw Exception('User not logged in');
+    }
+
+    try {
+      final uid = _userModel!.uid;
+
+      // Update Firestore
+      await FirebaseFirestore.instance.collection('Users').doc(uid).update({
+        'primaryInterests': interests,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Update local user model
+      await _loadUserData(uid);
+
+      debugPrint('User interests updated successfully: ${interests.join(", ")}');
+    } catch (error, stackTrace) {
+      _handleError('Failed to update user interests', error, stackTrace);
+      rethrow;
+    }
+  }
+
   String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
       case 'invalid-email':

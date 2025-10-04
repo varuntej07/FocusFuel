@@ -320,14 +320,19 @@ class HomeViewModel extends ChangeNotifier {
   // Set focus goal, updating both local preferences and Firestore
   Future<void> setFocusGoal(String focus) async {
     if (!_isAuthenticated || focus.trim().isEmpty) return;  // Check auth state first
-    
+
     try {
-      _updateState(HomeState.loading);
       final uid = FirebaseAuth.instance.currentUser!.uid;
+      final newFocus = focus.trim();
+
+      // Only proceed if focus has actually changed
+      if (newFocus == _currentFocus) {
+        return;  // No change, don't update anything
+      }
 
       // Update local preferences first for immediate UI feedback
-      await _prefsService.saveCurrentFocus(focus);
-      _currentFocus = focus;
+      await _prefsService.saveCurrentFocus(newFocus);
+      _currentFocus = newFocus;
 
       // Update Firestore with focus and timestamp
       await _mergeIntoUserDoc({
@@ -335,20 +340,18 @@ class HomeViewModel extends ChangeNotifier {
         'focusUpdatedAt': FieldValue.serverTimestamp()
       });
 
-      // Save the new focus to history
-      if (focus.trim().isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(uid)
-            .collection('focusHistory')
-            .add({
-          'content': focus.trim(),
-          'enteredAt': FieldValue.serverTimestamp(),
-          'wasCompleted': false,              // should track this based on user action
-        });
-      }
+      // Save the new focus to history only if it's different from previous
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(uid)
+          .collection('focusHistory')
+          .add({
+        'content': newFocus,
+        'enteredAt': FieldValue.serverTimestamp(),
+        'wasCompleted': false,              // should track this based on user action
+      });
 
-      _updateState(HomeState.success);
+      if (!_disposed) notifyListeners();
     } catch (error, stackTrace) {
       _handleError('Failed to set focus goal:', error, stackTrace);
     }
