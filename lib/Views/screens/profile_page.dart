@@ -150,6 +150,19 @@ class _ProfilePageState extends State<ProfilePage> {
       return const SizedBox();
     }
 
+    // Calculate account age using same logic as streak (midnight-based day counting)
+    int accountAge = 0;
+    if (user.accountCreatedOn != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day); // Midnight today
+      final createdDay = DateTime(
+        user.accountCreatedOn!.year,
+        user.accountCreatedOn!.month,
+        user.accountCreatedOn!.day
+      ); // Midnight of creation day
+      accountAge = today.difference(createdDay).inDays + 1; // +1 to include the creation day
+    }
+
     return Row(
       children: [
         _buildStatCard(context, 'Current Streak', '${home.streak}', Icons.local_fire_department, iconColor: Colors.red),
@@ -159,7 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _buildStatCard(
           context,
           'Account Age',
-          '${user.accountCreatedOn != null ? DateTime.now().difference(user.accountCreatedOn!).inDays : 0}',
+          '$accountAge',
           Icons.calendar_today,
           iconColor: Colors.blue
         ),

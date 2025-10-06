@@ -12,7 +12,7 @@ class OnboardingViewModel extends ChangeNotifier {
 
   // User responses
   String? _selectedScreenTime;
-  String? _selectedMostUsedApp;
+  final List<String> _selectedMostUsedApps = [];
   final List<String> _selectedPrimaryInterests = [];
   final List<String> _selectedSubInterests = [];
   String? _selectedAgeRange;
@@ -28,7 +28,7 @@ class OnboardingViewModel extends ChangeNotifier {
   double get progress => (_currentStep + 1) / _totalSteps;
 
   String? get selectedScreenTime => _selectedScreenTime;
-  String? get selectedMostUsedApp => _selectedMostUsedApp;
+  List<String> get selectedMostUsedApps => _selectedMostUsedApps;
   List<String> get selectedPrimaryInterests => _selectedPrimaryInterests;
   List<String> get selectedSubInterests => _selectedSubInterests;
   String? get selectedAgeRange => _selectedAgeRange;
@@ -46,35 +46,64 @@ class OnboardingViewModel extends ChangeNotifier {
   ];
 
   final List<String> appOptions = [
-    'Social Media (Instagram, TikTok, etc.)',
-    'Gaming',
-    'YouTube/Entertainment',
-    'Work/Productivity Apps',
+    'Instagram',
+    'TikTok',
+    'YouTube',
+    'Twitter/X',
+    'Reddit',
+    'Facebook',
+    'Snapchat',
+    'Gaming Apps',
+    'Work/Productivity',
     'News & Reading',
     'Shopping',
     'Other'
   ];
 
   final List<String> primaryInterestOptions = [
-    'Personal Development',
-    'Health & Fitness',
-    'Career & Business',
     'Technology',
-    'Creative Arts',
-    'Education & Learning',
-    'Social & Relationships',
-    'Entertainment'
+    'Artificial Intelligence',
+    'Business',
+    'Finance',
+    'Health',
+    'Fitness',
+    'Sports',
+    'Entertainment',
+    'Science',
+    'Lifestyle',
+    'Politics',
+    'Environment',
+    'Education',
+    'Travel',
+    'Food',
+    'Fashion',
+    'Gaming',
+    'Cryptocurrency',
+    'Startups',
+    'Space',
   ];
 
   final Map<String, List<String>> specificInterestsMap = {
-    'Personal Development': ['Morning Routines', 'Journaling', 'Meditation & Breathing', 'Breaking Bad Habits', 'Building Confidence', 'Stoicism & Philosophy'],
-    'Health & Fitness': ['Home Workouts', 'Meal Prep & Cooking', 'Mental Health Check-ins', 'Sleep Optimization', 'Hydration Tracking', 'Stress Management'],
-    'Career & Business': ['Side Quests', 'Public Speaking', 'LinkedIn Networking', 'Skill Certifications', 'Personal Branding', 'Salary Negotiation'],
-    'Technology': ['Coding Challenges', 'AI Tools & Prompts', 'Productivity Apps', 'Tech News & Trends', 'Digital Minimalism', 'Online Courses'],
-    'Creative Arts': ['Daily Sketching', 'Content Creation', 'Music Practice', 'Photo Editing', 'DIY Projects', 'Creative Writing'],
-    'Education & Learning': ['Language Apps', 'Podcast Learning', 'Book Reading', 'YouTube Tutorials', 'Online Certifications', 'Documentary Watching'],
-    'Social & Relationships': ['Active Listening', 'Family Time', 'Friend Check-ins', 'Community Volunteering', 'Dating Confidence', 'Networking Events'],
-    'Entertainment': ['Movie Nights', 'Gaming Sessions', 'Sports Updates', 'Travel Planning', 'New Hobbies', 'Local Events']
+    'Technology': ['AI Tools', 'Software Development', 'Gadgets', 'Tech News', 'Coding', 'Cloud Computing'],
+    'Artificial Intelligence': ['Machine Learning', 'ChatGPT & LLMs', 'AI Research', 'Automation', 'Neural Networks', 'AI Ethics'],
+    'Business': ['Entrepreneurship', 'Marketing', 'Management', 'Strategy', 'Leadership', 'Innovation'],
+    'Finance': ['Investing', 'Stock Market', 'Personal Finance', 'Economics', 'Financial Planning', 'Trading'],
+    'Health': ['Mental Health', 'Nutrition', 'Wellness', 'Disease Prevention', 'Healthcare', 'Sleep Optimization'],
+    'Fitness': ['Workouts', 'Strength Training', 'Cardio', 'Yoga', 'Running', 'Sports Performance'],
+    'Sports': ['Football', 'Basketball', 'Soccer', 'Tennis', 'Formula 1', 'Olympics'],
+    'Entertainment': ['Movies', 'TV Shows', 'Music', 'Celebrities', 'Pop Culture', 'Streaming'],
+    'Science': ['Space Exploration', 'Physics', 'Biology', 'Chemistry', 'Research', 'Discoveries'],
+    'Lifestyle': ['Productivity', 'Minimalism', 'Self-Improvement', 'Habits', 'Organization', 'Work-Life Balance'],
+    'Politics': ['Elections', 'Policy', 'International Relations', 'Government', 'Social Issues', 'Current Affairs'],
+    'Environment': ['Climate Change', 'Sustainability', 'Conservation', 'Renewable Energy', 'Wildlife', 'Green Living'],
+    'Education': ['Online Learning', 'Study Tips', 'Certifications', 'Universities', 'EdTech', 'Skills Development'],
+    'Travel': ['Destinations', 'Travel Tips', 'Culture', 'Adventure', 'Budget Travel', 'Photography'],
+    'Food': ['Recipes', 'Cooking', 'Restaurants', 'Nutrition', 'Food Trends', 'Meal Prep'],
+    'Fashion': ['Style Trends', 'Designers', 'Sustainable Fashion', 'Accessories', 'Beauty', 'Streetwear'],
+    'Gaming': ['Video Games', 'Esports', 'Game Reviews', 'Streaming', 'Game Development', 'Console News'],
+    'Cryptocurrency': ['Bitcoin', 'Ethereum', 'Blockchain', 'DeFi', 'NFTs', 'Crypto Trading'],
+    'Startups': ['Funding', 'Venture Capital', 'Founders', 'Product Launches', 'Unicorns', 'Tech Startups'],
+    'Space': ['NASA', 'SpaceX', 'Astronomy', 'Mars Missions', 'Satellites', 'Cosmic Discoveries'],
   };
 
   final List<String> ageRangeOptions = [
@@ -87,13 +116,13 @@ class OnboardingViewModel extends ChangeNotifier {
   ];
 
   final List<String> primaryGoalOptions = [
-    'Reduce phone usage',
-    'Improve productivity',
-    'Build better habits',
-    'Focus on learning',
-    'Enhance wellbeing',
-    'Career advancement',
-    'Optimistic self-confidence'
+    'Reduce distracting app usage',
+    'Boost daily productivity',
+    'Build healthy daily habits',
+    'Focus on continuous learning',
+    'Improve mental & physical wellbeing',
+    'Advance my career & skills',
+    'Build self-confidence & resilience'
   ];
 
   final List<String> motivationStyleOptions = [
@@ -111,8 +140,14 @@ class OnboardingViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectMostUsedApp(String app) {
-    _selectedMostUsedApp = app;
+  void toggleMostUsedApp(String app) {
+    if (_selectedMostUsedApps.contains(app)) {
+      _selectedMostUsedApps.remove(app);
+    } else {
+      if (_selectedMostUsedApps.length < 5) {
+        _selectedMostUsedApps.add(app);
+      }
+    }
     notifyListeners();
   }
 
@@ -123,7 +158,7 @@ class OnboardingViewModel extends ChangeNotifier {
       final subInterests = specificInterestsMap[interest] ?? [];
       _selectedSubInterests.removeWhere((sub) => subInterests.contains(sub));
     } else {
-      if (_selectedPrimaryInterests.length < 7) {
+      if (_selectedPrimaryInterests.length < 10) {
         _selectedPrimaryInterests.add(interest);
       }
     }
@@ -191,8 +226,8 @@ class OnboardingViewModel extends ChangeNotifier {
       case 0: return  _selectedPrimaryInterests.isNotEmpty;
       case 1: return _selectedSubInterests.isNotEmpty;
       case 2: return _selectedPrimaryGoal != null;
-      case 3: return _selectedMostUsedApp != null;
-      case 4: return _selectedScreenTime != null; 
+      case 3: return _selectedMostUsedApps.isNotEmpty;
+      case 4: return _selectedScreenTime != null;
       case 5: return _selectedAgeRange != null;
       case 6: return _selectedMotivationStyle != null;
       default: return false;
@@ -208,9 +243,9 @@ class OnboardingViewModel extends ChangeNotifier {
 
       await _firestore.collection('Users').doc(userId).update({
         'dailyScreenTime': _selectedScreenTime,
-        'mostUsedApp': _selectedMostUsedApp,
+        'mostUsedApps': _selectedMostUsedApps,
         'primaryInterests': _selectedPrimaryInterests,
-        'subInterests': _selectedSubInterests,
+        'specificInterests': _selectedSubInterests,
         'ageRange': _selectedAgeRange,
         'primaryGoal': _selectedPrimaryGoal,
         'motivationStyle': _selectedMotivationStyle,
@@ -239,7 +274,7 @@ class OnboardingViewModel extends ChangeNotifier {
   void reset() {
     _currentStep = 0;
     _selectedScreenTime = null;
-    _selectedMostUsedApp = null;
+    _selectedMostUsedApps.clear();
     _selectedPrimaryInterests.clear();
     _selectedSubInterests.clear();
     _selectedAgeRange = null;

@@ -175,13 +175,52 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildMostUsedAppStep(OnboardingViewModel vm) {
-    return _buildStepTemplate(
-      title: 'Most Used Apps',
-      subtitle: 'What type of apps do you spend most time on?',
-      options: vm.appOptions,
-      selectedValue: vm.selectedMostUsedApp,
-      onSelect: vm.selectMostUsedApp,
-      vm: vm,
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          const Text(
+            'Most Used Apps',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Select up to 5 apps you spend most time on',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black54,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: vm.appOptions.map((app) {
+                  final isSelected = vm.selectedMostUsedApps.contains(app);
+                  final canSelect = vm.selectedMostUsedApps.length < 5 || isSelected;
+
+                  return _buildSimpleChip(
+                    label: app,
+                    isSelected: isSelected,
+                    onTap: canSelect ? () => vm.toggleMostUsedApp(app) : null,
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          _buildActionButtons(vm),
+        ],
+      ),
     );
   }
 
@@ -202,7 +241,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 8),
           const Text(
-            'Select up to 5 topics that interest you most',
+            'Select up to 10 topics that interest you most',
             style: TextStyle(
               fontSize: 16,
               color: Colors.black54,
@@ -218,7 +257,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 alignment: WrapAlignment.center,
                 children: vm.primaryInterestOptions.map((interest) {
                   final isSelected = vm.selectedPrimaryInterests.contains(interest);
-                  final canSelect = vm.selectedPrimaryInterests.length < 5 || isSelected;
+                  final canSelect = vm.selectedPrimaryInterests.length < 10 || isSelected;
 
                   return _buildSimpleChip(
                     label: interest,
@@ -254,7 +293,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 8),
           const Text(
-            'Choose up to 7 specific areas you\'d like to focus on',
+            'Choose up to 10 specific areas you\'d like to focus on',
             style: TextStyle(
               fontSize: 16,
               color: Colors.black54,
@@ -270,7 +309,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 alignment: WrapAlignment.center,
                 children: availableSubInterests.map((subInterest) {
                   final isSelected = vm.selectedSubInterests.contains(subInterest);
-                  final canSelect = vm.selectedSubInterests.length < 7 || isSelected;
+                  final canSelect = vm.selectedSubInterests.length < 10 || isSelected;
 
                   return _buildSimpleChip(
                     label: subInterest,
