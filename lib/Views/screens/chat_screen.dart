@@ -8,6 +8,7 @@ import '../../ViewModels/auth_vm.dart';
 import '../Auth/login_page.dart';
 import 'chat_history.dart';
 import 'package:focus_fuel/Views/screens/subscription_page.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class ChatScreen extends StatefulWidget{
   const ChatScreen({super.key});
@@ -31,6 +32,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
+
+    // Listen to text field changes and update ViewModel
+    _controller.addListener(() {
+      context.read<ChatViewModel>().updateTextFieldState(_controller.text);
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ChatViewModel>().addListener(_onVmChanged);
@@ -88,6 +94,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         debugPrint("Error while sending query to GPT: $e");
       }
       _controller.clear();
+      chatVM.clearTextFieldState(); // Update ViewModel state
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     }
   }
@@ -98,8 +105,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final isUser = msg.isUser;
     final isError = msg.status == 'error';
 
-    final bgGradient = isUser ? LinearGradient(
-      colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)],
+    // Softer violet gradient theme for user messages
+    final bgGradient = isUser ? const LinearGradient(
+      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)], // Softer indigo/violet gradient
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     )
@@ -110,10 +118,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       end: Alignment.bottomRight,
     ) :
     LinearGradient(
-      colors: [Theme.of(context).colorScheme.surfaceContainerHighest, Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.7)],
+      colors: [
+        Theme.of(context).colorScheme.surfaceContainerHighest,
+        Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.7)
+      ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
+
+    // Display full text immediately - no animation to prevent rebuild issues
+    final displayText = msg.text;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -122,44 +136,99 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            // AI avatar on the left
-            CircleAvatar(radius: 12, backgroundColor: Theme.of(context).colorScheme.primary, child: Icon(Icons.android, size: 8, color: Theme.of(context).colorScheme.onPrimary)),
-            const SizedBox(width: 4),
+            // AI avatar with softer violet theme
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+            ),
+            const SizedBox(width: 8),
           ],
 
-          Flexible(     // message bubble
+          Flexible(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 gradient: bgGradient,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    color: isUser
+                      ? const Color(0xFF6366F1).withValues(alpha: 0.25)
+                      : Theme.of(context).shadowColor.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
                   )
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(msg.text, style: TextStyle(color: isUser ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface, fontSize: 15)),
+                  // Use markdown rendering for AI messages, plain text for user
+                  if (isUser)
+                    Text(
+                      displayText,
+                      style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4)
+                    )
+                  else
+                    MarkdownBody(
+                      data: displayText,
+                      styleSheet: MarkdownStyleSheet(
+                        p: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 15,
+                          height: 1.5,
+                        ),
+                        strong: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        em: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        listBullet: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        code: TextStyle(
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          color: const Color(0xFF6366F1),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
 
                   if (isError) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     TextButton(
                       onPressed: () => context.read<ChatViewModel>().retryMessage(msg.text),
-                      child: Text('Retry', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 8))),
+                      child: const Text('Retry', style: TextStyle(color: Colors.red, fontSize: 12))),
                   ],
 
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(time, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 8)),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          color: isUser
+                            ? Colors.white.withValues(alpha: 0.7)
+                            : Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                          fontSize: 10
+                        )
+                      ),
                     ],
                   ),
                 ],
@@ -167,7 +236,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             ),
           ),
           ),
-          if (isUser) const SizedBox(width: 40), // balance spacing
+          if (isUser) const SizedBox(width: 40),
         ],
       ),
     );
@@ -197,7 +266,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     // Calculate remaining queries for free users
     final userModel = authVM.userModel;
-    final isFreeUser = userModel?.subscriptionStatus == 'free';
+    final subscriptionStatus = userModel?.subscriptionStatus ?? 'free';
+    final isFreeUser = subscriptionStatus == 'free';
+    final hasActivePlan = subscriptionStatus == 'trial' || subscriptionStatus == 'premium';
     final dailyChatQueryCount = userModel?.dailyChatQueryCount ?? 0;
     final remainingQueries = isFreeUser ? (5 - dailyChatQueryCount).clamp(0, 5) : null;
 
@@ -210,22 +281,38 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatHistoryScreen()));
           },
         ),
-        title: GestureDetector(
+        // Only show "Get Plus" button for free users
+        title: !hasActivePlan ? GestureDetector(
           onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionScreen()));
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Get Plus", style: TextStyle(color: Theme.of(context).textTheme.titleMedium?.color, fontSize: 24, fontWeight: FontWeight.bold)),
-                SizedBox(width: 4),
-                Icon(Icons.star, color: Theme.of(context).colorScheme.primary, size: 25),
+                const Text("Get Plus", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.star_rounded, color: Colors.white, size: 18),
+                ),
               ],
             ),
           )
-        ),
+        ) : null,
         centerTitle: true,
         actions: [
           if (isFreeUser && remainingQueries != null)
@@ -319,21 +406,38 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   child: TextField(
                     style: TextStyle(color: Theme.of(context).textTheme.titleMedium?.color),
                     controller: _controller,
-                    enabled: !chatVM.isSending,           // to disable if sending query
+                    enabled: !chatVM.isSending,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _sendMessage(),
                     decoration: InputDecoration(
                       hintText: 'Type ya response...',
                       border: InputBorder.none,
                       focusedBorder: InputBorder.none,
-                      filled: false,  // removes the background fill
+                      filled: false,
                       hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.send, color: Theme.of(context).colorScheme.primary),
-                  onPressed: chatVM.isSending ? null : _sendMessage,
+                const SizedBox(width: 4),
+                // Clean, minimal send button - no animation to prevent shake
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: chatVM.hasText && !chatVM.isSending ? _sendMessage : null,
+                    child: Container(
+                      width: 40, // Fixed width to prevent layout shift
+                      height: 40, // Fixed height
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.arrow_upward_rounded,
+                        color: chatVM.hasText && !chatVM.isSending
+                          ? const Color(0xFF6366F1)
+                          : Colors.grey.shade400,
+                        size: 24,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -343,30 +447,40 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  // typing indicator three bouncing dots
+  // typing indicator three bouncing dots with violet theme
   Widget _buildTypingIndicator() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // tiny avatar bubble
+          // AI avatar with softer violet gradient
           Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEE5FF),
-              borderRadius: BorderRadius.circular(18),
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.android, color: Color(0xFF6B46C1), size: 12),
+            child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE0E0E0)),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -379,20 +493,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildDot(int index) {
-
     return AnimatedBuilder(
       animation: _typingAnimationController,
       builder: (context, child) {
         final t = (_typingAnimationController.value * 3 - index).clamp(0.0, 1.0);
         final v = Curves.easeInOut.transform(t) - Curves.easeInOut.transform((t - 0.5).clamp(0.0, 1.0));
         return Transform.translate(
-          offset: Offset(0, -4 * v),
+          offset: Offset(0, -5 * v),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 2),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
             width: 8,
             height: 8,
             decoration: const BoxDecoration(
-              color: Color(0xFF6B46C1),
+              gradient: LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+              ),
               shape: BoxShape.circle,
             ),
           ),

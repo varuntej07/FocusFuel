@@ -22,10 +22,13 @@ class ChatViewModel extends ChangeNotifier {
 
   String? _currentConversationId;
   bool _isSending = false;
+  int _lastMessageCount = 0;
+  bool _hasText = false;
 
   String get userId => _auth.currentUser?.uid ?? '';
   bool get isSending => _isSending;
   bool get isLoading => _isLoading;
+  bool get hasText => _hasText;
   String? get currentConversationId => _currentConversationId;
   String? get lastUserMessage => _lastUserMessage;
 
@@ -54,7 +57,20 @@ class ChatViewModel extends ChangeNotifier {
     if (_currentConversationId == null) {
       return Stream.value([]);
     }
-    return _chatService.getConversationMessages(_currentConversationId!);
+    return _chatService.getConversationMessages(_currentConversationId!).map((messages) {
+      // Auto-dismiss loading indicator when new AI message arrives
+      if (_isSending && messages.length > _lastMessageCount) {
+        // Check if the latest message is from assistant
+        if (messages.isNotEmpty && !messages.last.isUser) {
+          _isSending = false;
+          if (!_disposed) {
+            notifyListeners();
+          }
+        }
+      }
+      _lastMessageCount = messages.length;
+      return messages;
+    });
   }
 
   // This is the main function for sending message to GPT
@@ -70,11 +86,10 @@ class ChatViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _isLoading = true;
       await _chatService.sendMessage(message, _currentConversationId!);
+      // _isSending will be set to false when AI response arrives (in getMessageStream)
     } catch (error, stackTrace) {
       FirebaseCrashlytics.instance.recordError(error, stackTrace, information: ['Error sending message: $message']);
-    } finally {
       _isSending = false;
       notifyListeners();
     }
@@ -104,6 +119,21 @@ class ChatViewModel extends ChangeNotifier {
       _isSending = false;
       notifyListeners();
     }
+  }
+
+  // Update text field state (for send button enable/disable)
+  void updateTextFieldState(String text) {
+    final hasText = text.trim().isNotEmpty;
+    if (hasText != _hasText) {
+      _hasText = hasText;
+      notifyListeners();
+    }
+  }
+
+  // Clear text field state
+  void clearTextFieldState() {
+    _hasText = false;
+    notifyListeners();
   }
 
   // Get all conversations to display in chat history

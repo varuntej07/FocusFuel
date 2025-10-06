@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,7 +22,7 @@ class AuthViewModel extends ChangeNotifier {
   bool isLoading = false;     // Controls the spinner & button state
   bool _isSubscribed = false;
   bool get isSubscribed => _isSubscribed;
-  final bool _disposed = false;
+  bool _disposed = false; // Changed from final to mutable
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
@@ -30,6 +31,9 @@ class AuthViewModel extends ChangeNotifier {
   UserModel? get userModel => _userModel;
 
   late SharedPreferencesService _prefsService;
+
+  // Stream subscription for auth state changes
+  StreamSubscription<User?>? _authStateSubscription;
 
   // Constructor
   AuthViewModel() {
@@ -44,7 +48,9 @@ class AuthViewModel extends ChangeNotifier {
 
   // Setup Firebase Auth state listener
   void _setupAuthStateListener() {
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+    _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (_disposed) return; // Guard against disposed state
+
       if (user != null) {
         _loadUserData(user.uid);
       } else {
@@ -113,6 +119,8 @@ class AuthViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true; // Mark as disposed FIRST
+    _authStateSubscription?.cancel(); // Cancel the auth stream subscription
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
