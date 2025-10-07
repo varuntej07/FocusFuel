@@ -10,6 +10,7 @@ import 'package:focus_fuel/ViewModels/home_vm.dart';
 import 'package:provider/provider.dart';
 import 'Services/shared_prefs_service.dart';
 import 'Services/streak_repo.dart';
+import 'Services/audio_service.dart';
 import 'Themes/app_themes.dart';
 import 'Themes/theme_provider.dart';
 import 'ViewModels/newsfeed_vm.dart';
@@ -164,6 +165,7 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
             Provider<StreakRepository>(create: (_) => StreakRepository()),
             Provider<ChatService>(create: (_) => ChatService()),
+            ChangeNotifierProvider(create: (_) => AudioService()),
             ChangeNotifierProvider(create: (_) => AuthViewModel()),
             ChangeNotifierProvider(create: (context) => HomeViewModel(context.read<StreakRepository>())),
             ChangeNotifierProvider(create: (context) => ChatViewModel()),

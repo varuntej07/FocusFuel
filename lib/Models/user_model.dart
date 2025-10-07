@@ -32,11 +32,20 @@ class UserModel {
   final bool isSubscribed;
   final DateTime? trialStartDate;
   final DateTime? trialEndDate;
-  final String? subscriptionStatus;  // "trial" | "free" | "premium"
+  final String? subscriptionStatus;  // "trial" | "free" | "premium" | "pending_payment" | "cancelled" | "expired"
   final int dailyNotificationCount;
   final DateTime? lastNotificationCountReset;
   final int dailyChatQueryCount;
   final DateTime? lastChatQueryReset;
+
+  // Razorpay subscription fields
+  final String? razorpayCustomerId;
+  final String? razorpaySubscriptionId;
+  final String? subscriptionPlanId;
+  final String? razorpaySubscriptionStatus;  // Razorpay subscription status
+  final DateTime? subscriptionCreatedAt;
+  final DateTime? nextBillingDate;
+  final DateTime? cancelledAt;
 
   UserModel({
     required this.uid,
@@ -75,6 +84,14 @@ class UserModel {
     this.lastNotificationCountReset,
     this.dailyChatQueryCount = 0,
     this.lastChatQueryReset,
+
+    this.razorpayCustomerId,
+    this.razorpaySubscriptionId,
+    this.subscriptionPlanId,
+    this.razorpaySubscriptionStatus,
+    this.subscriptionCreatedAt,
+    this.nextBillingDate,
+    this.cancelledAt,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data) {
@@ -113,6 +130,14 @@ class UserModel {
       lastNotificationCountReset: data['lastNotificationCountReset']?.toDate(),
       dailyChatQueryCount: data['dailyChatQueryCount'] ?? 0,
       lastChatQueryReset: data['lastChatQueryReset']?.toDate(),
+
+      razorpayCustomerId: data['razorpayCustomerId'],
+      razorpaySubscriptionId: data['razorpaySubscriptionId'],
+      subscriptionPlanId: data['subscriptionPlanId'],
+      razorpaySubscriptionStatus: data['razorpaySubscriptionStatus'],
+      subscriptionCreatedAt: data['subscriptionCreatedAt']?.toDate(),
+      nextBillingDate: data['nextBillingDate']?.toDate(),
+      cancelledAt: data['cancelledAt']?.toDate(),
     );
   }
 
@@ -150,6 +175,15 @@ class UserModel {
       'subscriptionStatus': subscriptionStatus,
       'dailyNotificationCount': dailyNotificationCount,
       'lastNotificationCountReset': lastNotificationCountReset,
+      'dailyChatQueryCount': dailyChatQueryCount,
+      'lastChatQueryReset': lastChatQueryReset,
+      'razorpayCustomerId': razorpayCustomerId,
+      'razorpaySubscriptionId': razorpaySubscriptionId,
+      'subscriptionPlanId': subscriptionPlanId,
+      'razorpaySubscriptionStatus': razorpaySubscriptionStatus,
+      'subscriptionCreatedAt': subscriptionCreatedAt,
+      'nextBillingDate': nextBillingDate,
+      'cancelledAt': cancelledAt,
     };
   }
 

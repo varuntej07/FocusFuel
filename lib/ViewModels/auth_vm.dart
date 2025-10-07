@@ -34,6 +34,7 @@ class AuthViewModel extends ChangeNotifier {
 
   // Stream subscription for auth state changes
   StreamSubscription<User?>? _authStateSubscription;
+  StreamSubscription? _userDocSubscription;
 
   // Constructor
   AuthViewModel() {
@@ -59,22 +60,35 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
-  // Load user data from Firestore
+  // Load user data from Firestore and set up real-time listener
   Future<void> _loadUserData(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('Users').doc(uid).get();
-      if (doc.exists) {
-        _userModel = UserModel.fromMap(doc.data()!);
-        // TODO: After loading userModel, check/update their subscription status here if needed
-        await _cacheUser();
-        _state = AuthState.authenticated;
-        if (!_disposed) notifyListeners();
-      } else {
-        _state = AuthState.unauthenticated;
-        if (!_disposed) notifyListeners();
-      }
+      // Cancel any existing subscription
+      await _userDocSubscription?.cancel();
+
+      // Set up real-time listener for user document changes
+      _userDocSubscription = FirebaseFirestore.instance
+          .collection('Users')
+          .doc(uid)
+          .snapshots()
+          .listen((doc) async {
+        if (_disposed) return; // Guard against disposed state
+
+        if (doc.exists) {
+          _userModel = UserModel.fromMap(doc.data()!);
+          // TODO: After loading userModel, check/update their subscription status here if needed
+          await _cacheUser();
+          _state = AuthState.authenticated;
+          if (!_disposed) notifyListeners();
+        } else {
+          _state = AuthState.unauthenticated;
+          if (!_disposed) notifyListeners();
+        }
+      }, onError: (error, stackTrace) {
+        _handleError('Failed to load user data', error, stackTrace);
+      });
     } catch (error, stackTrace) {
-      _handleError('Failed to load user data', error, stackTrace);
+      _handleError('Failed to set up user data listener', error, stackTrace);
     }
   }
 
@@ -84,6 +98,18 @@ class AuthViewModel extends ChangeNotifier {
     await _prefsService.saveUsername(_userModel!.username);
     await _prefsService.saveEmail(_userModel!.email);
     await _prefsService.saveUserId(_userModel!.uid);
+  }
+
+  // Reload user data from Firestore (useful for refreshing counters)
+  Future<void> reloadUserData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      await _loadUserData(uid);
+    } catch (error, stackTrace) {
+      _handleError('Failed to reload user data', error, stackTrace);
+    }
   }
 
   void _startLoading() {
@@ -105,6 +131,7 @@ class AuthViewModel extends ChangeNotifier {
   void _clearUserData() {
     _userModel = null;
     _state = AuthState.unauthenticated;
+    _userDocSubscription?.cancel(); // Cancel the listener when user logs out
   }
 
   // Clear form data
@@ -121,6 +148,7 @@ class AuthViewModel extends ChangeNotifier {
   void dispose() {
     _disposed = true; // Mark as disposed FIRST
     _authStateSubscription?.cancel(); // Cancel the auth stream subscription
+    _userDocSubscription?.cancel(); // Cancel the user document listener
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
@@ -220,6 +248,8 @@ class AuthViewModel extends ChangeNotifier {
         subscriptionStatus: 'trial',
         dailyNotificationCount: 0,
         lastNotificationCountReset: now,
+        dailyChatQueryCount: 0,
+        lastChatQueryReset: now,
       );
 
       await _cacheUser();
