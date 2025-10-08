@@ -5,6 +5,7 @@ const { admin } = require("../utils/firebase");
 const { getTimeContext } = require("../utils/getTimeContext");
 const { DateTime } = require("luxon");
 const {sendFCMNotification} = require("./sendFCM");
+const { EngagementTracker } = require("../utils/engagementTracker");
 
 // Firestore DB instance for the active Firebase project (android/app/google-services.json)
 const db = admin.firestore();
@@ -45,7 +46,13 @@ module.exports = {
 
                     if (canSendNotification) {
                         try {
-                            await processUserNotification(uid, data, openaiApiKey, shouldSend.timeWindow);
+                            await processUserNotification(
+                                uid,
+                                data,
+                                openaiApiKey,
+                                shouldSend.timeWindow,
+                                shouldSend.notificationType || 'general'
+                            );
                         } catch (err) {
                             console.error(`Error processing notification for user ${uid}:`, err.message);
                         }
@@ -78,28 +85,42 @@ async function shouldSendNotificationNow(userData) {
 
    // allowed hours in alternating pattern
    const allowedHours = {
-       morning: [9, 10, 12, 13], // 10 AM, 12 PM
+       morning: [10, 12, 13], // 10 AM, 12 PM, 1 PM
        afternoon: [15, 17], // 3 PM, 5 PM
-       evening: [19, 21, 22, 23] // 7 PM, 9 PM, 11 PM
+       evening: [19, 21, 22, 23] // 7 PM, 9 PM, 10 PM, 11 PM
    };
+
+   // Progress check hours (2 per day)
+   const progressCheckHours = [14, 20]; // 2 PM (midday), 8 PM (evening)
+
+   // Check if it's a progress check hour
+   const isProgressCheckHour = progressCheckHours.includes(localHour);
 
    // Check if current hour is in any allowed time window
    const morningWindow = allowedHours.morning.includes(localHour);
    const afternoonWindow = allowedHours.afternoon.includes(localHour);
    const eveningWindow = allowedHours.evening.includes(localHour);
 
-    if (!morningWindow && !afternoonWindow && !eveningWindow) {
+    if (!morningWindow && !afternoonWindow && !eveningWindow && !isProgressCheckHour) {
         return { send: false };
     }
 
     // time window for context
     let timeWindow = 'general';
+    let notificationType = 'general';
 
-    if (morningWindow) timeWindow = 'morning';
-    else if (afternoonWindow) timeWindow = 'afternoon';
-    else if (eveningWindow) timeWindow = 'evening';
+    if (isProgressCheckHour) {
+        timeWindow = localHour === 14 ? 'midday' : 'evening';
+        notificationType = 'progress_check';
+    } else if (morningWindow) {
+        timeWindow = 'morning';
+    } else if (afternoonWindow) {
+        timeWindow = 'afternoon';
+    } else if (eveningWindow) {
+        timeWindow = 'evening';
+    }
 
-    return { send: true, timeWindow };
+    return { send: true, timeWindow, notificationType };
 }
 
 // Check if user can receive notification based on subscription status and daily limits
@@ -143,16 +164,34 @@ function isSameDay(date1, date2) {
            date1.getDate() === date2.getDate();
 }
 
-async function processUserNotification(uid, userData, openaiApiKey, timeWindow) {
+async function processUserNotification(uid, userData, openaiApiKey, timeWindow, notificationType = 'general') {
     const userProfile = await getUserProfile(uid);
     const timeContext = getTimeContext(userData);
 
-    console.log(`Processing ${timeWindow} notification for ${userProfile.username}`);
+    console.log(`Processing ${timeWindow} ${notificationType} notification for ${userProfile.username}`);
+
+    // For progress checks, validate if we should actually send it
+    if (notificationType === 'progress_check') {
+        const engagementTracker = new EngagementTracker(uid);
+        const shouldSendCheck = await engagementTracker.shouldSendProgressCheck();
+
+        if (!shouldSendCheck.shouldSend) {
+            console.log(`Skipping progress check for ${userProfile.username}: ${shouldSendCheck.reason}`);
+            return; // Early return - don't send notification
+        }
+
+        console.log(`Sending progress check to ${userProfile.username}: ${shouldSendCheck.reason}`);
+    }
 
     const recentNotifications = await getRecentNotifications(uid);
 
     const orchestrator = new NotificationOrchestrator(openaiApiKey);
-    const notificationResult = await orchestrator.generateSmartNotification(userProfile, timeContext, recentNotifications);
+    const notificationResult = await orchestrator.generateSmartNotification(
+        userProfile,
+        timeContext,
+        recentNotifications,
+        notificationType
+    );
 
     // Parse and send notification
     let parsedNotification;
@@ -184,7 +223,7 @@ async function processUserNotification(uid, userData, openaiApiKey, timeWindow) 
 
     await db.collection('Users').doc(uid).update(updateData);
 
-    console.log(`Sent ${notificationResult.agentType} notification to ${userProfile.username} during ${timeWindow} window`);
+    console.log(`Sent ${notificationResult.agentType} notification to ${userProfile.username} during ${timeWindow} window and total notifications: ${updateData.dailyNotificationCount} sent today`);
 }
 
 // Gets last x notifications for a user

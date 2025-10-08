@@ -21,17 +21,21 @@ class CriticAgent {
             User Context: {userContext}
 
             VALIDATION CRITERIA:
-            - Actionability: Contains concrete next step (not vague)
-            - Specificity: References user's actual goal/task
-            - Expert insight: Includes non-obvious tip/shortcut
-            - Tone: Commanding but not generic motivational fluff
-            - expert insight: Non-obvious tip/shortcut
-            - Tone: Commanding, not generic motivation
+            - Personalization: MUST start with user's first name (e.g., "Varun, why don't you...")
+            - Tone: Casual, friendly, like talking to an accountability partner/friend. Use contractions (don't, you're, let's)
+            - Actionability: Contains concrete next step with "wanna try?" or "want to?" or similar casual invite
+            - Specificity: References user's actual goal/task naturally in conversation
+            - Expert insight: Includes non-obvious tip/shortcut presented as friendly advice
+            - Supportive: End with offer to help (e.g., "I'll help you out", "Let's do this", "I got you")
             - Length: Title 2-4 words, content <200 chars
-            - Tap-worthiness: Creates urgency to open chat
+            - Tap-worthiness: Creates urgency but in a friendly way
+
+            STYLE EXAMPLES:
+            - "Varun, spotted a gap in your learning approach—try spaced repetition. Early adopters see 40% better retention. Wanna give it a shot? I'll walk you through it"
+            - "Hey Varun, your focus task needs momentum. Break it into 25-min sprints—it's working for 80% of devs. Want to try? I'll help you plan"
 
             Return ONLY valid JSON:
-            {{"title": "[2-4 word command]", "content": "[corrected notification under 200 chars]", "reason": "[what was fixed or 'approved as-is']"}}
+            {{"title": "[2-4 word casual title]", "content": "[friendly, personalized message under 200 chars using first name]", "reason": "[what was fixed or 'approved as-is']"}}
         `);
 
         const chain = criticPrompt.pipe(this.model).pipe(new StringOutputParser());

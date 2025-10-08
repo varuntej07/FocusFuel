@@ -4,6 +4,8 @@ const { ToDoAgent } = require('./todoAgent');
 const admin = require('firebase-admin');
 const { CalendarAgent } = require('./calendarAgent');
 const { CriticAgent } = require('./criticAgent');
+const { ProgressCheckAgent } = require('./progressCheckAgent');
+const { EngagementTracker } = require('../utils/engagementTracker');
 
 class NotificationOrchestrator {
     constructor(openaiApiKey) {
@@ -13,11 +15,13 @@ class NotificationOrchestrator {
             focus: new FocusAgent(openaiApiKey),
             todo: new ToDoAgent(openaiApiKey),
             calendar: new CalendarAgent(openaiApiKey),
+            progress_check: new ProgressCheckAgent(openaiApiKey),
         };
     }
 
     // userProfile is the whole data object from getUserProfile(uid)
-    async generateSmartNotification(userProfile, timeContext, recentNotifications) {
+    // notificationType: 'general' (default) or 'progress_check'
+    async generateSmartNotification(userProfile, timeContext, recentNotifications, notificationType = 'general') {
         try {
             let selectedAgentType;
             let agent;
@@ -25,6 +29,54 @@ class NotificationOrchestrator {
 
             const username = userProfile.username;
 
+            console.log(`Starting notification generation using orchestrator for ${userProfile.username}...`);
+
+            // PROGRESS CHECK NOTIFICATION PATH
+            if (notificationType === 'progress_check') {
+                console.log('Progress check notification requested');
+
+                // Get engagement metrics
+                const engagementTracker = new EngagementTracker(userProfile.uid);
+                const engagementContext = await engagementTracker.getEngagementContext();
+
+                // Determine check type based on time
+                const currentHour = timeContext.currentHour || new Date().getHours();
+                const checkType = currentHour === 14 ? 'midday' : 'evening';
+
+                selectedAgentType = 'progress_check';
+                agent = this.agents.progress_check;
+
+                const notification = await agent.generateNotification(
+                    userProfile,
+                    timeContext,
+                    engagementContext,
+                    checkType
+                );
+
+                console.log(`Generated ${checkType} progress check notification: ${notification}...`);
+
+                // Parse notification
+                let parsedNotification;
+                try {
+                    const jsonMatch = notification.match(/\{.*\}/s);
+                    parsedNotification = JSON.parse(jsonMatch ? jsonMatch[0] : notification);
+                } catch (e) {
+                    console.error('Failed to parse progress check notification:', e);
+                    parsedNotification = { title: "Quick Check-In", content: notification };
+                }
+
+                // Progress checks skip critic validation for authenticity
+                console.log('Final progress check notification to', username, ':', parsedNotification);
+
+                return {
+                    notification: JSON.stringify(parsedNotification),
+                    agentType: selectedAgentType,
+                    timestamp: new Date().toISOString(),
+                    criticReason: 'Progress check - no critic validation'
+                };
+            }
+
+            // GENERAL NOTIFICATION PATH (existing logic)
             // Checking for active tasks in UserTasks collection
             const activeTask = await this.getActiveUserTask(userProfile.uid);
 
@@ -33,18 +85,16 @@ class NotificationOrchestrator {
             const hasWeeklyGoal = userProfile.weeklyGoal && userProfile.weeklyGoal.trim() !== '';
             const hasActiveTask = userProfile.task && userProfile.task.trim() !== "";
 
-            console.log(`Starting notification generation using orchestrator for ${userProfile.username}...`);
-
-            if (hasActiveTask) {
-                selectedAgentType = 'todo';                 // P1: Active task from UserTasks collection -> TodoAgent
+            if (hasFocus) {
+                selectedAgentType = 'focus';                // P1: User daily focus -> FocusAgent
+                agent = this.agents.focus;
+                console.log('CurrentFocus detected, using FocusAgent');
+            } else if (hasActiveTask) {
+                selectedAgentType = 'todo';                 // P2: Active task from UserTasks collection -> TodoAgent
                 agent = this.agents.todo;
 
                 enhancedUserProfile = await this.enhanceProfileForTodoAgent(userProfile);     // Enhance user profile with task data when using todo agent
                 console.log('Active task detected, using ToDoAgent with enhanced profile');
-            } else if (hasFocus) {
-                selectedAgentType = 'focus';                // P2: User daily focus -> FocusAgent
-                agent = this.agents.focus;
-                console.log('CurrentFocus detected, using FocusAgent');
             } else{
                 const historyResult = this.selectAgentFromHistory(userProfile.historySummary);
                 selectedAgentType = historyResult.agentType;
@@ -92,6 +142,7 @@ class NotificationOrchestrator {
             const critique = await critic.validateNotification(
                 parsedNotification,
                 {
+                     username: userProfile.username,
                      focus: userProfile.currentFocus || "User have no active focus set today",
                      task: userProfile.currentTask || "User have no active task set today"
                 },

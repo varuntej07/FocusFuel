@@ -7,7 +7,7 @@ class ToDoAgent {
         this.model = new ChatOpenAI({
             openAIApiKey: openaiApiKey,
             modelName: "gpt-4o",
-            temperature: 0.76
+            temperature: 0.5
         });
     }
 
@@ -34,6 +34,8 @@ class ToDoAgent {
             - Suggest learning actions that match their experience level
             - For learning tasks: focus on knowledge building, not completion pressure
             - For project tasks: focus on specific technical progress
+
+            REQUIRED: Concrete action verb + specific next step + expert insight
 
             RULES:
             - Always give specific, actionable steps they can take right away, avoid recent notifications

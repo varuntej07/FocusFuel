@@ -198,7 +198,7 @@ module.exports = {
           model: "gpt-4o-mini",
           messages: messages,
           temperature: 0.76,
-          max_tokens: 420
+          max_tokens: 1000
         });
 
         gptResponse = response.data.choices[0].message.content;
