@@ -1,4 +1,4 @@
-package com.example.focusfuel
+package dev.varuntej.focusfuel
 
 import io.flutter.embedding.android.FlutterActivity
 

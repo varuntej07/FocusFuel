@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDfyQZV_j8W277otHHKttkDsFtKQpkVqnM',
-    appId: '1:107481277829:android:a2ae30ca68266bee4310ec',
+    appId: '1:107481277829:android:228aa2293e5c72314310ec',
     messagingSenderId: '107481277829',
     projectId: 'focusfuel-bbd48',
     storageBucket: 'focusfuel-bbd48.firebasestorage.app',
@@ -63,6 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '107481277829',
     projectId: 'focusfuel-bbd48',
     storageBucket: 'focusfuel-bbd48.firebasestorage.app',
+    iosClientId: '107481277829-3pf097r5ss2knoo5tbkjm94rav9md6e4.apps.googleusercontent.com',
     iosBundleId: 'com.example.focusfuel',
   );
+
 }
