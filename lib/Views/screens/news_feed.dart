@@ -9,6 +9,7 @@ import '../../Services/news_service.dart';
 import '../../Services/shared_prefs_service.dart';
 import '../../Services/audio_service.dart';
 import 'interests_selection_page.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class NewsFeed extends StatefulWidget {
   const NewsFeed({super.key});
@@ -628,7 +629,20 @@ class _NewsSummaryDialogState extends State<_NewsSummaryDialog> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(_summary!, style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.6)),
+                            MarkdownBody(
+                              data: _summary!,
+                              styleSheet: MarkdownStyleSheet(
+                                p: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.6),
+                                strong: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                                em: const TextStyle(color: Colors.black87, fontStyle: FontStyle.italic),
+                                listBullet: const TextStyle(color: Colors.black87),
+                                code: TextStyle(
+                                  backgroundColor: Colors.blue[100],
+                                  color: Colors.blue[900],
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       )
@@ -873,7 +887,20 @@ class _NewsSummaryDialogWithAudioState extends State<_NewsSummaryDialogWithAudio
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(_summary!, style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.6)),
+                            MarkdownBody(
+                              data: _summary!,
+                              styleSheet: MarkdownStyleSheet(
+                                p: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.6),
+                                strong: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                                em: const TextStyle(color: Colors.black87, fontStyle: FontStyle.italic),
+                                listBullet: const TextStyle(color: Colors.black87),
+                                code: TextStyle(
+                                  backgroundColor: Colors.blue[100],
+                                  color: Colors.blue[900],
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       )

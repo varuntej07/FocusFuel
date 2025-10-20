@@ -142,7 +142,7 @@ class NewsListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildSourceInfo(context) {
+  Widget _buildSourceInfo(BuildContext context) {
     final source = article['source_id'] ?? article['source'] ?? 'Unknown';
     final time = article['pubDate'] ?? 'Unknown';
     final publishedDate = formatPublishedDateWithIntl(time);
@@ -161,9 +161,12 @@ class NewsListItem extends StatelessWidget {
 
         const SizedBox(width: 4),
 
-        Text(
-          source,
-          style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color, fontWeight: FontWeight.w500),
+        Flexible(
+          child: Text(
+            source,
+            style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color, fontWeight: FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
 
         const SizedBox(width: 6),
@@ -174,7 +177,7 @@ class NewsListItem extends StatelessWidget {
   }
 
   // custom icon button widget that is responsible for displaying icons in the news card
-  Widget _buildActionButton({required icon, VoidCallback? onPressed}) {
+  Widget _buildActionButton({required Widget icon, VoidCallback? onPressed}) {
     return IconButton(
       padding: const EdgeInsets.all(8),
       onPressed: onPressed,
