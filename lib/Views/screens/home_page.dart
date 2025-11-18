@@ -63,7 +63,6 @@ class _HomeFeedState extends State<HomeFeed> {
               }
             });
           }
-          await homeVM.shouldGreet();
         }
       }
     });
@@ -287,88 +286,108 @@ class _HomeFeedState extends State<HomeFeed> {
                   ),
                 ),
 
+              // Header: Username + Streak
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text("$streak", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.headlineLarge?.color)),
-                  const SizedBox(width: 4),
-                  Icon(Icons.local_fire_department_rounded, color: Colors.redAccent)
+                  Text(
+                    "Hey $userName! 👋",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.headlineLarge?.color,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        "$streak",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.headlineLarge?.color,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.local_fire_department_rounded, color: Colors.redAccent, size: 24),
+                    ],
+                  ),
                 ],
               ),
 
-              Text("Hey $userName!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 30),
-
-              Text(
-                greeting ?? "Don't let procrastination win today",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.headlineLarge?.color),
+              // Hero Focus Card (Full Width)
+              _HeroFocusCard(
+                focus: selectedFocus,
+                onTap: () => _showWhiteBoard(context, "Today's Focus"),
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 16),
 
-              Text(
-                "Your Focus Dashboard",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.red,
-                  letterSpacing: 0.5,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _InfoTile(
-                            title: "Today's Focus",
-                            item: selectedFocus,
-                            onTap: () => _showWhiteBoard(context, "Today's Focus",),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _InfoTile(
-                            title: "Task To-Do",
-                            item: task,
-                            onTap: () => _showWhiteBoard(context, "Task To-Do",),   // Opens whiteboard dialog
-                          ),
-                        ),
-                      ],
+              // Task and Weekly Goal Grid (2 columns)
+              Row(
+                children: [
+                  Expanded(
+                    child: _CompactInfoCard(
+                      title: "Task To-Do",
+                      icon: Icons.check_circle_outline,
+                      iconColor: const Color(0xFF6366F1),
+                      content: task != null && task.isNotEmpty ? task : "No tasks yet",
+                      onTap: () => _showWhiteBoard(context, "Task To-Do"),
                     ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _CompactInfoCard(
+                      title: "Weekly Goal",
+                      icon: Icons.emoji_events,
+                      iconColor: const Color(0xFFF59E0B),
+                      content: weeklyGoal.isNotEmpty ? weeklyGoal : "Set a goal",
+                      onTap: () => _showWhiteBoard(context, "Weekly Goal"),
+                    ),
+                  ),
+                ],
+              ),
 
-                    const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _InfoTile(
-                            title: "Weekly Goal",
-                            item: weeklyGoal,
-                            onTap: () => _showWhiteBoard(context, "Weekly Goal",),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _InfoTile(
-                            title: "My Small Wins",
-                            items: [wins ?? "No wins yet"],
-                            onTap: () => _showWhiteBoard(context, "My Small Wins",),
-                          ),
-                        ),
+              // Small Wins Card (Full Width)
+              _WinsCard(
+                wins: wins,
+                onTap: () => _showWhiteBoard(context, "My Small Wins"),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Motivational Quote
+              if (greeting != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF6366F1).withValues(alpha: 0.1),
+                        const Color(0xFF8B5CF6).withValues(alpha: 0.1),
                       ],
-                    )
-                  ],
-                ),
-              )
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    greeting,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      fontStyle: FontStyle.italic,
+                      height: 1.5,
+                    ),
+                  ),
+                )
             ],
           ),
         ),
@@ -378,90 +397,258 @@ class _HomeFeedState extends State<HomeFeed> {
 }
 
 
-// _InfoTile widget to include an emoji for top cards
-class _InfoTile extends StatelessWidget {
-  final String title;
-  final String? item;  // For single string items
-  final List<String>? items;  // For multiple string items
+// Hero Focus Card with circular progress indicator
+class _HeroFocusCard extends StatelessWidget {
+  final String focus;
   final VoidCallback onTap;
 
-  const _InfoTile({required this.title, this.items, required this.onTap, this.item});
+  const _HeroFocusCard({
+    required this.focus,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isPlaceholder = focus == "Focus on something";
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 225,
-        padding: const EdgeInsets.all(12),
+        height: 250,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF6366F1),
+              const Color(0xFF8B5CF6),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Title
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.track_changes, color: Colors.white, size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  "Today's Focus",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // Focus Text
+            Text(
+              focus,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isPlaceholder
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : Colors.white,
+                fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Compact Info Card for Task and Weekly Goal
+class _CompactInfoCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final String content;
+  final VoidCallback onTap;
+
+  const _CompactInfoCard({
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.content,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPlaceholder = content == "No tasks yet" ||
+        content == "Set a goal" ||
+        content == "Task To-Do" ||
+        content == "Weekly Goal";
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 200,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Theme.of(context).shadowColor.withValues(alpha: 0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 3)
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ]
+          ],
         ),
         child: Column(
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.titleMedium?.color,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon and Title
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 20),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 10),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      if (item != null)
-                        Text(
-                          item!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: (item == "Focus on something" ||
-                                item == "Set a weekly goal" ||
-                                item == "Task To-Do" ||
-                                item == "My Small Wins")
-                                ? Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5)
-                                : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                            fontStyle: (item == "Focus on something" ||
-                                item == "Set a weekly goal" ||
-                                item == "Task To-Do" ||
-                                item == "My Small Wins")
-                                ? FontStyle.italic
-                                : FontStyle.normal,
-                          ),
-                        )
-                      else if (items != null)
-                        ...items!.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            item,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        )),
-                    ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.titleMedium?.color,
+                    ),
                   ),
                 ),
-              )
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Text(
+                  content,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isPlaceholder
+                        ? Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5)
+                        : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                    fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Wins Card (Full Width)
+class _WinsCard extends StatelessWidget {
+  final String? wins;
+  final VoidCallback onTap;
+
+  const _WinsCard({
+    required this.wins,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayWins = wins ?? "No wins yet";
+    final isPlaceholder = wins == null || wins!.isEmpty;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF10B981).withValues(alpha: 0.15),
+              const Color(0xFF059669).withValues(alpha: 0.15),
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+            width: 2,
           ),
         ),
-      );
-    }
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title with Icon
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.stars, color: Color(0xFF10B981), size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  "My Small Wins",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF10B981),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Wins Content
+            Text(
+              displayWins,
+              style: TextStyle(
+                fontSize: 14,
+                color: isPlaceholder
+                    ? Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5)
+                    : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 void _showWhiteBoard(BuildContext context, String title) {
