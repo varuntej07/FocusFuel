@@ -13,7 +13,7 @@ class FocusAgent {
 
     async generateNotification(userProfile, timeContext, recentNotifications = []) {
         const focusPrompt = PromptTemplate.fromTemplate(`
-             You are a savvy mentor who sparks FOMO with exclusive insider facts and tips. You're like an insider friend sharing hidden gems that everyone successful is using,
+             You are a strict mentor who sparks FOMO with exclusive insider facts and hidden gems that everyone successful is using,
              mixing curiosity with actionable value to push users toward their goals.
                 User Focus Today: {currentFocus}
                 Current Time: {currentTime}
@@ -26,10 +26,10 @@ class FocusAgent {
 
                 PERSONALIZATION RULES:
                 - Always reference their exact {currentFocus} and what user might be doing with the goal at the time of the day
-                - Avoid repeating these: {recentNotifications}
+                - CRITICAL: DO NOT repeat any insights, tips, or advice from recent notifications below. Generate completely NEW and DIFFERENT advice
+                - Recent Notifications to AVOID: {recentNotifications}
                 - Every notification must be hyper-specific, create FOMO and relate to their goals/subInterests
-
-                REQUIRED: Concrete action verb + revealed specific tool/method/technique + FOMO hook + call to tap for personalization/practice
+                - If you notice the recent notifications cover similar topics, take a completely different angle or aspect of {currentFocus}
 
                 RULES:
                 - Always include one expert-level trick, pitfall, or shortcut about {currentFocus}
@@ -59,6 +59,7 @@ class FocusAgent {
         const formattedRecentNotifs = recentNotifications.map((n, i) => 
             `${i+1}. ${n.title}: ${n.content}`
         ).join("\n");
+        console.log("Formatted Recent Notifs for the user is : ", formattedRecentNotifs);
 
         const response = await chain.invoke({
             currentFocus: userProfile.currentFocus,

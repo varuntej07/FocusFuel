@@ -16,6 +16,8 @@ async function checkChatQueryLimit(userId) {
         return true;
     }
 
+    console.log(`User ${userId} has subscription status ${subscriptionStatus}`);
+
     // Free users: check daily limit (max 5 per day)
     const dailyChatQueryCount = userData.dailyChatQueryCount || 0;
 
@@ -29,10 +31,11 @@ async function checkChatQueryLimit(userId) {
 
 // Increment chat query counter after successful request
 async function incrementChatQueryCounter(userId) {
+    console.log(`Incrementing chat query counter for user ${userId}`);
     await db.collection('Users').doc(userId).update({
         dailyChatQueryCount: admin.firestore.FieldValue.increment(1)
     });
-    console.log(`Incremented chat query counter for user ${userId}`);
+    console.log(`Incremented chat query counter for user ${userId}, new count: ${userData.dailyChatQueryCount}`);
 }
 
 // Helper function to extract clean text content from messages

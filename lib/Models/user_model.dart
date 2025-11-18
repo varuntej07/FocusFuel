@@ -96,9 +96,9 @@ class UserModel {
 
   factory UserModel.fromMap(Map<String, dynamic> data) {
     return UserModel(
-      uid: data['uid'],
-      email: data['email'],
-      username: data['username'],
+      uid: data['uid'] ?? '',
+      email: data['email'] ?? '',
+      username: data['username'] ?? 'User',
       isActive: data['isActive'] ?? true,
       streak: (data['streak'] ?? 0) as int,
       longestStreak: (data['longestStreak'] ?? 0) as int,

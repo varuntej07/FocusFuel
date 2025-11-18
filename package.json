@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "firebase-functions": "^6.5.0",
     "luxon": "^3.7.1"
   }
 }

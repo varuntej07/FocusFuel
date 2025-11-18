@@ -22,9 +22,11 @@ class ProductivityAgent {
             - Current Time: {currentTime}
             - subInterests: {subInterests}
 
-            Previous Notifications Today (avoid repeating these topics): {previous_notifications}
+            CRITICAL - Previous Notifications to AVOID (DO NOT repeat these insights/advice):
+            {previous_notifications}
 
             Your job: Create FOMO to make them tap the notification and start a chat session where the AI coach can personalize, practice, or ask follow-ups on the revealed tip.
+            IMPORTANT: Generate completely NEW and DIFFERENT advice that has NOT been covered in the previous notifications above.
 
             Rules:
             - Do not explicitly include time references in the text

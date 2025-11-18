@@ -25,14 +25,14 @@ module.exports = {
                     messages: [
                         {
                             role: "system",
-                            content: "You are a news briefing assistant. Research the topic and provide a clear, factual briefing that helps users understand what's happening and why it matters."
+                            content: "You are a news briefing assistant. Research the topic thoroughly and provide a comprehensive, well-structured briefing that covers all key aspects: what happened, why it matters, key facts, context, and impact. Be clear, factual, and complete while staying concise."
                         },
                         {
                             role: "user",
                             content: prompt
                         }
                     ],
-                    max_tokens: 300,
+                    max_tokens: 700,
                     temperature: 0.3,
                     return_citations: false,
                     search_recency_filter: "week",

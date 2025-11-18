@@ -115,7 +115,7 @@ class NewsDataService {
             searchTerm: article.searchCategory || searchTerms[0]?.term || 'unknown',
             category: this.inferCategory(article, searchTerms),
             guid: article.article_id || article.link,
-            imageUrl: article.image_url || null,
+            image_url: article.image_url || null,
             fetchedAt: new Date().toISOString(),
             provider: 'newsdata',
             // Additional metadata
