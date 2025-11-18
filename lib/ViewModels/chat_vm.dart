@@ -9,7 +9,7 @@ class ChatViewModel extends ChangeNotifier {
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _disposed = false;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   // Store the last user message for retry functionality
   String? _lastUserMessage;

@@ -35,7 +35,10 @@ async function incrementChatQueryCounter(userId) {
     await db.collection('Users').doc(userId).update({
         dailyChatQueryCount: admin.firestore.FieldValue.increment(1)
     });
-    console.log(`Incremented chat query counter for user ${userId}, new count: ${userData.dailyChatQueryCount}`);
+
+    // Fetch updated count for logging
+    const userDoc = await db.collection('Users').doc(userId).get();
+    const userData = userDoc.data();
 }
 
 // Helper function to extract clean text content from messages
@@ -232,7 +235,7 @@ module.exports = {
 
         // Create an error message in the conversation
         const errorMessage = await messagesRef.add({
-            content: "I apologize, but I encountered an error processing your message. Please try again.",
+            content: "I encountered an error processing your message. Please try again.",
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             role: 'assistant',
             isFirstMessage: false,
