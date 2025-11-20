@@ -1,5 +1,6 @@
 const { sendScheduledNotification } = require('./notifications/sendNotifications');
 const { clearDailyGoals } = require('./clearData/clearDailyGoals');
+const { clearWeeklyGoals } = require('./clearData/clearWeeklyGoals');
 const { processGptRequest } = require('./gptCalls/processGptRequests');
 const { scheduledNewsCollection } = require('./newsFeed/newsCollection');
 const { getUserNewsFeed } = require("./newsFeed/getUserNewsFeed");
@@ -13,6 +14,7 @@ const { updateExpiredTrials } = require("./schedulers/updateExpiredTrials");
 
 exports.sendScheduledNotification = sendScheduledNotification;
 exports.clearDailyGoals = clearDailyGoals;
+exports.clearWeeklyGoals = clearWeeklyGoals;
 exports.processGptRequest = processGptRequest;
 exports.scheduledNewsCollection = scheduledNewsCollection;
 exports.getUserNewsFeed = getUserNewsFeed;

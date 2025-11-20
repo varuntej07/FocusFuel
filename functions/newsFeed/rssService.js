@@ -209,7 +209,7 @@ class RSSService {
             provider: 'universal-rss',
             
             // Optional fields
-            imageUrl: this.extractImageUrl(item),
+            image_url: this.extractImageUrl(item),
             author: item.author || item['dc:creator'] || null
         };
     }
@@ -230,16 +230,40 @@ class RSSService {
 
     // Extract image URL from RSS item (if available)
     extractImageUrl(item) {
-        // Try multiple common image fields
-        if (item.enclosure?.url && item.enclosure.type?.includes('image')) {
-            return item.enclosure.url;
+        // Try multiple common image fields in order of preference
+
+        // 1. Media content (most common for news feeds)
+        if (item['media:content']?.url) {
+            return item['media:content'].url;
         }
+
+        // 2. Media thumbnail
         if (item['media:thumbnail']?.url) {
             return item['media:thumbnail'].url;
         }
+
+        // 3. Enclosure (common in podcasts and news)
+        if (item.enclosure?.url && item.enclosure.type?.includes('image')) {
+            return item.enclosure.url;
+        }
+
+        // 4. Direct image element
         if (item.image?.url) {
             return item.image.url;
         }
+
+        // 5. Try to extract from description/content HTML
+        if (item.description || item.content) {
+            const content = item.description || item.content;
+            if (typeof content === 'string') {
+                // Look for img tags in HTML content
+                const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+                if (imgMatch && imgMatch[1]) {
+                    return imgMatch[1];
+                }
+            }
+        }
+
         return null;
     }
 
