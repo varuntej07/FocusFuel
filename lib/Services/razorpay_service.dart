@@ -4,6 +4,9 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// Razorpay Key ID passed via --dart-define at build time
+const String _razorpayKey = String.fromEnvironment('RAZORPAY_KEY', defaultValue: '');
+
 class RazorpayService {
   static final FirebaseFunctions _functions = FirebaseFunctions.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -26,9 +29,7 @@ class RazorpayService {
   }
 
   /// Process subscription payment with Razorpay
-  ///
-  /// Returns true if payment flow was initiated successfully
-  /// Actual success is handled via callbacks
+  /// Returns true if payment flow was initiated successfully, Actual success is handled via callbacks
   static Future<bool> createSubscription({
     required BuildContext context,
     required String planId,  // Razorpay plan ID from dashboard
@@ -93,9 +94,8 @@ class RazorpayService {
 
     // Razorpay checkout options
     var options = {
-      // IMPORTANT: Replace with your actual Razorpay Key ID
-      // Get from: https://dashboard.razorpay.com/app/keys
-      'key': 'rzp_test_YOUR_KEY_ID',  // TODO: Replace with actual key
+      // Razorpay Key ID from --dart-define build argument
+      'key': _razorpayKey,
 
       'subscription_id': subscriptionId,
 
@@ -111,7 +111,7 @@ class RazorpayService {
 
       // Branding
       'theme': {
-        'color': '#6366F1',  // Your app primary color
+        'color': '#6366F1',  // app primary color
       },
 
       // Additional options
@@ -154,7 +154,7 @@ class RazorpayService {
       Navigator.of(_context!).popUntil((route) => route.isFirst);
     }
 
-    // Note: Subscription activation is handled by Razorpay webhook
+    // Subscription activation is handled by Razorpay webhook
     // User document will be updated automatically when webhook fires
   }
 

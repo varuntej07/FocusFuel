@@ -1,15 +1,16 @@
-const functions = require('firebase-functions');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const Razorpay = require('razorpay');
 
 const db = admin.firestore();
 
-// Initialize Razorpay with credentials from Firebase config
-// Set via: firebase functions:config:set razorpay.key_id="rzp_test_xxx" razorpay.key_secret="xxx"
-const razorpay = new Razorpay({
-  key_id: functions.config().razorpay?.key_id || 'rzp_test_dummy',
-  key_secret: functions.config().razorpay?.key_secret || 'dummy_secret'
-});
+// Helper to get Razorpay instance (initialized at runtime when secrets are available)
+function getRazorpay() {
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_TEST_KEY_ID,
+    key_secret: process.env.RAZORPAY_TEST_SECRET
+  });
+}
 
 /**
  * Creates a Razorpay subscription for a user
@@ -20,38 +21,44 @@ const razorpay = new Razorpay({
  *
  * @returns {Object} - { subscriptionId, razorpayOrderId, customerId }
  */
-exports.createRazorpaySubscription = functions.https.onCall(async (data, context) => {
-  // Authentication check
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
+exports.createRazorpaySubscription = onCall(
+  {
+    secrets: ['RAZORPAY_TEST_KEY_ID', 'RAZORPAY_TEST_SECRET', 'RAZORPAY_PLAN_ID']
+  },
+  async (request) => {
+    const { data, auth } = request;
 
-  const userId = context.auth.uid;
-  const { planId = functions.config().razorpay?.plan_id } = data;
-
-  if (!planId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Plan ID is required');
-  }
-
-  try {
-    // Get user details from Firestore
-    const userDoc = await db.collection('Users').doc(userId).get();
-    if (!userDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'User not found');
+    // Authentication check
+    if (!auth) {
+      throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
-    const userData = userDoc.data();
-    const userEmail = context.auth.token.email || userData.email;
+    const userId = auth.uid;
+    const { planId = process.env.RAZORPAY_PLAN_ID } = data;
+
+    if (!planId) {
+      throw new HttpsError('invalid-argument', 'Plan ID is required');
+    }
+
+    try {
+      // Get user details from Firestore
+      const userDoc = await db.collection('Users').doc(userId).get();
+      if (!userDoc.exists) {
+        throw new HttpsError('not-found', 'User not found');
+      }
+
+      const userData = userDoc.data();
+      const userEmail = auth.token.email || userData.email;
     const userName = userData.username || 'FocusFuel User';
 
     // Check if user already has an active subscription
     if (userData.subscriptionStatus === 'premium' && userData.razorpaySubscriptionId) {
       // Verify if subscription is actually active in Razorpay
-      try {
-        const existingSubscription = await razorpay.subscriptions.fetch(userData.razorpaySubscriptionId);
-        if (existingSubscription.status === 'active' || existingSubscription.status === 'authenticated') {
-          throw new functions.https.HttpsError('already-exists', 'User already has an active subscription');
-        }
+        try {
+          const existingSubscription = await getRazorpay().subscriptions.fetch(userData.razorpaySubscriptionId);
+          if (existingSubscription.status === 'active' || existingSubscription.status === 'authenticated') {
+            throw new HttpsError('already-exists', 'User already has an active subscription');
+          }
       } catch (err) {
         console.log('Existing subscription check failed, proceeding with new subscription:', err.message);
       }
@@ -61,7 +68,7 @@ exports.createRazorpaySubscription = functions.https.onCall(async (data, context
     let customerId = userData.razorpayCustomerId;
 
     if (!customerId) {
-      const customer = await razorpay.customers.create({
+      const customer = await getRazorpay().customers.create({
         name: userName,
         email: userEmail,
         fail_existing: 0,  // Don't fail if customer already exists
@@ -96,7 +103,7 @@ exports.createRazorpaySubscription = functions.https.onCall(async (data, context
       }
     };
 
-    const subscription = await razorpay.subscriptions.create(subscriptionData);
+    const subscription = await getRazorpay().subscriptions.create(subscriptionData);
 
     // Step 3: Log subscription creation
     await db.collection('subscription_logs').add({
@@ -137,21 +144,22 @@ exports.createRazorpaySubscription = functions.https.onCall(async (data, context
       // The subscription ID is used to authenticate payment
     };
 
-  } catch (error) {
-    console.error('Error creating Razorpay subscription:', error);
+    } catch (error) {
+      console.error('Error creating Razorpay subscription:', error);
 
-    // Log error
-    await db.collection('subscription_logs').add({
-      userId: userId,
-      error: error.message,
-      errorCode: error.error?.code,
-      status: 'error',
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+      // Log error
+      await db.collection('subscription_logs').add({
+        userId: userId,
+        error: error.message,
+        errorCode: error.error?.code,
+        status: 'error',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
 
-    throw new functions.https.HttpsError(
-      'internal',
-      `Unable to create subscription: ${error.message}`
-    );
+      throw new HttpsError(
+        'internal',
+        `Unable to create subscription: ${error.message}`
+      );
+    }
   }
-});
+);

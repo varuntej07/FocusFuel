@@ -1,11 +1,11 @@
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 
 const db = admin.firestore();
 
-// Razorpay webhook secret (set via: firebase functions:config:set razorpay.webhook_secret="xxx")
-const webhookSecret = functions.config().razorpay?.webhook_secret;
+// Razorpay webhook secret (set via: firebase functions:secrets:set RAZORPAY_WEBHOOK_SECRET)
+const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 /**
  * Razorpay webhook endpoint
@@ -25,106 +25,107 @@ const webhookSecret = functions.config().razorpay?.webhook_secret;
  * - subscription.resumed: Admin resumed subscription
  * - payment.failed: Payment attempt failed
  */
-exports.razorpayWebhook = functions.https.onRequest(async (req, res) => {
-  const webhookSignature = req.headers['x-razorpay-signature'];
-  const webhookBody = req.rawBody.toString();
+exports.razorpayWebhook = onRequest(
+  {
+    secrets: ['RAZORPAY_WEBHOOK_SECRET']
+  },
+  async (req, res) => {
+    const webhookSignature = req.headers['x-razorpay-signature'];
+    const webhookBody = req.rawBody.toString();
 
-  // Step 1: Verify webhook signature
-  if (!webhookSecret) {
-    console.error('Razorpay webhook secret not configured');
-    return res.status(500).send('Webhook secret not configured');
-  }
-
-  try {
-    const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(webhookBody)
-      .digest('hex');
-
-    if (expectedSignature !== webhookSignature) {
-      console.error('Webhook signature verification failed');
-      return res.status(400).send('Invalid signature');
-    }
-  } catch (err) {
-    console.error('Error verifying webhook signature:', err);
-    return res.status(400).send('Signature verification failed');
-  }
-
-  // Step 2: Parse webhook payload
-  let event;
-  try {
-    event = JSON.parse(webhookBody);
-  } catch (err) {
-    console.error('Invalid JSON payload:', err);
-    return res.status(400).send('Invalid JSON');
-  }
-
-  const eventType = event.event;
-  const payload = event.payload.subscription?.entity || event.payload.payment?.entity;
-
-  console.log(`Received Razorpay webhook: ${eventType}`);
-  console.log('Payload:', JSON.stringify(payload, null, 2));
-
-  // Step 3: Handle event
-  try {
-    switch (eventType) {
-      case 'subscription.authenticated':
-        await handleSubscriptionAuthenticated(payload);
-        break;
-
-      case 'subscription.activated':
-        await handleSubscriptionActivated(payload);
-        break;
-
-      case 'subscription.charged':
-        await handleSubscriptionCharged(payload);
-        break;
-
-      case 'subscription.completed':
-        await handleSubscriptionCompleted(payload);
-        break;
-
-      case 'subscription.pending':
-        await handleSubscriptionPending(payload);
-        break;
-
-      case 'subscription.halted':
-        await handleSubscriptionHalted(payload);
-        break;
-
-      case 'subscription.cancelled':
-        await handleSubscriptionCancelled(payload);
-        break;
-
-      case 'subscription.paused':
-        await handleSubscriptionPaused(payload);
-        break;
-
-      case 'subscription.resumed':
-        await handleSubscriptionResumed(payload);
-        break;
-
-      case 'payment.failed':
-        await handlePaymentFailed(payload);
-        break;
-
-      default:
-        console.log(`Unhandled event type: ${eventType}`);
+    // Step 1: Verify webhook signature
+    if (!webhookSecret) {
+      console.error('Razorpay webhook secret not configured');
+      return res.status(500).send('Webhook secret not configured');
     }
 
-    // Acknowledge receipt
-    res.json({ received: true, event: eventType });
-  } catch (error) {
-    console.error('Error processing webhook:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
+    try {
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(webhookBody)
+        .digest('hex');
+
+      if (expectedSignature !== webhookSignature) {
+        console.error('Webhook signature verification failed');
+        return res.status(400).send('Invalid signature');
+      }
+    } catch (err) {
+      console.error('Error verifying webhook signature:', err);
+      return res.status(400).send('Signature verification failed');
+    }
+
+    // Step 2: Parse webhook payload
+    let event;
+    try {
+      event = JSON.parse(webhookBody);
+    } catch (err) {
+      console.error('Invalid JSON payload:', err);
+      return res.status(400).send('Invalid JSON');
+    }
+
+    const eventType = event.event;
+    const payload = event.payload.subscription?.entity || event.payload.payment?.entity;
+
+    console.log(`Received Razorpay webhook: ${eventType}`);
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+
+    // Step 3: Handle event
+    try {
+      switch (eventType) {
+        case 'subscription.authenticated':
+          await handleSubscriptionAuthenticated(payload);
+          break;
+
+        case 'subscription.activated':
+          await handleSubscriptionActivated(payload);
+          break;
+
+        case 'subscription.charged':
+          await handleSubscriptionCharged(payload);
+          break;
+
+        case 'subscription.completed':
+          await handleSubscriptionCompleted(payload);
+          break;
+
+        case 'subscription.pending':
+          await handleSubscriptionPending(payload);
+          break;
+
+        case 'subscription.halted':
+          await handleSubscriptionHalted(payload);
+          break;
+
+        case 'subscription.cancelled':
+          await handleSubscriptionCancelled(payload);
+          break;
+
+        case 'subscription.paused':
+          await handleSubscriptionPaused(payload);
+          break;
+
+        case 'subscription.resumed':
+          await handleSubscriptionResumed(payload);
+          break;
+
+        case 'payment.failed':
+          await handlePaymentFailed(payload);
+          break;
+
+        default:
+          console.log(`Unhandled event type: ${eventType}`);
+      }
+
+      // Acknowledge receipt
+      res.json({ received: true, event: eventType });
+    } catch (error) {
+      console.error('Error processing webhook:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
+    }
   }
-});
+);
 
-// ===== Event Handlers =====
-
-/**
- * Subscription authenticated - User completed payment authorization
- */
+// Subscription authenticated - User completed payment authorization
 async function handleSubscriptionAuthenticated(subscription) {
   console.log('Subscription authenticated:', subscription.id);
 
@@ -143,9 +144,7 @@ async function handleSubscriptionAuthenticated(subscription) {
   await logSubscriptionEvent(userId, subscription.id, 'authenticated', subscription);
 }
 
-/**
- * Subscription activated - First payment succeeded, subscription is now active
- */
+// Subscription activated - First payment succeeded, subscription is now active
 async function handleSubscriptionActivated(subscription) {
   console.log('Subscription activated:', subscription.id);
 
@@ -171,9 +170,7 @@ async function handleSubscriptionActivated(subscription) {
   console.log(`User ${userId} upgraded to premium via subscription ${subscription.id}`);
 }
 
-/**
- * Subscription charged - Recurring payment succeeded
- */
+// Subscription charged - Recurring payment succeeded
 async function handleSubscriptionCharged(subscription) {
   console.log('Subscription charged:', subscription.id);
 
@@ -199,9 +196,7 @@ async function handleSubscriptionCharged(subscription) {
   console.log(`Recurring payment succeeded for user ${userId}`);
 }
 
-/**
- * Subscription completed - All billing cycles completed
- */
+// Subscription completed - All billing cycles completed
 async function handleSubscriptionCompleted(subscription) {
   console.log('Subscription completed:', subscription.id);
 
@@ -225,9 +220,7 @@ async function handleSubscriptionCompleted(subscription) {
   console.log(`Subscription completed for user ${userId}`);
 }
 
-/**
- * Subscription pending - Awaiting payment
- */
+// Subscription pending - Awaiting payment
 async function handleSubscriptionPending(subscription) {
   console.log('Subscription pending:', subscription.id);
 
@@ -246,9 +239,7 @@ async function handleSubscriptionPending(subscription) {
   await logSubscriptionEvent(userId, subscription.id, 'pending', subscription);
 }
 
-/**
- * Subscription halted - Payment failed, auto-paused by Razorpay
- */
+// Subscription halted - Payment failed, auto-paused by Razorpay
 async function handleSubscriptionHalted(subscription) {
   console.log('Subscription halted:', subscription.id);
 
@@ -275,9 +266,7 @@ async function handleSubscriptionHalted(subscription) {
   console.log(`Subscription halted for user ${userId} due to payment failure`);
 }
 
-/**
- * Subscription cancelled - User or admin cancelled
- */
+// Subscription cancelled - User or admin cancelled
 async function handleSubscriptionCancelled(subscription) {
   console.log('Subscription cancelled:', subscription.id);
 
@@ -304,9 +293,7 @@ async function handleSubscriptionCancelled(subscription) {
   console.log(`Subscription cancelled for user ${userId}`);
 }
 
-/**
- * Subscription paused - Admin paused
- */
+// Subscription paused - Admin paused
 async function handleSubscriptionPaused(subscription) {
   console.log('Subscription paused:', subscription.id);
 
@@ -326,9 +313,7 @@ async function handleSubscriptionPaused(subscription) {
   await logSubscriptionEvent(userId, subscription.id, 'paused', subscription);
 }
 
-/**
- * Subscription resumed - Admin resumed
- */
+// Subscription resumed - Admin resumed
 async function handleSubscriptionResumed(subscription) {
   console.log('Subscription resumed:', subscription.id);
 
@@ -348,9 +333,7 @@ async function handleSubscriptionResumed(subscription) {
   await logSubscriptionEvent(userId, subscription.id, 'resumed', subscription);
 }
 
-/**
- * Payment failed
- */
+// Payment failed
 async function handlePaymentFailed(payment) {
   console.log('Payment failed:', payment.id);
 
@@ -394,9 +377,7 @@ async function handlePaymentFailed(payment) {
   console.log(`Payment failed for user ${userId}, subscription ${subscriptionId}`);
 }
 
-/**
- * Log subscription event
- */
+// Log subscription event
 async function logSubscriptionEvent(userId, subscriptionId, event, subscriptionData) {
   await db.collection('subscription_logs').add({
     userId: userId,
