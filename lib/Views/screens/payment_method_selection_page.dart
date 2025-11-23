@@ -137,32 +137,22 @@ class _PaymentMethodSelectionPageState extends State<PaymentMethodSelectionPage>
               ),
               SizedBox(height: 16),
 
-              // Razorpay Payment (supports all methods)
-              _buildPaymentOption(
-                context: context,
-                icon: Icons.payment,
-                title: 'Pay with Razorpay',
-                subtitle: 'Card, UPI, Netbanking, Wallets',
-                onTap: _isProcessing ? null : () => _initiatePayment(context),
-              ),
-              SizedBox(height: 12),
-
-              // Card Payment (via Razorpay)
+              // Credit/Debit Card Payment
               _buildPaymentOption(
                 context: context,
                 icon: Icons.credit_card,
                 title: 'Credit or Debit Card',
-                subtitle: 'Visa, Mastercard, Amex, RuPay',
+                subtitle: 'Visa, Mastercard, Amex, Discover',
                 onTap: _isProcessing ? null : () => _initiatePayment(context),
               ),
               SizedBox(height: 12),
 
-              // UPI Payment (via Razorpay)
+              // Digital Wallets
               _buildPaymentOption(
                 context: context,
                 icon: Icons.account_balance_wallet,
-                title: 'UPI',
-                subtitle: 'Google Pay, PhonePe, Paytm',
+                title: 'Digital Wallet',
+                subtitle: 'Apple Pay, Google Pay',
                 onTap: _isProcessing ? null : () => _initiatePayment(context),
               ),
 

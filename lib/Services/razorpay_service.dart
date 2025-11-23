@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 // Razorpay Key ID passed via --dart-define at build time
 const String _razorpayKey = String.fromEnvironment('RAZORPAY_KEY', defaultValue: '');
@@ -65,7 +66,15 @@ class RazorpayService {
       );
 
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // Log to Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'Failed to create subscription',
+        fatal: false,
+      );
+
       // Close loading dialog if still open
       if (context.mounted) Navigator.of(context).pop();
 
@@ -118,7 +127,7 @@ class RazorpayService {
       'modal': {
         'confirm_close': true,
         'ondismiss': () {
-          debugPrint('Checkout cancelled by user');
+          FirebaseCrashlytics.instance.log('Payment checkout dismissed by user');
         }
       },
 
@@ -133,8 +142,13 @@ class RazorpayService {
 
     try {
       _razorpay.open(options);
-    } catch (e) {
-      debugPrint('Error opening Razorpay checkout: $e');
+    } catch (e, stackTrace) {
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'Failed to open payment checkout',
+        fatal: false,
+      );
       if (context.mounted) {
         _showError(context, 'Failed to open payment gateway');
       }
@@ -143,12 +157,10 @@ class RazorpayService {
 
   /// Handle successful payment
   static void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    debugPrint('Payment Success: ${response.paymentId}');
-    debugPrint('Order ID: ${response.orderId}');
-    debugPrint('Signature: ${response.signature}');
+    FirebaseCrashlytics.instance.log('Payment successful - paymentId: ${response.paymentId}');
 
     if (_context != null && _context!.mounted) {
-      _showSuccess(_context!, 'Payment successful! Welcome to Premium 🎉');
+      _showSuccess(_context!, 'Payment successful! Welcome to Premium');
 
       // Navigate back or refresh
       Navigator.of(_context!).popUntil((route) => route.isFirst);
@@ -160,7 +172,13 @@ class RazorpayService {
 
   /// Handle payment error
   static void _handlePaymentError(PaymentFailureResponse response) {
-    debugPrint('Payment Error: ${response.code} - ${response.message}');
+    // Log error to Crashlytics
+    FirebaseCrashlytics.instance.recordError(
+      Exception('Payment failed: code=${response.code}, message=${response.message}'),
+      StackTrace.current,
+      reason: 'Payment gateway error',
+      fatal: false,
+    );
 
     if (_context != null && _context!.mounted) {
       String errorMessage = 'Payment failed';
@@ -188,7 +206,7 @@ class RazorpayService {
 
   /// Handle external wallet selection
   static void _handleExternalWallet(ExternalWalletResponse response) {
-    debugPrint('External Wallet: ${response.walletName}');
+    FirebaseCrashlytics.instance.log('External wallet selected: ${response.walletName}');
 
     if (_context != null && _context!.mounted) {
       _showInfo(_context!, 'Opening ${response.walletName}...');
@@ -227,7 +245,15 @@ class RazorpayService {
         }
         return false;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // Log to Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        stackTrace,
+        reason: 'Failed to cancel subscription',
+        fatal: false,
+      );
+
       // Close loading
       if (context.mounted) Navigator.of(context).pop();
 
