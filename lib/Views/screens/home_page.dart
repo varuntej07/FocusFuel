@@ -292,7 +292,7 @@ class _HomeFeedState extends State<HomeFeed> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    "Hey $userName! 👋",
+                    "Hey $userName!",
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,

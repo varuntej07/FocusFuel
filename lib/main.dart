@@ -112,6 +112,8 @@ void _setupNotificationHandlers() async {
   // When app is terminated and user taps notification
   FirebaseMessaging.instance.getInitialMessage().then((message) {
     if (message != null) {
+      _trackNotificationEvent('opened', message);   // Track notification as opened/clicked
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (navigationKey.currentState != null) {
           navigationKey.currentState!.pushAndRemoveUntil(
@@ -128,17 +130,35 @@ void _trackNotificationEvent(String eventType, RemoteMessage message) {
   final notificationId = message.data['notificationId'];
   final userId = message.data['userId'];
 
-  if (notificationId != null && userId != null) {
-    // Update the existing Notifications document
-    FirebaseFirestore.instance.collection('Notifications').doc(notificationId).update({
-      if (eventType == 'received') 'received': true,
-      if (eventType == 'received') 'receivedAt': FieldValue.serverTimestamp(),
-      if (eventType == 'opened') 'clicked': true,
-      if (eventType == 'opened') 'clickedAt': FieldValue.serverTimestamp(),
-    }).catchError((error) {
-      FirebaseCrashlytics.instance.recordError(error, StackTrace.current, information: ['Failed to track notification event']);
-    });
+  if (notificationId == null || userId == null) {
+    FirebaseCrashlytics.instance.log('Missing notificationId or userId in FCM data payload: ${message.data}');
+    return;
   }
+
+  // Update the existing Notifications document
+  FirebaseFirestore.instance.collection('Notifications').doc(notificationId).update({
+    if (eventType == 'received') 'received': true,
+    if (eventType == 'received') 'receivedAt': FieldValue.serverTimestamp(),
+    if (eventType == 'opened') 'clicked': true,
+    if (eventType == 'opened') 'clickedAt': FieldValue.serverTimestamp(),
+  }).then((_) {
+    // If notification was clicked, also update user engagement metrics
+    if (eventType == 'opened') {
+      _updateUserEngagementOnNotificationTap(userId);
+    }
+  }).catchError((error) {
+    FirebaseCrashlytics.instance.recordError(error, StackTrace.current, information: ['Failed to track notification $eventType event']);
+  });
+}
+
+/// Updates user engagement metrics when a notification is tapped
+void _updateUserEngagementOnNotificationTap(String userId) {
+  FirebaseFirestore.instance.collection('Users').doc(userId).update({
+    'lastNotificationTapAt': FieldValue.serverTimestamp(),
+    'consecutiveIgnoredNotifications': 0,
+  }).catchError((error) {
+    FirebaseCrashlytics.instance.recordError(error, StackTrace.current, information: ['Failed to update user engagement on notification tap']);
+  });
 }
 
 class MyApp extends StatelessWidget {
