@@ -21,7 +21,7 @@ class NewsListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -48,7 +48,7 @@ class NewsListItem extends StatelessWidget {
 
                 const SizedBox(width: 12),
 
-                // Right: Content
+                // Right: News article content
                 Flexible(child: _buildContentSection(context)),
               ],
             ),
@@ -62,10 +62,10 @@ class NewsListItem extends StatelessWidget {
     final imageUrl = article['image_url'] as String?;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       child: SizedBox(
-        width: 100,
-        height: 100,
+        width: 110,
+        height: 200,
         child: imageUrl != null && imageUrl.isNotEmpty ?
         Image.network(
           imageUrl,

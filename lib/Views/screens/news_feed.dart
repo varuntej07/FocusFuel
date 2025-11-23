@@ -296,6 +296,7 @@ class _NewsFeedState extends State<NewsFeed> {
 
   // Event handlers
   void _handleArticleTap(Map<String, dynamic> article) {
+    newsVM.trackArticleTap(article);
     _showNewsSummaryDialog(context, article, _newsService);
   }
 

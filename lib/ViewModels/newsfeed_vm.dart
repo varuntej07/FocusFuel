@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../Services/news_service.dart';
 import '../Services/shared_prefs_service.dart';
@@ -152,6 +153,45 @@ class NewsFeedViewModel extends ChangeNotifier {
 
   List<Map<String, dynamic>> getBookmarkedArticles() {
     return _prefsService.getBookmarkedArticles();
+  }
+
+  /// Tracks when a user taps/reads an article - updates isRead status and learned interests
+  Future<void> trackArticleTap(Map<String, dynamic> article) async {
+    final userId = _prefsService.getUserId();
+    if (userId == null || userId.isEmpty) return;
+
+    final category = article['category']?.toString().toLowerCase() ?? '';
+    final collectionDate = article['collectionDate']?.toString();
+    final articleId = article['id']?.toString();
+
+    // Update article isRead status in Firestore if we have the path info
+    if (collectionDate != null && articleId != null) {
+      FirebaseFirestore.instance
+          .collection('UsersFeed')
+          .doc(userId)
+          .collection(collectionDate)
+          .doc(articleId)
+          .update({
+        'isRead': true,
+        'readAt': FieldValue.serverTimestamp(),
+      }).catchError((error) {
+        FirebaseCrashlytics.instance.recordError(error, StackTrace.current,
+            information: ['Failed to update article isRead status']);
+      });
+    }
+
+    // Update user's learned interests based on article category
+    if (category.isNotEmpty) {
+      FirebaseFirestore.instance.collection('Users').doc(userId).set({
+        'learnedInterests': {
+          category: FieldValue.increment(1),
+        },
+        'lastArticleTapAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true)).catchError((error) {
+        FirebaseCrashlytics.instance.recordError(error, StackTrace.current,
+            information: ['Failed to update learned interests']);
+      });
+    }
   }
 
   // Refresh articles (pull-to-refresh)
