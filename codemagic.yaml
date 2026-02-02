@@ -24,8 +24,7 @@ workflows:
           # Downloads files to ~/Library/MobileDevice/Certificates and ~/Library/MobileDevice/Provisioning Profiles
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
-            --create \
-            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
+            --create
       - name: Set up keychain
         script: |
           keychain initialize
