@@ -1,0 +1,59 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: codemagic    # Used for automatic TestFlight publishing (publishing section)
+    environment:
+      groups:
+        # Import App Store Connect API credentials for CLI commands in scripts
+        # These credentials allow 'app-store-connect fetch-signing-files' to authenticate
+        # Must contain: APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_PRIVATE_KEY
+        - appstore_credentials
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: "dev.varuntej.focusfuel"
+    scripts:
+      - name: Fetch signing files from App Store Connect
+        script: |
+          # Fetches existing provisioning profile and certificate from Apple Developer Portal
+          # Uses APP_STORE_CONNECT_* environment variables from appstore_credentials group for authentication
+          # Downloads files to ~/Library/MobileDevice/Certificates and ~/Library/MobileDevice/Provisioning Profiles
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
+      - name: Set up keychain
+        script: |
+          keychain initialize
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+      - name: Fetch provisioning profile from App Store Connect
+        script: |
+          # Configures Xcode project to use the fetched provisioning profile and certificate
+          # Updates project.pbxproj with correct code signing settings
+          xcode-project use-profiles
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Set iOS deployment target
+        script: |
+          find . -name "Podfile" -exec sed -i '' "s/^# platform :ios, '.*'/platform :ios, '15.0'/" {} \;
+          find . -name "Podfile" -exec sed -i '' "s/^platform :ios, '.*'/platform :ios, '15.0'/" {} \;
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Build iOS app ipa for release
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
