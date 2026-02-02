@@ -22,9 +22,11 @@ workflows:
           # Fetches existing provisioning profile and certificate from Apple Developer Portal
           # Uses APP_STORE_CONNECT_* environment variables from appstore_credentials group for authentication
           # Downloads files to ~/Library/MobileDevice/Certificates and ~/Library/MobileDevice/Provisioning Profiles
+          # The --certificate-key flag uses the private key generated on Windows to create/fetch the certificate
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
-            --create
+            --create \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
       - name: Set up keychain
         script: |
           keychain initialize
