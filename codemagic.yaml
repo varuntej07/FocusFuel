@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: codemagic    # Used for automatic TestFlight publishing (publishing section)
+      app_store_connect: FocusFuel    # Name of the key in appstoreconnect>access>integration>name. Used for automatic TestFlight publishing
     environment:
       groups:
         # Import App Store Connect API credentials for CLI commands in scripts
