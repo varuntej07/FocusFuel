@@ -12,7 +12,12 @@
           "package_name": "com.example.focus_fuel"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "107481277829-qf1oncrquapvlct1elcjll41p9mk7f4q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDfyQZV_j8W277otHHKttkDsFtKQpkVqnM"
@@ -20,18 +25,35 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "107481277829-apjnt2hgonv4kn5raueac0juceggo57v.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "107481277829-3pf097r5ss2knoo5tbkjm94rav9md6e4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.focusfuel"
+              }
+            }
+          ]
         }
       }
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:107481277829:android:a2ae30ca68266bee4310ec",
+        "mobilesdk_app_id": "1:107481277829:android:228aa2293e5c72314310ec",
         "android_client_info": {
-          "package_name": "com.example.focusfuel"
+          "package_name": "dev.varuntej.focusfuel"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "107481277829-qf1oncrquapvlct1elcjll41p9mk7f4q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDfyQZV_j8W277otHHKttkDsFtKQpkVqnM"
@@ -39,7 +61,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "107481277829-apjnt2hgonv4kn5raueac0juceggo57v.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "107481277829-3pf097r5ss2knoo5tbkjm94rav9md6e4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.focusfuel"
+              }
+            }
+          ]
         }
       }
     }

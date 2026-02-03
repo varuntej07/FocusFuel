@@ -7,6 +7,7 @@ import 'package:focus_fuel/ViewModels/auth_vm.dart';
 import 'package:focus_fuel/ViewModels/chat_vm.dart';
 import 'package:focus_fuel/ViewModels/goals_vm.dart';
 import 'package:focus_fuel/ViewModels/home_vm.dart';
+import 'package:focus_fuel/ViewModels/debate_vm.dart';
 import 'package:provider/provider.dart';
 import 'Services/shared_prefs_service.dart';
 import 'Services/streak_repo.dart';
@@ -192,6 +193,7 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => OnboardingViewModel()),
             ChangeNotifierProvider(create: (_) => NewsFeedViewModel()),
             ChangeNotifierProvider(create: (_) => GoalsViewModel()),
+            ChangeNotifierProvider(create: (_) => DebateViewModel()),
           ],
           child: Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {

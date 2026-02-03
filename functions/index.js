@@ -11,6 +11,8 @@ const { createRazorpaySubscription } = require("./payments/createRazorpaySubscri
 const { razorpayWebhook } = require("./payments/razorpayWebhook");
 const { cancelRazorpaySubscription } = require("./payments/cancelRazorpaySubscription");
 const { updateExpiredTrials } = require("./schedulers/updateExpiredTrials");
+const { processDebateRequest } = require("./debate/processDebateRequest");
+const { debateStream } = require("./debate/debateStream");
 
 exports.sendScheduledNotification = sendScheduledNotification;
 exports.clearDailyGoals = clearDailyGoals;
@@ -25,3 +27,5 @@ exports.createRazorpaySubscription = createRazorpaySubscription;
 exports.razorpayWebhook = razorpayWebhook;
 exports.cancelRazorpaySubscription = cancelRazorpaySubscription;
 exports.updateExpiredTrials = updateExpiredTrials;
+exports.processDebateRequest = processDebateRequest;
+exports.debateStream = debateStream;

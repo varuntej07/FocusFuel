@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../ViewModels/home_vm.dart';
 import '../../ViewModels/auth_vm.dart';
 import 'subscription_page.dart';
+import '../debate/debate_setup_view.dart';
 
 class HomeFeed extends StatefulWidget {
   const HomeFeed({super.key});
@@ -361,6 +362,18 @@ class _HomeFeedState extends State<HomeFeed> {
 
               const SizedBox(height: 16),
 
+              // Debate Card
+              _DebateCard(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DebateSetupView()),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
+
               // Motivational Quote
               if (greeting != null)
                 Container(
@@ -643,6 +656,83 @@ class _WinsCard extends StatelessWidget {
                 fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
                 height: 1.5,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Debate Card
+class _DebateCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _DebateCard({
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFEF4444).withValues(alpha: 0.15),
+              const Color(0xFFF97316).withValues(alpha: 0.15),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFEF4444), Color(0xFFF97316)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.psychology, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Debate Your Dilemma",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFEF4444),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Let AI agents argue both sides of a topic so you can learn from it",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              size: 18,
             ),
           ],
         ),
